@@ -1,6 +1,8 @@
 #!/usr/bin/env -S julia --project
 
-include("./header.jl")
+using Revise
+
+includet("./header.jl")
 
 using StaggeredKernels.Plane
 

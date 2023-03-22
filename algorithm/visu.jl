@@ -15,9 +15,9 @@ function heatmap(x::Field{Sx}, y::Field{Sy}, f::Field{Sf}, name::String; args...
 	bounds_x = (bounds_f[1],)
 	bounds_y = (bounds_f[2],)
 	
-	data_x = view(x.data, stagindex(Sx, stag_x), bounds_x...)
-	data_y = view(y.data, stagindex(Sy, stag_y), bounds_y...)
-	data_f = view(f.data, stagindex(Sf, stag_f), bounds_f...)
+	data_x = view(x.data, StaggeredKernels.stagindex(Sx, stag_x), bounds_x...)
+	data_y = view(y.data, StaggeredKernels.stagindex(Sy, stag_y), bounds_y...)
+	data_f = view(f.data, StaggeredKernels.stagindex(Sf, stag_f), bounds_f...)
 	
 	return Plots.heatmap(data_x, data_y, data_f'; 
 		xlims=(data_x[1], data_x[end]),
