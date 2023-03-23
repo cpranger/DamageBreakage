@@ -1,7 +1,3 @@
-using Plots
-
-export heatmap
-
 function heatmap(x::Field{Sx}, y::Field{Sy}, f::Field{Sf}, name::String; args...) where {Sx, Sy, Sf}
 	stag_f = maximum(Sf) # pick out most central stag
 	
