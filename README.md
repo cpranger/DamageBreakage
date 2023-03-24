@@ -19,6 +19,6 @@ Other tests include
 any of these tests can be run directly from the shell using
 ```julia --project scripts/test-____.jl --nb 100,100 [--help for further arguments]```
 or from the REPL using
-```ARGS = ["--nb", "100,100"]; # add further arguments similarly
-includet("./scripts/test-____.jl")
-main()```
+```ARGS = ["--nb", "100,100"]; # add further arguments similarly```
+```includet("./scripts/test-____.jl")```
+```main()```
