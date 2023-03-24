@@ -1,6 +1,6 @@
 rayleigh_quotient(f1, f2, bounds) = dot(f1, f2, bounds) / dot(f1, f1, bounds)
 
-function powerit!(op, f1, f2; bounds, atol, nit)
+function powerit!(op, f1, f2; bounds, atol, maxit)
 	fib0 = 1
 	fib1 = 1
 	fib2 = 2
@@ -10,7 +10,7 @@ function powerit!(op, f1, f2; bounds, atol, nit)
     assign!(f1, f1 / norm, bounds)
     λ = 1.
 	
-	for i in 1:nit
+	for i in 1:maxit
 		assign!(f2, op(f1)/λ, bounds)
 		assign!(f1, op(f2)/λ, bounds)
 
@@ -36,6 +36,6 @@ function powerit!(op, f1, f2; bounds, atol, nit)
 			iter += 1
 		end
 	end
-	println("power iteration failed to converge in $nit iterations")
+	println("power iteration failed to converge in $maxit iterations")
 	return λ
 end

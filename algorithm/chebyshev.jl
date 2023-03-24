@@ -1,6 +1,6 @@
 cheby(i, x::Complex) = real(0.5*((x + sqrt(x^2 - 1))^i + (x - sqrt(x^2 - 1))^i))
 
-function chebyshev!(A, x, b; λ = (λ_1, λ_2), v, r, bounds, atol)
+function chebyshev!(A, x, b; λ = (λ_1, λ_2), v, r, bounds, atol, maxit)
 	# based on Gutknecht & Röllin (2002; Parallel Computing), algorithm 5.
 	assign!(r, b - A(x), bounds)
 	
@@ -36,8 +36,8 @@ function chebyshev!(A, x, b; λ = (λ_1, λ_2), v, r, bounds, atol)
 			ω = 1/(α - (c/2)^2 * ω)
 		end
 		
-		assign!(v, r - ψ*v , bounds)
-		assign!(x, x + ω*v , bounds)
+		assign!(v, r - ψ*v   , bounds)
+		assign!(x, x + ω*v   , bounds)
 		assign!(r, r - ω*A(v), bounds)
 		
 		ε[1+i] = sqrt <| dot(r, r, bounds)
@@ -45,7 +45,7 @@ function chebyshev!(A, x, b; λ = (λ_1, λ_2), v, r, bounds, atol)
 
 		mod(i, 10) == 1 &&
 			println("chebyshev: i = $i, log10(ε) = $(log10(ε[1+i])), log10(ε1*ρ) = $(log10(ε[1]*ρ(i)))")
-
+        
 		i += 1
 	end
 

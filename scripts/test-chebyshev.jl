@@ -6,43 +6,55 @@ includet("./header.jl")
 
 using StaggeredKernels.Plane
 
-function test_poisson(x, y, p, bc)
+function test_poisson(x, y, p)
 	bounds = (p.o, p.n)
 
 	A    = x -> divergence(grad(x))
 	B(λ) = x -> A(x) - λ*x
 	
 	# A f = b
-	f = Field(p.n, div_stags, bc)
+	f = Field(p.n, div_stags)
 	b = Field(p.n, div_stags)
+
+	bc_expl = (
+		Essential(:-, :y, 0),
+		Essential(:-, :x, 0),
+		  Natural(:+, :x, 0),
+		Essential(:+, :y, 0)
+	)
+	bc_impl = (
+		Essential(:-, :y, f),
+		Essential(:-, :x, f),
+		Essential(:+, :x, BD(f, :x)),
+		Essential(:+, :y, f-1)
+	)
 	
 	# helpers
-	h = Field(p.n, div_stags, bc)
-	r = Field(p.n, div_stags, bc)
+	h   = Field(p.n, div_stags)
+	r1  = Field(p.n, div_stags, bc_expl)
+	r2  = Field(p.n, div_stags, bc_impl)
 
 	# modes
-	m_1 = Field(p.n, div_stags, bc)
-	m_n = Field(p.n, div_stags, bc)
-	
-	assign!(b, 1, bounds)
+	m_1 = Field(p.n, div_stags, bc_expl)
+	m_n = Field(p.n, div_stags, bc_expl)
 	
 	# random initial guesses:
 	assign!(f,   fieldgen((_...) -> rand()), bounds)
 	assign!(m_1, fieldgen((_...) -> rand()), bounds)
 	assign!(m_n, fieldgen((_...) -> rand()), bounds)
 	
-	λ_n =       powerit!(A,      m_n, r; bounds = bounds, nit = 10000, atol = 1e-7)
-	λ_1 = λ_n + powerit!(B(λ_n), m_1, r; bounds = bounds, nit = 10000, atol = 1e-7)
+	λ_n =       powerit!(A,      m_n, r1; bounds = bounds, maxit = 10000, atol = 1e-7)
+	λ_1 = λ_n + powerit!(B(λ_n), m_1, r1; bounds = bounds, maxit = 10000, atol = 1e-7)
 
 	Meta.@show λ_1, λ_n
 
-	ε = chebyshev!(A, f, b; λ = (λ_1, λ_n), v = h, r = r, bounds = bounds, atol = 1e-7)
+	ε = chebyshev!(A, f, b; λ = (λ_1, λ_n), v = h, r = r2, bounds = bounds, atol = 1e-7, maxit = 10000)
 
 	display(plot(log10.(ε)))
 	readline()
 
-	plt1 = heatmap(x, y, f, "f", c = :davos)
-	plt2 = heatmap(x, y, r, "r", c = :davos)
+	plt1 = heatmap(x, y, f , "f" , c = :davos)
+	plt2 = heatmap(x, y, r2, "r2", c = :davos)
 	plt  = plot(plt1, plt2; layout = (1, 2))
 	
 	display(plt)
@@ -50,7 +62,7 @@ function test_poisson(x, y, p, bc)
 	readline()
 end
 
-function test_elasticity(x, y, p, bc)
+function test_elasticity(x, y, p)
 	
 end
 
@@ -84,9 +96,8 @@ function main()
 	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
 	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
 	
-	#    test_poisson(x, y, p, (Essential(:-, :y, 0), Essential(:-, :x, 0), Essential(:+, :x, 0), Essential(:+, :y, 1)))
-	   test_poisson(x, y, p, Essential())
-	test_elasticity(x, y, p, ImpermeableFreeSlip())
+	   test_poisson(x, y, p)
+	test_elasticity(x, y, p)
 	
 	"finished!"
 end
