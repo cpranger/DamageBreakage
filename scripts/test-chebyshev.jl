@@ -120,8 +120,8 @@ function test_elasticity(x, y, p)
 	assign!(m_1, rinit, bounds)
 	assign!(m_n, rinit, bounds)
 	
-	λ_n =       powerit!(A,      m_n, r1; bounds = bounds, maxit = 10000, atol = 1e-7)
-	λ_1 = λ_n + powerit!(B(λ_n), m_1, r1; bounds = bounds, maxit = 10000, atol = 1e-7)
+	λ_n =       powerit!(A,      m_n, r1; bounds = bounds, maxit = 50000, atol = 1e-8)
+	λ_1 = λ_n + powerit!(B(λ_n), m_1, r1; bounds = bounds, maxit = 50000, atol = 1e-8)
 
 	Meta.@show λ_1, λ_n
 
