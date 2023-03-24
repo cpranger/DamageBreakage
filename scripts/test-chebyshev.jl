@@ -28,7 +28,7 @@ function test_poisson(x, y, p)
 		Essential(:+, :x, BD(f, :x)),
 		Essential(:+, :y, f-1)
 	)
-	
+
 	# helpers
 	h   = Field(p.n, div_stags)
 	r1  = Field(p.n, div_stags, bc_expl)
@@ -63,7 +63,80 @@ function test_poisson(x, y, p)
 end
 
 function test_elasticity(x, y, p)
+	bounds = (p.o, p.n)
+
+	A    = x -> divergence(symgrad(x))
+	B(λ) = x -> A(x) - λ*x
+
+	# A v = b
+	v = Vector(p.n, motion_stags)
+	b = Vector(p.n, motion_stags)
 	
+	bc_expl = (
+		x = (
+			  Natural(:-, :y, 0),
+			Essential(:-, :x, 0),
+			Essential(:+, :x, 0),
+			Essential(:+, :y, 0)
+		),
+		y = (
+			Essential(:-, :y, 0),
+			  Natural(:-, :x, 0),
+			  Natural(:+, :x, 0),
+			Essential(:+, :y, 0)
+		)
+	)
+	bc_impl = (
+		x = (
+			Essential(:-, :y, -FD(v.x, :y)),
+			Essential(:-, :x,     v.x),
+			Essential(:+, :x,     v.x),
+			Essential(:+, :y,     v.x-1)
+		),
+		y = (
+			Essential(:-, :y,     v.y),
+			Essential(:-, :x, -FD(v.y, :x)),
+			Essential(:+, :x,  BD(v.y, :x)),
+			Essential(:+, :y,     v.y)
+		)
+	)
+
+	# helpers
+	h   = Vector(p.n, motion_stags)
+	r1  = Vector(p.n, motion_stags, bc_expl)
+	r2  = Vector(p.n, motion_stags, bc_impl)
+
+	# modes
+	m_1 = Vector(p.n, motion_stags, bc_expl)
+	m_n = Vector(p.n, motion_stags, bc_expl)
+	
+	# random initial guesses:
+	rinit = (
+		x = fieldgen((_...) -> rand()),
+		y = fieldgen((_...) -> rand())
+	)
+
+	assign!(v,   rinit, bounds)
+	assign!(m_1, rinit, bounds)
+	assign!(m_n, rinit, bounds)
+	
+	λ_n =       powerit!(A,      m_n, r1; bounds = bounds, maxit = 10000, atol = 1e-7)
+	λ_1 = λ_n + powerit!(B(λ_n), m_1, r1; bounds = bounds, maxit = 10000, atol = 1e-7)
+
+	Meta.@show λ_1, λ_n
+
+	ε = chebyshev!(A, v, b; λ = (λ_1, λ_n), v = h, r = r2, bounds = bounds, atol = 1e-7, maxit = 1000)
+
+	display(plot(log10.(ε)))
+	readline()
+	
+	plt1 = heatmap(x, y, v , "v" , c = :davos)
+	plt2 = heatmap(x, y, r2, "r2", c = :davos)
+	plt  = plot(plt1, plt2; layout = (1, 2))
+	
+	display(plt)
+	
+	readline()
 end
 
 function parameters(; nb)
@@ -96,7 +169,7 @@ function main()
 	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
 	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
 	
-	   test_poisson(x, y, p)
+	#    test_poisson(x, y, p)
 	test_elasticity(x, y, p)
 	
 	"finished!"

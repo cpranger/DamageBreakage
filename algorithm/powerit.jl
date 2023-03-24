@@ -24,7 +24,7 @@ function powerit!(op, f1, f2; bounds, atol, maxit)
 
 			assign!(f1, f1 / norm, bounds) # -> eigenmode
 			
-			println("powerit: I = $iter, i = $i, Δi = $(fib1-fib0), λ = $λ, |rres| = $resd, |f| = $norm")
+			println("powerit: I = $iter, i = $i, Δi = $(fib1-fib0), λ = $λ, |r| = $resd, |f| = $norm")
 			
 			resd > atol || return λ
 			

@@ -19,7 +19,7 @@ function chebyshev!(A, x, b; λ = (λ_1, λ_2), v, r, bounds, atol, maxit)
 	end
 	
 	# massive overstimate, as if simple Jacobi iteration
-	nit = max(2,ceil(UInt64, log(atol/ε1)/log(ρ(1))))
+	nit = min(maxit, max(2,ceil(UInt64, log(atol/ε1)/log(ρ(1)))))
 	
 	ε = zeros(nit+1)
 	ε[1] = ε1

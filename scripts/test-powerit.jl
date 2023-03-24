@@ -16,7 +16,7 @@ function test_mode(x, y, p, bc)
 	λ = powerit!(A, f, g; bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
 	λ_0 = -(Mode(f)[-1, -1].val)^2
 	
-	println(" λ = $λ")
+	println(" λ = $λ, λ_0 = $λ_0")
 	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
 	
 	plt1 = heatmap(x, y, f, "f", c = :davos)
@@ -41,7 +41,7 @@ function test_s_mode(x, y, p, bc)
 	λ = powerit!(A, v, w; bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
 	λ_0 = -(sMode(v)[-1, -1].val)^2
 	
-	println(" λ = $λ")
+	println(" λ = $λ, λ_0 = $λ_0")
 	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
 	
 	plt1 = heatmap(x, y, v, "v", c = :davos)
@@ -66,7 +66,7 @@ function test_p_mode(x, y, p, bc)
 	λ = powerit!(A, v, w; bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
 	λ_0 = -(pMode(v)[-1, -1].val)^2
 	
-	println(" λ = $λ")
+	println(" λ = $λ, λ_0 = $λ_0")
 	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
 	
 	plt1 = heatmap(x, y, v, "v", c = :davos)
