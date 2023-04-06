@@ -7,73 +7,58 @@ includet("./header.jl")
 using StaggeredKernels.Plane
 
 function test_mode(x, y, p, bc)
-	f = Field(p.n, div_stags)
-	g = Field(p.n, div_stags)
+	v0 = Field(p.n, div_stags)
+	v1 = Field(p.n, div_stags)
+	w  = Field(p.n, div_stags)
 	
-	assign!(f, fieldgen((_...) -> rand()), (p.o, p.n))
+	assign!((v0, bc), fieldgen((_...) -> rand()), (p.o, p.n))
 	
 	A = x -> divergence(grad(x))
-	λ = powerit!(A, (f, bc), (g, bc); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
-	λ_0 = -(Mode(f)[-1, -1].val)^2
-	
-	println(" λ = $λ, λ_0 = $λ_0")
-	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
-	
-	plt1 = heatmap(x, y, f, "f", c = :davos)
-	plt2 = heatmap(x, y, g, "g", c = :davos)
-	plt  = plot(plt1, plt2; layout = (1, 2))
-	
-	display(plt)
+	(λn, λ1) = lanczos!(A, v0, v1, (w, bc); bounds = (p.o, p.n), maxit = max(p.n...))
+	λ_0 = -(Mode(w, bc)[-1, -1].val)^2
+
+	println(" λ = $λn, λ_0 = $λ_0")
+	println("|λ - λ_0|/|λ_0| = $(abs(λn - λ_0)/abs(λ_0))")
 	
 	readline()
 end
 
 function test_s_mode(x, y, p, bc)
-	v   = Vector(p.n, motion_stags)
-	w   = Vector(p.n, motion_stags)
+	v0 = Vector(p.n, motion_stags)
+	v1 = Vector(p.n, motion_stags)
+	w  = Vector(p.n, motion_stags)
 	
-	assign!(v, (
+	assign!((v0, bc.v), (
 		x = fieldgen((_...) -> rand()),
 		y = fieldgen((_...) -> rand())
 	), (p.o, p.n))
 
 	A = x -> -curl(curl(x))
-	λ = powerit!(A, (v, bc.v), (w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
-	λ_0 = -(sMode(v)[-1, -1].val)^2
+	(λn, λ1) = lanczos!(A, v0, v1, (w, bc.v); bounds = (p.o, p.n), maxit = max(p.n...))
+	λ_0 = -(sMode(v0, bc.v)[-1, -1].val)^2
 	
-	println(" λ = $λ, λ_0 = $λ_0")
-	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
-	
-	plt1 = heatmap(x, y, v, "v", c = :davos)
-	plt2 = heatmap(x, y, w, "w", c = :davos)
-	plt  = plot(plt1, plt2; layout = (1, 2))
-	
-	display(plt)
+	println(" λ = $λn, λ_0 = $λ_0")
+	println("|λ - λ_0|/|λ_0| = $(abs(λn - λ_0)/abs(λ_0))")
 	
 	readline()
 end
 
 function test_p_mode(x, y, p, bc)
-	v   = Vector(p.n, motion_stags)
-	w   = Vector(p.n, motion_stags)
+	v0 = Vector(p.n, motion_stags)
+	v1 = Vector(p.n, motion_stags)
+	w  = Vector(p.n, motion_stags)
 	
-	assign!(v, (
+	assign!((v0, bc.v), (
 		x = fieldgen((_...) -> rand()),
 		y = fieldgen((_...) -> rand())
 	), (p.o, p.n))
 
 	A = x -> grad(divergence(x))
-	λ = powerit!(A, (v, bc.v), (w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
-	λ_0 = -(pMode(v)[-1, -1].val)^2
+	(λn, λ1) = lanczos!(A, v0, v1, (w, bc.v); bounds = (p.o, p.n), maxit = max(p.n...))
+	λ_0 = -(pMode(v0, bc.v)[-1, -1].val)^2
 	
-	println(" λ = $λ, λ_0 = $λ_0")
-	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
-	
-	plt1 = heatmap(x, y, v, "v", c = :davos)
-	plt2 = heatmap(x, y, w, "w", c = :davos)
-	plt  = plot(plt1, plt2; layout = (1, 2))
-	
-	display(plt)
+	println(" λ = $λn, λ_0 = $λ_0")
+	println("|λ - λ_0|/|λ_0| = $(abs(λn - λ_0)/abs(λ_0))")
 	
 	readline()
 end

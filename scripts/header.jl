@@ -26,7 +26,8 @@ end
 
 using StaggeredKernels
 
-# includet("../algorithm/algorithm.jl")
 includet("../algorithm/visu.jl")
+includet("../algorithm/lanczos.jl")
 includet("../algorithm/powerit.jl")
+includet("../algorithm/rayleighquotientit.jl")
 includet("../algorithm/chebyshev.jl")
