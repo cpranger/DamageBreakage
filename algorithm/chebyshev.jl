@@ -1,6 +1,6 @@
 cheby(i, x::Complex) = real(0.5*((x + sqrt(x^2 - 1))^i + (x - sqrt(x^2 - 1))^i))
 
-function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, bounds, atol, maxit)
+function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, bounds, atol, maxit, quiet = false)
 	# based on Gutknecht & Röllin (2002; Parallel Computing), algorithm 5.
 	assign!((r, bc), b - A(x), bounds)
 	
@@ -17,7 +17,11 @@ function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, bounds, atol, maxit)
 	else
 		ρ = i -> 1/cheby(i,α/c + 0im)
 	end
-	
+
+	# Meta.@show α, c, α/c
+	# display(plot([ρ(i) for i in 1:100]))
+	# readline()
+
 	# massive overstimate, as if simple Jacobi iteration
 	nit = min(maxit, max(2,ceil(UInt64, log(atol/ε1)/log(ρ(1)))))
 	
@@ -46,12 +50,12 @@ function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, bounds, atol, maxit)
 		ε[1+i]  = ε[1]*ρ(i)
 		ε[1+i]  > atol || break
 
-		mod(i, 10) == 1 &&
+		mod(i, 10) == 1 && !quiet &&
 			println("chebyshev: i = $i, log10(ε) = $(log10(εr[1+i])), log10(ε1*ρ) = $(log10(ε[1]*ρ(i)))")
 		i += 1
 	end
 
-	i == nit+1 && println("chebyshev failed to converge in $nit iterations")
+	i == nit+1 && !quiet && println("chebyshev failed to converge in $nit iterations")
 
 	resize!(εr, i); return εr
 end

@@ -6,18 +6,34 @@ includet("./header.jl")
 
 using StaggeredKernels.Plane
 
-function extremal_eigenmodes!(A, (m_1, m_n, bc_expl), (r, bc_impl), (h, f); bounds, gen_ones, gen_rand)
+gen_ones() = fieldgen((_...) -> 1)
+gen_rand() = fieldgen((_...) -> rand())
+
+gen_ones(f::Field) = gen_ones()
+gen_rand(f::Field) = gen_rand()
+
+(gen_ones(v::Tensor{S, NamedTuple{N}}) where {S, N}) = (; zip(N, gen_ones() for n in N...)...)
+(gen_rand(v::Tensor{S, NamedTuple{N}}) where {S, N}) = (; zip(N, gen_rand() for n in N...)...)
+
+function extremal_eigenmodes!(A, (m_1, m_n, bc_expl), (r, bc_impl), (h, f); bounds)
 	powerit_atol = 1e-3
-	assign!(m_n, gen_rand, bounds)
+	assign!(m_n, gen_rand(m_n), bounds)
 	λ_n = powerit!(A, (m_n, bc_expl), (m_1, bc_expl); bounds = bounds, maxit = *(bounds[2]...), atol = powerit_atol)
 	λ_n *= 1 + 2 * powerit_atol # estimated to be larger  than actual λ_n
 	λ_1 = λ_n / *(bounds[2]...) # estimated to be smaller than actual λ_1
-	assign!(m_1, gen_ones, bounds)
+	assign!(m_1, gen_ones(m_1), bounds)
 	(λ_1, λ_n) = rayleighquotientit!(A, (m_1, m_n, bc_expl), (r, bc_impl), (h, f), (λ_1, λ_n); bounds = bounds, atol = 1e-6, maxit = max(bounds[2]...))
 	return (λ_1, λ_n)
 end
 
-function test_poisson(x, y, p)
+function test_poisson(p)
+	# axes
+	x  = Field((p.n[1],), ((0,), (1,)))
+	y  = Field((p.n[2],), ((0,), (1,)))
+	
+	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
+	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	
 	bounds = (p.o, p.n)
 
 	A = x -> divergence(grad(x))
@@ -48,10 +64,7 @@ function test_poisson(x, y, p)
 	m_1 = Field(p.n, div_stags)
 	m_n = Field(p.n, div_stags)
 	
-	gen_rand = fieldgen((_...) -> rand())
-	gen_ones = 1
-
-	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f); bounds = bounds, gen_ones = gen_ones, gen_rand = gen_rand)
+	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f); bounds = bounds)
 	
 	plt1 = heatmap(x, y, m_1, "m_1", c = :davos)
 	plt2 = heatmap(x, y, m_n, "m_n", c = :davos)
@@ -66,7 +79,7 @@ function test_poisson(x, y, p)
 		Essential(:+, :y, f-1)
 	)
 	
-	assign!(f, gen_rand, bounds)
+	assign!(f, gen_rand(f), bounds)
 	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
 
 	display(plot(log10.(ε)))
@@ -85,7 +98,14 @@ function test_poisson(x, y, p)
 	readline()
 end
 
-function test_elasticity(x, y, p)
+function test_elasticity(p)
+	# axes
+	x  = Field((p.n[1],), ((0,), (1,)))
+	y  = Field((p.n[2],), ((0,), (1,)))
+	
+	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
+	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	
 	bounds = (p.o, p.n)
 
 	A    = x -> divergence(symgrad(x))
@@ -131,13 +151,7 @@ function test_elasticity(x, y, p)
 	m_1 = Vector(p.n, motion_stags)
 	m_n = Vector(p.n, motion_stags)
 	
-	gen_rand = (
-		x = fieldgen((_...) -> rand()),
-		y = fieldgen((_...) -> rand())
-	)
-	gen_ones = (x = 1, y = 1)
-	
-	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f); bounds = bounds, gen_ones = gen_ones, gen_rand = gen_rand)
+	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f); bounds = bounds)
 	
 	plt1 = heatmap(x, y, m_1, "m_1", c = :davos)
 	plt2 = heatmap(x, y, m_n, "m_n", c = :davos)
@@ -159,7 +173,7 @@ function test_elasticity(x, y, p)
 			Essential(:+, :y,     f.y)
 		)
 	)
-	assign!(f, gen_rand, bounds)
+	assign!(f, gen_rand(f), bounds)
 	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
 
 	display(plot(log10.(ε)))
@@ -201,17 +215,8 @@ function main()
 			arg_type = (NTuple{N, Int} where N)
     end
 	
-	p = parameters(; parse_args(s)...); pprintln(p)
-	
-	# axes
-	x  = Field((p.n[1],), ((0,), (1,)))
-	y  = Field((p.n[2],), ((0,), (1,)))
-	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
-	
-	test_poisson(x, y, p)
-	test_elasticity(x, y, p)
+	   test_poisson(parameters(; parse_args(s)...))
+	test_elasticity(parameters(; parse_args(s)...))
 	
 	"finished!"
 end
