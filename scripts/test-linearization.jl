@@ -18,7 +18,7 @@ gen_rand(::Field) = gen_rand()
 (gen_chss(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_chss() for n in N])...)
 (gen_rand(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_rand() for n in N])...)
 
-linearize(F, x; h = eps(Float32)) = v -> imag(F(x + h * im * v)) / h
+linearize(f, x; h = eps(Float32)) = v -> imag(f(x + h * im * v)) / h
 
 function test_poisson(p)
 	# axes
@@ -35,7 +35,7 @@ function test_poisson(p)
 	v = Field(p.n, div_stags)
 	b = Field(p.n, div_stags)
 
-	F = b -> (x -> divergence(abs(interpolate(x))*grad(x)) - p.h^2*x*(1 - x))
+	F(x) = divergence(abs(interpolate(x))*grad(x)) - p.h^2*x*(1 - x)
 	
 	bc_expl_mode = (
 		Essential(:-, :y, 0),
@@ -79,13 +79,13 @@ function test_poisson(p)
 	assign!(m_n, gen_chss(m_n), bounds)
 	assign!(m_1, gen_ones(m_1), bounds)
 	
-	λ_n  = powerit!(linearize(F(b), u), 0,   (m_n, bc_expl_mode), (h, bc_expl_mode); bounds = bounds, maxit = *(bounds[2]...), atol = 1e-3)
-	λ_1  = powerit!(linearize(F(b), u), λ_n, (m_1, bc_expl_mode), (h, bc_expl_mode); bounds = bounds, maxit = *(bounds[2]...), atol = 1e-3)
+	λ_n  = powerit!(linearize(F, u), 0,   (m_n, h, bc_expl_mode); bounds = bounds, maxit = *(bounds[2]...), atol = 1e-3)
+	λ_1  = powerit!(linearize(F, u), λ_n, (m_1, h, bc_expl_mode); bounds = bounds, maxit = *(bounds[2]...), atol = 1e-3)
 	
 	Meta.@show (λ_1, λ_n)
 	
-	λ_n = rayleighquotientit!(linearize(F(b), u), λ_n + λ_1, (m_n, bc_expl_mode), (r, bc_impl_mode), (h, f), (-λ_1, -λ_n); bounds = bounds, atol = 1e-6, maxit = 10, chebymaxit = max(bounds[2]...))
-	λ_1 = rayleighquotientit!(linearize(F(b), u), 0,         (m_1, bc_expl_mode), (r, bc_impl_mode), (h, f), (+λ_1, +λ_n); bounds = bounds, atol = 1e-6, maxit = 10, chebymaxit = max(bounds[2]...))
+	λ_n = rayleighquotientit!(linearize(F, u), λ_n + λ_1, (m_n, bc_expl_mode), (r, bc_impl_mode), (h, f), (-λ_1, -λ_n); bounds = bounds, atol = 1e-6, maxit = 10, chebymaxit = max(bounds[2]...))
+	λ_1 = rayleighquotientit!(linearize(F, u), 0,         (m_1, bc_expl_mode), (r, bc_impl_mode), (h, f), (+λ_1, +λ_n); bounds = bounds, atol = 1e-6, maxit = 10, chebymaxit = max(bounds[2]...))
 	
 	Meta.@show (λ_1, λ_n)
 	
@@ -95,7 +95,7 @@ function test_poisson(p)
 	display(plt)
 	
 	assign!(v, m_1, bounds)
-	newtonit!(F, u, b, (v, bc_expl_mode), (r, bc_impl), ((λ_1, m_1), (λ_n, m_n)), (h, f); bounds = bounds, atol = 1e-6, maxit = 20)
+	newtonit!(F, u, (v, bc_expl_mode), (r, bc_impl), ((λ_1, m_1), (λ_n, m_n)), (h, f); bounds = bounds, atol = 1e-6, maxit = 20)
 
 	# plt1 = heatmap(x, y, u, "u", c = :davos)
 	# plt2 = heatmap(x, y, r, "r", c = :davos)

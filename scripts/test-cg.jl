@@ -6,25 +6,31 @@ includet("./header.jl")
 
 using StaggeredKernels.Plane
 
-gen_ones() = fieldgen((_...) -> 1)
 gen_rand() = fieldgen((_...) -> rand())
 
-gen_ones(f::Field) = gen_ones()
-gen_rand(f::Field) = gen_rand()
-
-(gen_ones(v::Tensor{S, NamedTuple{N}}) where {S, N}) = (; zip(N, gen_ones() for n in N...)...)
 (gen_rand(v::Tensor{S, NamedTuple{N}}) where {S, N}) = (; zip(N, gen_rand() for n in N...)...)
 
-function extremal_eigenmodes!(A, (m_1, m_n, bc_expl), (r, bc_impl), (h, f); bounds)
-	powerit_atol = 1e-3
-	assign!(m_n, gen_rand(m_n), bounds)
-	λ_n = powerit!(A, (m_n, m_1, bc_expl); bounds = bounds, maxit = *(bounds[2]...), atol = powerit_atol)
-	λ_n *= 1 + 2 * powerit_atol # estimated to be larger  than actual λ_n
-	λ_1 = λ_n / *(bounds[2]...) # estimated to be smaller than actual λ_1
-	assign!(m_1, gen_ones(m_1), bounds)
-	(λ_1, λ_n) = rayleighquotientit!(A, (m_1, m_n, bc_expl), (r, bc_impl), (h, f), (λ_1, λ_n); bounds = bounds, atol = 1e-6, maxit = max(bounds[2]...))
-	return (λ_1, λ_n)
-end
+(cstep(f, h)) = imag(f) / h
+(cstep(bc::Essential{D}, h) where D) = Essential{D}(cstep(bc.expr, h))
+(cstep(  bc::Natural{D}, h) where D) =   Natural{D}(cstep(bc.expr, h))
+(cstep(f::Tuple{F, BCs}, h) where {F, BCs <: Tuple}) = (cstep(f[1], h), map(bc -> cstep(bc, h), f[2]))
+
+linearize(f, x; h = eps(Float32)) = v -> cstep(f(x + h * im * v), h)
+
+(Base.:-(a::Tuple{A, BCs}) where {A, BCs <: Tuple}) = (-a[1], map(bc -> -bc, a[2]))
+(Base.:-(bc::Essential{D}) where D) = Essential{D}(-bc.expr)
+(Base.:-(  bc::Natural{D}) where D) =   Natural{D}(-bc.expr)
+
+# (Base.:-(a::Tuple{A, BCs}, b::Tuple{B, BCs}) where {A, B, BCs <: Tuple}) = (a[1] - b[1], a[2] .- b[2])
+# (Base.:-(a::Tuple{A, BCs}, b::B) where {A, B, BCs <: Tuple}) = (a[1] - b, map(bc -> bc - b, a[2]))
+(Base.:-(a::A, b::Tuple{B, BCs}) where {A, B, BCs <: Tuple}) = (a - b[1], map(bc -> a - bc, b[2]))
+# (Base.:-(a::Essential{D}, b::B) where {D, B <: AbstractField}) = Essential{D}(a.expr - b)
+(Base.:-(a::A, b::Essential{D}) where {D, A <: AbstractField}) = Essential{D}(a - b.expr)
+# # (Base.:-(a::Natural{D}, b::B) where {D, B <: AbstractField}) = Natural{D}(...)
+# # (Base.:-(a::A, b::Natural{D}) where {D, A <: AbstractField}) = Natural{D}(...)
+# (Base.:-(a::Essential{D}, b::Essential{D}) where D) = Essential{D}(a.expr - b.expr)
+# (Base.:-(  a::Natural{D},   b::Natural{D}) where D) =   Natural{D}(a.expr - b.expr)
+
 
 function test_poisson(p)
 	# axes
@@ -36,66 +42,36 @@ function test_poisson(p)
 	
 	bounds = (p.o, p.n)
 
-	A = x -> divergence(grad(x))
+	f   = Field(p.n, div_stags)
+	h_1 = deepcopy(f)
+	h_2 = deepcopy(f)
+	r   = deepcopy(f)
+	b   = deepcopy(f)
 	
-	# A f = b
-	f = Field(p.n, div_stags)
-	b = Field(p.n, div_stags)
-
-	bc_expl_mode = (
-		Essential(:-, :y, 0),
-		Essential(:-, :x, 0),
-		Essential(:+, :x, 0),
-		Essential(:+, :y, 0)
+	mode = Mode(f, Essential())
+	println("λ* = ($(-mode[-1,-1].val^2), $(-mode[1,1].val^2))")
+	
+	R = x -> (
+		divergence(grad(x)) - 1/1000,
+		(
+			Essential(:-, :y, FD(x, :y)),
+			Essential(:-, :x, -x),
+			Essential(:+, :x, -x),
+			Essential(:+, :y, -x + 1)
+		)
 	)
-	
-	bc_impl_mode = (
-		Essential(:-, :y, f),
-		Essential(:-, :x, f),
-		Essential(:+, :x, f),
-		Essential(:+, :y, f)
-	)
 
-	# helpers
-	h  = Field(p.n, div_stags)
-	r  = Field(p.n, div_stags)
-	
-	# modes
-	m_1 = Field(p.n, div_stags)
-	m_n = Field(p.n, div_stags)
-	
-	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f); bounds = bounds)
-	
-	plt1 = heatmap(x, y, m_1, "m_1", c = :davos)
-	plt2 = heatmap(x, y, m_n, "m_n", c = :davos)
-	plt  = plot(plt1, plt2; layout = (1, 2))
-	display(plt)
+	A = linearize(R, 0)
+	assign!(b, -R(0), bounds)
+
+	assign!(f, (gen_rand(), R(0)[2]), bounds)
+	ε = cg!(A, f, b; r = r, p = h_1, q = h_2, bounds = bounds, atol = 1e-8, maxit = 1000)
+	display <| plot(log10.(ε))
 	readline()
-
-	bc = (
-		Essential(:-, :y, f),
-		Essential(:-, :x, f),
-		Essential(:+, :x, f),
-		Essential(:+, :y, f-1)
-	)
 	
-	assign!(f, gen_rand(f), bounds)
-	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
-
-	display(plot(log10.(ε)))
-	readline()
-
-	assign!(b, 1/(p.n[1]*p.n[2]), bounds)
-	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
-
-	display(plot(log10.(ε)))
-	readline()
-
 	plt1 = heatmap(x, y, f, "f", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
-	plt  = plot(plt1, plt2; layout = (1, 2))
-	display(plt)
-	readline()
+	display <| plot(plt1, plt2; layout = (1, 2))
 end
 
 function test_elasticity(p)
@@ -216,9 +192,9 @@ function main()
     end
 	
 	   test_poisson(parameters(; parse_args(s)...))
-	test_elasticity(parameters(; parse_args(s)...))
+	# test_elasticity(parameters(; parse_args(s)...))
 	
-	"finished!"
+	# "finished!"
 end
 
 # see https://stackoverflow.com/a/63385854

@@ -13,7 +13,7 @@ function test_mode(x, y, p, bc)
 	assign!(f, fieldgen((_...) -> rand()), (p.o, p.n))
 	
 	A = x -> divergence(grad(x))
-	λ = powerit!(A, 0, (f, bc), (g, bc); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
+	λ = powerit!(A, 0, (f, g, bc); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
 	λ_0 = -(Mode(f)[-1, -1].val)^2
 	
 	println(" λ = $λ, λ_0 = $λ_0")
@@ -38,7 +38,7 @@ function test_s_mode(x, y, p, bc)
 	), (p.o, p.n))
 
 	A = x -> -curl(curl(x))
-	λ = powerit!(A, 0, (v, bc.v), (w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
+	λ = powerit!(A, 0, (v, w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
 	λ_0 = -(sMode(v)[-1, -1].val)^2
 	
 	println(" λ = $λ, λ_0 = $λ_0")
@@ -63,7 +63,7 @@ function test_p_mode(x, y, p, bc)
 	), (p.o, p.n))
 
 	A = x -> grad(divergence(x))
-	λ = powerit!(A, 0, (v, bc.v), (w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
+	λ = powerit!(A, 0, (v, w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
 	λ_0 = -(pMode(v)[-1, -1].val)^2
 	
 	println(" λ = $λ, λ_0 = $λ_0")
