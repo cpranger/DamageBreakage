@@ -18,8 +18,6 @@ gen_rand(::Field) = gen_rand()
 (gen_chss(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_chss() for n in N])...)
 (gen_rand(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_rand() for n in N])...)
 
-linearize(f, x; h = eps(Float32)) = v -> imag(f(x + h * im * v)) / h
-
 function test_poisson(p)
 	# axes
 	x  = Field((p.n[1],), ((0,), (1,)))
@@ -33,171 +31,78 @@ function test_poisson(p)
 	# A(u) v = b
 	u = Field(p.n, div_stags)
 	v = Field(p.n, div_stags)
-	b = Field(p.n, div_stags)
 
-	F(x) = divergence(abs(interpolate(x))*grad(x)) - p.h^2*x*(1 - x)
-	
-	bc_expl_mode = (
-		Essential(:-, :y, 0),
-		Essential(:-, :x, 0),
-		Essential(:+, :x, 0),
-		Essential(:+, :y, 0)
+	f = x -> (divergence(abs(interpolate(x))*grad(x)) - p.h^2*x*(1 - x),
+		(
+			Essential(:-, :y, FD(x, :y)),
+			Essential(:-, :x, -x),
+			Essential(:+, :x, -x),
+			Essential(:+, :y, -x + 1)
+		)
 	)
 	
-	bc_impl_mode = (
-		Essential(:-, :y, v),
-		Essential(:-, :x, v),
-		Essential(:+, :x, v),
-		Essential(:+, :y, v)
-	)
-
 	# helpers
-	h  = Field(p.n, div_stags)
-	f  = Field(p.n, div_stags)
 	r  = Field(p.n, div_stags)
+	h_1 = Field(p.n, div_stags)
+	h_2 = Field(p.n, div_stags)
+	h_3 = Field(p.n, div_stags)
+		
+	assign!(u, 1, bounds)
 	
-	# modes
-	m_1 = Field(p.n, div_stags)
-	m_n = Field(p.n, div_stags)
-	
-	bc_expl = (
-		Essential(:-, :y, 0),
-		Essential(:-, :x, 0),
-		Essential(:+, :x, 0),
-		Essential(:+, :y, 1)
-	)
-	
-	bc_impl = (
-		Essential(:-, :y, v),
-		Essential(:-, :x, v),
-		Essential(:+, :x, v),
-		Essential(:+, :y, v)
-	)
-	
-	assign!((u, bc_expl), gen_ones(u), bounds)
-	
-	assign!(m_n, gen_chss(m_n), bounds)
-	assign!(m_1, gen_ones(m_1), bounds)
-	
-	λ_n  = powerit!(linearize(F, u), 0,   (m_n, h, bc_expl_mode); bounds = bounds, maxit = *(bounds[2]...), atol = 1e-3)
-	λ_1  = powerit!(linearize(F, u), λ_n, (m_1, h, bc_expl_mode); bounds = bounds, maxit = *(bounds[2]...), atol = 1e-3)
-	
-	Meta.@show (λ_1, λ_n)
-	
-	λ_n = rayleighquotientit!(linearize(F, u), λ_n + λ_1, (m_n, bc_expl_mode), (r, bc_impl_mode), (h, f), (-λ_1, -λ_n); bounds = bounds, atol = 1e-6, maxit = 10, chebymaxit = max(bounds[2]...))
-	λ_1 = rayleighquotientit!(linearize(F, u), 0,         (m_1, bc_expl_mode), (r, bc_impl_mode), (h, f), (+λ_1, +λ_n); bounds = bounds, atol = 1e-6, maxit = 10, chebymaxit = max(bounds[2]...))
-	
-	Meta.@show (λ_1, λ_n)
-	
-	plt1 = heatmap(x, y, m_1, "m_1", c = :davos)
-	plt2 = heatmap(x, y, m_n, "m_n", c = :davos)
+	newtonit!(f, u, v, r, (h_1, h_2, h_3); bounds = bounds, maxit = 30, atol = 1e-9)
+
+	plt1 = heatmap(x, y, u, "u", c = :davos)
+	plt2 = heatmap(x, y, r, "r", c = :davos)
 	plt  = plot(plt1, plt2; layout = (1, 2))
 	display(plt)
-	
-	assign!(v, m_1, bounds)
-	newtonit!(F, u, (v, bc_expl_mode), (r, bc_impl), ((λ_1, m_1), (λ_n, m_n)), (h, f); bounds = bounds, atol = 1e-6, maxit = 20)
-
-	# plt1 = heatmap(x, y, u, "u", c = :davos)
-	# plt2 = heatmap(x, y, r, "r", c = :davos)
-	# plt  = plot(plt1, plt2; layout = (1, 2))
-	# display(plt)
 end
 
-# function test_elasticity(p)
-# 	# axes
-# 	x  = Field((p.n[1],), ((0,), (1,)))
-# 	y  = Field((p.n[2],), ((0,), (1,)))
+function test_elasticity(p)
+	# axes
+	x  = Field((p.n[1],), ((0,), (1,)))
+	y  = Field((p.n[2],), ((0,), (1,)))
 	
-# 	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-# 	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
+	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
 	
-# 	bounds = (p.o, p.n)
+	bounds = (p.o, p.n)
 
-# 	A    = x -> divergence(symgrad(x))
+	# A(u) v = b
+	u = Vector(p.n, motion_stags)
+	v = Vector(p.n, motion_stags)
 
-# 	# A f = b
-# 	f   = Vector(p.n, motion_stags)
-# 	b   = Vector(p.n, motion_stags)
+	f = u -> (divergence(symgrad(u)),
+		(;
+			x = (
+				Essential(:-, :y, FD(u.x, :y)),
+				Essential(:-, :x, -u.x),
+				Essential(:+, :x, -u.x),
+				Essential(:+, :y, -u.x + 1)
+			),
+			y = (
+				Essential(:-, :y, -u.y),
+				Essential(:-, :x, -u.y),
+				Essential(:+, :x, -u.y),
+				Essential(:+, :y, -u.y)
+			)
+		)
+	)
 	
-# 	bc_expl_mode = (
-# 		x = (
-# 			Essential(:-, :y, 0),
-# 			Essential(:-, :x, 0),
-# 			Essential(:+, :x, 0),
-# 			Essential(:+, :y, 0)
-# 		),
-# 		y = (
-# 			Essential(:-, :y, 0),
-# 			Essential(:-, :x, 0),
-# 			Essential(:+, :x, 0),
-# 			Essential(:+, :y, 0)
-# 		)
-# 	)
-# 	bc_impl_mode = (
-# 		x = (
-# 			Essential(:-, :y,     f.x),
-# 			Essential(:-, :x,     f.x),
-# 			Essential(:+, :x,     f.x),
-# 			Essential(:+, :y,     f.x)
-# 		),
-# 		y = (
-# 			Essential(:-, :y,     f.y),
-# 			Essential(:-, :x,     f.y),
-# 			Essential(:+, :x,     f.y),
-# 			Essential(:+, :y,     f.y)
-# 		)
-# 	)
+	# helpers
+	r   = Vector(p.n, motion_stags)
+	h_1 = Vector(p.n, motion_stags)
+	h_2 = Vector(p.n, motion_stags)
+	h_3 = Vector(p.n, motion_stags)
+		
+	assign!(u, gen_ones(u), bounds)
+	
+	newtonit!(f, u, v, r, (h_1, h_2, h_3); bounds = bounds, maxit = 30, atol = 1e-9)
 
-# 	# helpers
-# 	h   = Vector(p.n, motion_stags)
-# 	r   = Vector(p.n, motion_stags)
-	
-# 	# modes
-# 	m_1 = Vector(p.n, motion_stags)
-# 	m_n = Vector(p.n, motion_stags)
-	
-# 	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f); bounds = bounds, atol = 1e-5)
-	
-# 	plt1 = heatmap(x, y, m_1, "m_1", c = :davos)
-# 	plt2 = heatmap(x, y, m_n, "m_n", c = :davos)
-# 	plt  = plot(plt1, plt2; layout = (1, 2))
-# 	display(plt)
-# 	readline()
-	
-# 	bc = (
-# 		x = (
-# 			Essential(:-, :y, -FD(f.x, :y)),
-# 			Essential(:-, :x,     f.x),
-# 			Essential(:+, :x,     f.x),
-# 			Essential(:+, :y,     f.x-1)
-# 		),
-# 		y = (
-# 			Essential(:-, :y,     f.y),
-# 			Essential(:-, :x, -FD(f.y, :x)),
-# 			Essential(:+, :x,  BD(f.y, :x)),
-# 			Essential(:+, :y,     f.y)
-# 		)
-# 	)
-# 	assign!(f, gen_rand(f), bounds)
-# 	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
-
-# 	display(plot(log10.(ε)))
-# 	readline()
-
-# 	assign!(b, (x = 1/(p.n[1]*p.n[2]), y = 0), bounds)
-# 	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
-
-# 	display(plot(log10.(ε)))
-# 	readline()
-	
-# 	plt1 = heatmap(x, y, f, "f", c = :davos)
-# 	plt2 = heatmap(x, y, r, "r", c = :davos)
-# 	plt  = plot(plt1, plt2; layout = (1, 2))
-	
-# 	display(plt)
-	
-# 	readline()
-# end
+	plt1 = heatmap(x, y, u, "u", c = :davos)
+	plt2 = heatmap(x, y, r, "r", c = :davos)
+	plt  = plot(plt1, plt2; layout = (1, 2))
+	display(plt)
+end
 
 function parameters(; nb)
 	n    =  nb .* BLOCK_SIZE         # mesh resolution
@@ -221,10 +126,8 @@ function main()
 			arg_type = (NTuple{N, Int} where N)
     end
 	
-	   test_poisson(parameters(; parse_args(s)...))
-	#    readline()
-	# test_elasticity(parameters(; parse_args(s)...))
-	# readline()
+	# test_poisson(parameters(; parse_args(s)...))
+	test_elasticity(parameters(; parse_args(s)...))
 end
 
 # see https://stackoverflow.com/a/63385854
