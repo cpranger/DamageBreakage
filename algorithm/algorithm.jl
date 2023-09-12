@@ -44,41 +44,41 @@ trbdf2_implicit_JV(U, V, p) = (
 
 function trbdf2_residual_v!(R, U, V, B, p)
 	# schur decomposition of the (v, e)-subproblem
-	assign!(V.e,       trbdf2_implicit_JV(U, V, p).e,       p.ranges)
-	assign!(R.v, V.v - trbdf2_implicit_JV(U, V, p).v - B.v, p.ranges)
+	assign!(V.e,       trbdf2_implicit_JV(U, V, p).e)
+	assign!(R.v, V.v - trbdf2_implicit_JV(U, V, p).v - B.v)
 end
 
-trbdf2_residual_α!(R, U, V, B, p) = assign!(R.α, trbdf2_implicit_JV(U, V, p).α - B.α, p.ranges)
-trbdf2_residual_β!(R, U, V, B, p) = assign!(R.β, trbdf2_implicit_JV(U, V, p).β - B.β, p.ranges)
+trbdf2_residual_α!(R, U, V, B, p) = assign!(R.α, trbdf2_implicit_JV(U, V, p).α - B.α)
+trbdf2_residual_β!(R, U, V, B, p) = assign!(R.β, trbdf2_implicit_JV(U, V, p).β - B.β)
 
 function trbdf2_stage!(R, Y, U, V, B, RHS, p)
-	assign!(B, RHS, p.ranges)
+	assign!(B, RHS)
 	
 	# schur decomposition: b_v = b_v - B b_e
-	assign!(B.v, B.v - trbdf2_implicit_JV(U, B, p).v, p.ranges)
+	assign!(B.v, B.v - trbdf2_implicit_JV(U, B, p).v)
 	
 	Chebyshev!((lhs, rhs) -> assign!(lhs.v, rhs.v), trbdf2_residual_v!, R, U, V, B, #=...,=# p, p.k_1_v, p.k_n_v)
 	Chebyshev!((lhs, rhs) -> assign!(lhs.α, rhs.α), trbdf2_residual_α!, R, U, V, B, #=...,=# p, p.k_1_α, p.k_n_α)
 	Chebyshev!((lhs, rhs) -> assign!(lhs.β, rhs.β), trbdf2_residual_β!, R, U, V, B, #=...,=# p, p.k_1_β, p.k_n_β)
 	
 	# schur decomposition: v_e = b_e - C v_v
-	assign!(V.e, B.e - trbdf2_implicit_JV(U, V, p).e, p.ranges)
+	assign!(V.e, B.e - trbdf2_implicit_JV(U, V, p).e)
 end
 
-trbdf2_finish!(Y, W_0, W_1, W_2, p) = assign!(Y, trbdf2_upd(W_0, W_1, W_2, p), p.ranges)
+trbdf2_finish!(Y, W_0, W_1, W_2, p) = assign!(Y, trbdf2_upd(W_0, W_1, W_2, p))
 
 function trbdf2_step!(Y, E, W_0, W_1, W_2, B, R, p)
 	RHS = trbdf2_rhs(Y, W_0, W_1, W_2, p)
 	
 	# stage 0
-	assign!(W_0, Y, p)
+	assign!(W_0, Y)
 	
 	# stage 1
-	assign!(W_1, W_0, p)  # initial guess
+	assign!(W_1, W_0)  # initial guess
 	trbdf2_stage!(R, Y, W_0, W_1, B, RHS[1], p)
 	
 	# stage 2
-	assign!(W_2, W_1, p)  # initial guess
+	assign!(W_2, W_1)  # initial guess
 	trbdf2_stage!(R, Y, W_1, W_2, B, RHS[2], p)
 	
 	# error stage
@@ -128,8 +128,8 @@ end
 # 		end
 		
 # 		# TODO: allow arithmetics on objects of type Unknown
-# 		assign!(V, R + ψ*V, p.range)  # - -> +
-# 		assign!(X, X + ω*V, p.range)
+# 		assign!(V, R + ψ*V)  # - -> +
+# 		assign!(X, X + ω*V)
 		
 # 		residual!(R, U, X, B, p)
 		
@@ -146,7 +146,7 @@ end
 # 	return Err
 # end
 
-# rayleigh_quotient!(Λ, JB, B, p) = assign!(Λ, dot(JB, B) / dot(B, B), p.ranges)
+# rayleigh_quotient!(Λ, JB, B, p) = assign!(Λ, dot(JB, B) / dot(B, B))
 
 # function eigen!(B, U, Λ, E, p)
 # 	for _ in 1:100

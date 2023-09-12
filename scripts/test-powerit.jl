@@ -10,10 +10,10 @@ function test_mode(x, y, p, bc)
 	f = Field(p.n, div_stags)
 	g = Field(p.n, div_stags)
 	
-	assign!(f, fieldgen((_...) -> rand()), (p.o, p.n))
+	assign!(f, fieldgen((_...) -> rand()))
 	
 	A = x -> divergence(grad(x))
-	λ = powerit!(A, 0, (f, g, bc); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
+	λ = powerit!(A, 0, (f, g, bc); maxit = 10000, atol = 1e-7)
 	λ_0 = -(Mode(f)[-1, -1].val)^2
 	
 	println(" λ = $λ, λ_0 = $λ_0")
@@ -35,10 +35,10 @@ function test_s_mode(x, y, p, bc)
 	assign!(v, (
 		x = fieldgen((_...) -> rand()),
 		y = fieldgen((_...) -> rand())
-	), (p.o, p.n))
+	))
 
 	A = x -> -curl(curl(x))
-	λ = powerit!(A, 0, (v, w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
+	λ = powerit!(A, 0, (v, w, bc.v); maxit = 10000, atol = 1e-7)
 	λ_0 = -(sMode(v)[-1, -1].val)^2
 	
 	println(" λ = $λ, λ_0 = $λ_0")
@@ -60,10 +60,10 @@ function test_p_mode(x, y, p, bc)
 	assign!(v, (
 		x = fieldgen((_...) -> rand()),
 		y = fieldgen((_...) -> rand())
-	), (p.o, p.n))
+	))
 
 	A = x -> grad(divergence(x))
-	λ = powerit!(A, 0, (v, w, bc.v); bounds = (p.o, p.n), maxit = 10000, atol = 1e-7)
+	λ = powerit!(A, 0, (v, w, bc.v); maxit = 10000, atol = 1e-7)
 	λ_0 = -(pMode(v)[-1, -1].val)^2
 	
 	println(" λ = $λ, λ_0 = $λ_0")
@@ -80,7 +80,6 @@ end
 
 function parameters(; nb)
 	n    =  nb .* BLOCK_SIZE         # mesh resolution
-	o    =  n .- n .+ 1              # logical origin
 	
 	# collect all variables local to this function:
 	vars = Base.@locals
@@ -105,8 +104,8 @@ function main()
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
 	  test_mode(x, y, p, Essential())
 	test_s_mode(x, y, p, ImpermeableFreeSlip())

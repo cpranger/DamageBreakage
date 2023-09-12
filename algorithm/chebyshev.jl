@@ -1,15 +1,15 @@
 cheby(i, x::Complex) = real(0.5*((x + sqrt(x^2 - 1))^i + (x - sqrt(x^2 - 1))^i))
 
-function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, bounds, atol, maxit, quiet = false)
+function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, atol, maxit, quiet = false)
 	# based on Gutknecht & Röllin (2002; Parallel Computing), algorithm 5.
-	assign!((r, bc), b - A(x), bounds)
+	assign!((r, bc), b - A(x))
 	
 	# λ_1 = α - c
 	# λ_n = α + c
 	α = (λ[end] + λ[1]) / 2
 	c = (λ[end] - λ[1]) / 2
 	
-	ε1 = sqrt <| dot(r, r, bounds)
+	ε1 = sqrt <| dot(r, r)
 	ε1 > atol || return [ε1]
 	
 	if abs(c/α) < atol/ε1
@@ -26,7 +26,7 @@ function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, bounds, atol, maxit,
 	nit = min(maxit, max(2,ceil(UInt64, log(atol/ε1)/log(ρ(1)))))
 	
 	εr = zeros(nit+1)
-	ε = zeros(nit+1)
+	ε  = zeros(nit+1)
 	ε[1] = ε1
 	εr[1] = ε1
 
@@ -42,11 +42,11 @@ function chebyshev!(A, x, b, (r, bc); λ = (λ_1, λ_2), v, bounds, atol, maxit,
 			ω = 1/(α - (c/2)^2 * ω)
 		end
 		
-		assign!(v, r - ψ*v   , bounds)
-		assign!(x, x + ω*v   , bounds)
-		assign!((r, bc), r - ω*A(v), bounds)
+		assign!(v, r - ψ*v)
+		assign!(x, x + ω*v)
+		assign!((r, bc), r - ω*A(v))
 		
-		εr[1+i] = sqrt <| dot(r, r, bounds)
+		εr[1+i] = sqrt <| dot(r, r)
 		ε[1+i]  = ε[1]*ρ(i)
 		ε[1+i]  > atol || break
 

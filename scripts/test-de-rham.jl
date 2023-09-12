@@ -8,11 +8,11 @@ function test_curl_grad(x, y, p, bc)
 	f =  Field(p.n,  div_stags, bc)
 	r = Vector(p.n, curl_stags, (z = Natural(),))
 	
-	assign!(f, Mode(f)[p.j...].gen, (p.o, p.n))
+	assign!(f, Mode(f)[p.j...].gen)
 	
-	assign!(r, curl(grad(f)), (p.o, p.n))
+	assign!(r, curl(grad(f)))
 	
-	println("‖curl(grad(f))‖ = ", dot(r, r, (p.o, p.n)) |> sqrt)
+	println("‖curl(grad(f))‖ = ", dot(r, r) |> sqrt)
 	
 	plt1 = heatmap(x, y, f, "f", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
@@ -27,11 +27,11 @@ function test_div_curl(x, y, p, bc)
 	f = Vector(p.n, curl_stags, (z = bc,))
 	r =  Field(p.n,  div_stags, Natural())
 	
-	assign!(f.z, Mode(f.z)[p.j...].gen, (p.o, p.n))
+	assign!(f.z, Mode(f.z)[p.j...].gen)
 	
-	assign!(r, divergence(curl(f)), (p.o, p.n))
+	assign!(r, divergence(curl(f)))
 	
-	println("‖div(curl(f))‖ = ", dot(r, r, (p.o, p.n)) |> sqrt)
+	println("‖div(curl(f))‖ = ", dot(r, r) |> sqrt)
 	
 	plt1 = heatmap(x, y, f, "f", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
@@ -47,11 +47,11 @@ function test_laplacians(x, y, p, bc)
 	v = Vector(p.n, motion_stags, bc.v)
 	r = Vector(p.n, motion_stags, bc.v)
 	
-	assign!(v, pMode(v)[p.j...].gen + sMode(v)[p.j...].gen, (p.o, p.n))
+	assign!(v, pMode(v)[p.j...].gen + sMode(v)[p.j...].gen)
 	
-	assign!(r, grad(divergence(v)) - curl(curl(v)) - divergence(grad(v)), (p.o, p.n))
+	assign!(r, grad(divergence(v)) - curl(curl(v)) - divergence(grad(v)))
 	
-	println("‖grad(div(v)) - curl(curl(v)) - div(grad(v))‖ = ", dot(r, r, (p.o, p.n)) |> sqrt)
+	println("‖grad(div(v)) - curl(curl(v)) - div(grad(v))‖ = ", dot(r, r) |> sqrt)
 	
 	plt1 = heatmap(x, y, v, "v", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
@@ -95,8 +95,8 @@ function main()
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
 	test_curl_grad(x, y, p, Natural())
 	test_curl_grad(x, y, p, Essential())

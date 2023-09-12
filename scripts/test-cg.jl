@@ -15,11 +15,9 @@ function test_poisson(p)
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
-	bounds = (p.o, p.n)
-
 	f   = Field(p.n, div_stags)
 	h_1 = deepcopy(f)
 	h_2 = deepcopy(f)
@@ -40,10 +38,10 @@ function test_poisson(p)
 	)
 
 	A = linearize(R, 0)
-	assign!(b, -R(0), bounds)
+	assign!(b, -R(0))
 
-	assign!(f, (0, R(0)[2]), bounds)
-	(λ, Λ, ε) = cg!(A, f, b; r = r, p = h_1, q = h_2, bounds = bounds, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	assign!(f, (0, R(0)[2]))
+	(λ, Λ, ε) = cg!(A, f, b; r = r, p = h_1, q = h_2, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
 	display <| plot(log10.(ε))
 	readline()
 	
@@ -57,13 +55,11 @@ function test_elasticity(p)
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
-	bounds = (p.o, p.n)
-
 	A    = x -> divergence(symgrad(x))
-
+	
 	# A f = b
 	f   = Vector(p.n, motion_stags)
 	b   = Vector(p.n, motion_stags)
@@ -84,16 +80,16 @@ function test_elasticity(p)
 	)
 	bc_impl_mode = (
 		x = (
-			Essential(:-, :y,     f.x),
-			Essential(:-, :x,     f.x),
-			Essential(:+, :x,     f.x),
-			Essential(:+, :y,     f.x)
+			Essential(:-, :y, f.x),
+			Essential(:-, :x, f.x),
+			Essential(:+, :x, f.x),
+			Essential(:+, :y, f.x)
 		),
 		y = (
-			Essential(:-, :y,     f.y),
-			Essential(:-, :x,     f.y),
-			Essential(:+, :x,     f.y),
-			Essential(:+, :y,     f.y)
+			Essential(:-, :y, f.y),
+			Essential(:-, :x, f.y),
+			Essential(:+, :x, f.y),
+			Essential(:+, :y, f.y)
 		)
 	)
 
@@ -105,7 +101,7 @@ function test_elasticity(p)
 	m_1 = Vector(p.n, motion_stags)
 	m_n = Vector(p.n, motion_stags)
 	
-	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f); bounds = bounds)
+	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f))
 	
 	plt1 = heatmap(x, y, m_1, "m_1", c = :davos)
 	plt2 = heatmap(x, y, m_n, "m_n", c = :davos)
@@ -127,14 +123,14 @@ function test_elasticity(p)
 			Essential(:+, :y,     f.y)
 		)
 	)
-	assign!(f, gen_rand(f), bounds)
-	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
+	assign!(f, gen_rand(f))
+	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, atol = 1e-5, maxit = 5000)
 
 	display(plot(log10.(ε)))
 	readline()
 
-	assign!(b, (x = 1/(p.n[1]*p.n[2]), y = 0), bounds)
-	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, bounds = bounds, atol = 1e-5, maxit = 5000)
+	assign!(b, (x = 1/(p.n[1]*p.n[2]), y = 0))
+	ε = chebyshev!(A, f, b, (r, bc); λ = (λ_1, λ_n), v = h, atol = 1e-5, maxit = 5000)
 
 	display(plot(log10.(ε)))
 	readline()

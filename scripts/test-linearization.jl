@@ -23,11 +23,9 @@ function test_poisson(p)
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
-	bounds = (p.o, p.n)
-
 	# A(u) v = b
 	u = Field(p.n, div_stags)
 	v = Field(p.n, div_stags)
@@ -42,14 +40,14 @@ function test_poisson(p)
 	)
 	
 	# helpers
-	r  = Field(p.n, div_stags)
+	r   = Field(p.n, div_stags)
 	h_1 = Field(p.n, div_stags)
 	h_2 = Field(p.n, div_stags)
 	h_3 = Field(p.n, div_stags)
 		
-	assign!(u, 1, bounds)
+	assign!(u, 1)
 	
-	newtonit!(f, u, v, r, (h_1, h_2, h_3); bounds = bounds, maxit = 30, atol = 1e-9)
+	newtonit!(f, u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
 
 	plt1 = heatmap(x, y, u, "u", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
@@ -62,11 +60,9 @@ function test_elasticity(p)
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
-	bounds = (p.o, p.n)
-
 	# A(u) v = b
 	u = Vector(p.n, motion_stags)
 	v = Vector(p.n, motion_stags)
@@ -94,9 +90,9 @@ function test_elasticity(p)
 	h_2 = Vector(p.n, motion_stags)
 	h_3 = Vector(p.n, motion_stags)
 		
-	assign!(u, gen_ones(u), bounds)
+	assign!(u, gen_ones(u))
 	
-	newtonit!(f, u, v, r, (h_1, h_2, h_3); bounds = bounds, maxit = 30, atol = 1e-9)
+	newtonit!(f, u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
 
 	plt1 = heatmap(x, y, u, "u", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
@@ -106,7 +102,6 @@ end
 
 function parameters(; nb)
 	n    =  nb .* BLOCK_SIZE         # mesh resolution
-	o    =  n .- n .+ 1              # logical origin
 	h    =  1 / (n[1] - 2)
 	
 	# collect all variables local to this function:

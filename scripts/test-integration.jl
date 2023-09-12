@@ -53,8 +53,8 @@ function main()
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
 	test_hyperbolic(x, y, p)
 	test__parabolic(x, y, p)

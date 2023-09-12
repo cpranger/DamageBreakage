@@ -10,19 +10,19 @@ function test_mode(x, y, p, bc)
 	φ = Field(p.n, div_stags, bc)
 	r = Field(p.n, div_stags, bc)
 	
-	assign!(f, Mode(g)[p.j...].gen, (p.o, p.n))
+	assign!(f, Mode(g)[p.j...].gen)
 	
-	assign!(φ, -divergence(grad(f)), (p.o, p.n))
+	assign!(φ, -divergence(grad(f)))
 	
 	λ_0 = Mode(g)[p.j...].val
-	λ = dot(f, φ, (p.o, p.n)) / dot(f, f, (p.o, p.n)) |> abs |> sqrt
+	λ = dot(f, φ) / dot(f, f) |> abs |> sqrt
 	
 	println(" λ = $λ")
 	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
 	
-	assign!(r, λ^2*f + divergence(grad(f)), (p.o, p.n))
+	assign!(r, λ^2*f + divergence(grad(f)))
 	
-	println("||λ^2*f + div(grad(f))|| = $(sqrt <| dot(r, r, (p.o, p.n)))")
+	println("||λ^2*f + div(grad(f))|| = $(sqrt <| dot(r, r))")
 	
 	plt1 = heatmap(x, y, f, "f", c = :davos)
 	plt2 = heatmap(x, y, r, "λ^2 f + div(grad(f))", c = :davos)
@@ -41,22 +41,22 @@ function test_s_mode(x, y, p, bc)
 	r2  = Vector(p.n, motion_stags, bc.v)
 	r3  = Vector(p.n, motion_stags, bc.v)
 	
-	assign!(v, sMode(w)[p.j...].gen, (p.o, p.n))
-	assign!(φ, curl(curl(v)), (p.o, p.n))
+	assign!(v, sMode(w)[p.j...].gen)
+	assign!(φ, curl(curl(v)))
 
 	λ_0 = sMode(w)[p.j...].val
-	λ = dot(v, φ, (p.o, p.n)) / dot(v, v, (p.o, p.n)) |> abs |> sqrt
+	λ = dot(v, φ) / dot(v, v) |> abs |> sqrt
 	
 	println(" λ = $λ")
 	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
 	
-	assign!(r1, divergence(v),  (p.o, p.n))
-	assign!(r2, λ^2*v - curl(curl(v)),  (p.o, p.n))
-	assign!(r3, λ^2*v + divergence(grad(v)),  (p.o, p.n))
+	assign!(r1, divergence(v))
+	assign!(r2, λ^2*v - curl(curl(v)))
+	assign!(r3, λ^2*v + divergence(grad(v)))
 	
-	println("||div(v)|| = $(sqrt <| dot(r1, r1, (p.o, p.n)))")
-	println("||λ^2*v - curl(curl(v))|| = $(sqrt <| dot(r2, r2, (p.o, p.n)))")
-	println("||λ^2*v +  div(grad(v))|| = $(sqrt <| dot(r3, r3, (p.o, p.n)))")
+	println("||div(v)|| = $(sqrt <| dot(r1, r1))")
+	println("||λ^2*v - curl(curl(v))|| = $(sqrt <| dot(r2, r2))")
+	println("||λ^2*v +  div(grad(v))|| = $(sqrt <| dot(r3, r3))")
 	
 	plt1 = heatmap(x, y, v,  "v", c = :davos)
 	plt2 = heatmap(x, y, r2, "λ^2 v - curl(curl(v))", c = :davos)
@@ -75,22 +75,22 @@ function test_p_mode(x, y, p, bc)
 	r2  = Vector(p.n, motion_stags, bc.v)
 	r3  = Vector(p.n, motion_stags, bc.v)
 	
-	assign!(v, pMode(w)[p.j...].gen, (p.o, p.n))
-	assign!(φ, -grad(divergence(v)), (p.o, p.n))
+	assign!(v, pMode(w)[p.j...].gen)
+	assign!(φ, -grad(divergence(v)))
 
 	λ_0 = pMode(w)[p.j...].val
-	λ = dot(v, φ, (p.o, p.n)) / dot(v, v, (p.o, p.n)) |> abs |> sqrt
+	λ = dot(v, φ) / dot(v, v) |> abs |> sqrt
 	
 	println(" λ = $λ")
 	println("|λ - λ_0|/|λ_0| = $(abs(λ - λ_0)/abs(λ_0))")
 	
 	assign!(r1, curl(v), (p.o, p.n))
-	assign!(r2, λ^2*v + grad(divergence(v)),  (p.o, p.n))
-	assign!(r3, λ^2*v + divergence(grad(v)),  (p.o, p.n))
+	assign!(r2, λ^2*v + grad(divergence(v)))
+	assign!(r3, λ^2*v + divergence(grad(v)))
 	
-	println("||curl(v)|| = $(sqrt <| dot(r1, r1, (p.o, p.n)))")
-	println("||λ^2 v + grad(div(v))|| = $(sqrt <| dot(r2, r2, (p.o, p.n)))")
-	println("||λ^2 v + div(grad(v))|| = $(sqrt <| dot(r3, r3, (p.o, p.n)))")
+	println("||curl(v)|| = $(sqrt <| dot(r1, r1))")
+	println("||λ^2 v + grad(div(v))|| = $(sqrt <| dot(r2, r2))")
+	println("||λ^2 v + div(grad(v))|| = $(sqrt <| dot(r3, r3))")
 	
 	plt1 = heatmap(x, y, v,  "v", c = :davos)
 	plt2 = heatmap(x, y, r2, "λ^2 v + grad(div(v))", c = :davos)
@@ -103,7 +103,6 @@ end
 
 function parameters(; nb, j, l_x, μ_0, r_0, h_t)
 	n    =  nb .* BLOCK_SIZE         # mesh resolution
-	o    =  n .- n .+ 1              # logical origin
 	h    =  l_x / (n[1] - 2)         # cell size (square)
 	l    =  (n .- 2) .* h            # physical domain size
 	
@@ -140,8 +139,8 @@ function main()
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i), (p.o[1], p.n[1]))
-	assign!(y, fieldgen(i -> i), (p.o[2], p.n[2]))
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
 	
 	  test_mode(x, y, p, Essential())
 	test_s_mode(x, y, p, ImpermeableFreeSlip())

@@ -1,7 +1,7 @@
 using OffsetArrays
 import LinearAlgebra
 
-function cg!(A, x, b; r, p, q, bounds, rtol, maxit, minit, quiet = false, λtol = rtol)
+function cg!(A, x, b; r, p, q, rtol, maxit, minit, quiet = false, λtol = rtol)
 	γ = OffsetArray(zeros(maxit+1), -1:maxit-1)
 	β = OffsetArray(zeros(maxit+1),  0:maxit)
 	α = OffsetArray(zeros(maxit),    1:maxit)
@@ -14,27 +14,27 @@ function cg!(A, x, b; r, p, q, bounds, rtol, maxit, minit, quiet = false, λtol 
 	γ[-1] = 1
 	β[ 0] = 0
 
-	assign!(r, b - A(x), bounds)
-	assign!(p, r,        bounds)
+	assign!(r, b - A(x))
+	assign!(p, r)
 	
-	ρ[0] = dot(r, r, bounds);# ρ[0] > atol || return [];
+	ρ[0] = dot(r, r);# ρ[0] > atol || return [];
 	
 	λ[0] = -1
 	Λ[0] = -1
 
 	λf  = maxit
-	χ   = dot(x, x, bounds)
+	χ   = dot(x, x)
 
 	k = 1
 	for outer k in 1:maxit
-		assign!(q, A(p), bounds)
-		τ = dot(p, q, bounds); abs(τ) > 10*eps(τ) || break;
+		assign!(q, A(p))
+		τ = dot(p, q); abs(τ) > 10*eps(τ) || break;
 		γ[k-1] = ρ[k-1] / τ
-		assign!(x, x + γ[k-1] * p, bounds)
-		assign!(r, r - γ[k-1] * q, bounds)
-		ρ[k] = dot(r, r, bounds); abs(ρ[k]) > 10*eps(ρ[k]) || break;
+		assign!(x, x + γ[k-1] * p)
+		assign!(r, r - γ[k-1] * q)
+		ρ[k] = dot(r, r); abs(ρ[k]) > 10*eps(ρ[k]) || break;
 		β[k] = ρ[k] / ρ[k-1]
-		assign!(p, r + β[k]*p, bounds)
+		assign!(p, r + β[k]*p)
 		
 		α[k]   = 1 / γ[k-1] + β[k-1] / γ[k-2]
 		η[k+1] = sqrt(β[k]) / γ[k-1]
@@ -50,7 +50,7 @@ function cg!(A, x, b; r, p, q, bounds, rtol, maxit, minit, quiet = false, λtol 
 			end
 		end
 
-		ε[k] = sqrt(ρ[k]) / abs(λ[min(k, λf)]) / sqrt(dot(x, x, bounds))
+		ε[k] = sqrt(ρ[k]) / abs(λ[min(k, λf)]) / sqrt(dot(x, x))
 
 		if mod(k, 10) == 1
 			k <= λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k])), λ = $(λ[min(k, λf)]), Λ = $(Λ[min(k, λf)])")
@@ -64,55 +64,3 @@ function cg!(A, x, b; r, p, q, bounds, rtol, maxit, minit, quiet = false, λtol 
 
 	return (λ[1:λf], Λ[1:λf], ε[1:k])
 end
-
-# function cg!(A, x, b; r, p, Ap, bounds, atol, maxit, quiet = false)
-	
-# 	assign!(r, b - A(x), bounds)
-
-# 	assign!(p, r, bounds)
-# 	assign!(Ap, A(p), bounds)
-	
-# 	ρ = zeros(0)
-# 	push!(ρ, dot(r, r, bounds))
-
-# 	α = zeros(0)
-# 	push!(α, ρ[end] / dot(p, Ap, bounds))
-
-# 	d0 = zeros(0)
-# 	d1 = zeros(0)
-# 	push!(d0, 1/α[end])
-
-# 	λ = (0, 0)
-
-# 	i = 1; while i <= maxit
-# 		assign!(x, x + α[end] *  p, bounds)
-# 		assign!(r, r - α[end] * Ap, bounds)
-
-# 		push!(ρ, dot(r, r, bounds))
-		
-# 		assign!(p, r + ρ[end] / ρ[end-1] * p, bounds)
-# 		assign!(Ap, A(p), bounds)
-
-# 		push!(α, ρ[end] / dot(p, Ap, bounds))
-
-# 		if i < 10
-# 			push!(d0, 1/α[end] + ρ[end]/ρ[end-1]/α[end-1])
-# 			push!(d1, -sqrt(ρ[end]/ρ[end-1])/α[end-1])
-
-# 			T = LinearAlgebra.SymTridiagonal(d0, d1)
-# 			λ = extrema <| LinearAlgebra.eigvals(T)
-# 			println("Lanczos $i: $λ")
-# 		end
-		
-# 		(mod(i, 10) == 1 || ρ[end] < atol^2) && !quiet &&
-# 			println("cg: i = $i, log10(ε) = $(.5*log10(ρ[end]))")
-		
-# 		ρ[end] < atol^2 && break
-		
-# 		i += 1
-# 	end
-
-# 	i == maxit+1 && !quiet && println("cg failed to converge in $maxit iterations")
-
-# 	resize!(ρ, i); return sqrt.(ρ)
-# end
