@@ -13,13 +13,6 @@ gen_rand(f::Field) = gen_rand()
 (gen_ones(v::Tensor{S, NamedTuple{N}}) where {S, N}) = (; zip(N, gen_ones() for n in N...)...)
 (gen_rand(v::Tensor{S, NamedTuple{N}}) where {S, N}) = (; zip(N, gen_rand() for n in N...)...)
 
-(cstep(f, h)) = imag(f) / h
-(cstep(bc::Essential{D}, h) where D) = Essential{D}(cstep(bc.expr, h))
-(cstep(  bc::Natural{D}, h) where D) =   Natural{D}(cstep(bc.expr, h))
-(cstep(f::Tuple{F, BCs}, h) where {F, BCs <: Tuple}) = (cstep(f[1], h), map(bc -> cstep(bc, h), f[2]))
-
-linearize(f, x; h = eps(Float32)) = v -> cstep(f(x + h * im * v), h)
-
 using StaggeredKernels.Plane
 
 function test_mode(x, y, p)

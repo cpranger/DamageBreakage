@@ -21,10 +21,10 @@ function test_poisson(p)
 	f_u(u, v) = (
 		divergence(v),
 		(
-			Essential(:-, :y, FD(u, :y)),
-			Essential(:-, :x, -u),
-			Essential(:+, :x, -u),
-			Essential(:+, :y, -u + 1)
+			"-y" => FD(u, :y),
+			"-x" => -u,
+			"+x" => -u,
+			"+y" => -u + 1
 		)
 	)
 
@@ -66,16 +66,16 @@ function test_elastic(p)
 		divergence(v),
 		(;
 			x = (
-				Essential(:-, :y, FD(u.x, :y)),
-				Essential(:-, :x,   -u.x),
-				Essential(:+, :x,   -u.x),
-				Essential(:+, :y,  1-u.x)
+				"-y" => FD(u.x, :y),
+				"-x" =>   -u.x,
+				"+x" =>   -u.x,
+				"+y" =>  1-u.x
 			),
 			y = (
-				Essential(:-, :y,   -u.y),
-				Essential(:-, :x,   -u.y),
-				Essential(:+, :x,   -u.y),
-				Essential(:+, :y,   -u.y)
+				"-y" =>   -u.y,
+				"-x" =>   -u.y,
+				"+x" =>   -u.y,
+				"+y" =>   -u.y
 			)
 		)
 	)
