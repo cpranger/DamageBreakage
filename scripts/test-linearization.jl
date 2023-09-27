@@ -30,13 +30,13 @@ function test_poisson(p)
 	u = Field(p.n, div_stags)
 	v = Field(p.n, div_stags)
 
-	f = x -> (divergence(abs(interpolate(x))*grad(x)) - p.h^2*x*(1 - x),
-		(
-			Essential(:-, :y, FD(x, :y)),
-			Essential(:-, :x, -x),
-			Essential(:+, :x, -x),
-			Essential(:+, :y, -x + 1)
-		)
+	f  = x -> divergence(grad(x))
+	# f  = x -> divergence(abs(interpolate(x))*grad(x)) - p.h^2*x*(1 - x)
+	bc = x -> (
+		"-y" => FD(  x, :y),
+		"-x" =>   ( -x    ),
+		"+x" =>   ( -x    ),
+		"+y" =>   ( -x+1  )
 	)
 	
 	# helpers
@@ -47,7 +47,7 @@ function test_poisson(p)
 		
 	assign!(u, 1)
 	
-	newtonit!(f, u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
+	newtonit!(x -> (f(x), bc(x)), u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
 
 	plt1 = heatmap(x, y, u, "u", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
@@ -67,20 +67,19 @@ function test_elasticity(p)
 	u = Vector(p.n, motion_stags)
 	v = Vector(p.n, motion_stags)
 
-	f = u -> (divergence(symgrad(u)),
-		(;
-			x = (
-				Essential(:-, :y, FD(u.x, :y)),
-				Essential(:-, :x, -u.x),
-				Essential(:+, :x, -u.x),
-				Essential(:+, :y, -u.x + 1)
-			),
-			y = (
-				Essential(:-, :y, -u.y),
-				Essential(:-, :x, -u.y),
-				Essential(:+, :x, -u.y),
-				Essential(:+, :y, -u.y)
-			)
+	f  = u -> divergence(symgrad(u))
+	bc = u -> (;
+		x = (
+			"-y" => FD(  u.x, :y),
+			"-x" =>   ( -u.x    ),
+			"+x" =>   ( -u.x    ),
+			"+y" =>   (1-u.x    )
+		),
+		y = (
+			"-y" =>   ( -u.y    ),
+			"-x" =>   ( -u.y    ),
+			"+x" =>   ( -u.y    ),
+			"+y" =>   ( -u.y    )
 		)
 	)
 	
@@ -92,7 +91,7 @@ function test_elasticity(p)
 		
 	assign!(u, gen_ones(u))
 	
-	newtonit!(f, u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
+	newtonit!(u -> (f(u), bc(u)), u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
 
 	plt1 = heatmap(x, y, u, "u", c = :davos)
 	plt2 = heatmap(x, y, r, "r", c = :davos)
@@ -121,8 +120,8 @@ function main()
 			arg_type = (NTuple{N, Int} where N)
     end
 	
-	# test_poisson(parameters(; parse_args(s)...))
-	test_elasticity(parameters(; parse_args(s)...))
+	test_poisson(parameters(; parse_args(s)...))
+	# test_elasticity(parameters(; parse_args(s)...))
 end
 
 # see https://stackoverflow.com/a/63385854

@@ -1,7 +1,7 @@
 using OffsetArrays
 import LinearAlgebra
 
-function cg!(A, x, b; r, p, q, rtol, maxit, minit, quiet = false, λtol = rtol)
+function cg!(A, x, b; r, p, q, rtol, maxit, minit, quiet = false, λtol = rtol/10)
 	γ = OffsetArray(zeros(maxit+1), -1:maxit-1)
 	β = OffsetArray(zeros(maxit+1),  0:maxit)
 	α = OffsetArray(zeros(maxit),    1:maxit)
@@ -42,18 +42,18 @@ function cg!(A, x, b; r, p, q, rtol, maxit, minit, quiet = false, λtol = rtol)
 
 		η[k+1] == 0 && break
 		
-		if k <= 10 || k <= λf
+		if k <= λf
 			T = LinearAlgebra.SymTridiagonal(α[1:k], η[2:k])
 			(Λ[k], λ[k]) = extrema <| LinearAlgebra.eigvals(T)
-			if abs((λ[k] - λ[k-1])/λ[k]) < λtol && abs((Λ[k] - Λ[k-1])/Λ[k]) < λtol
+			if k >= 10 && abs((Λ[k] - Λ[k-1])/Λ[k]) < λtol#= && abs((λ[k] - λ[k-1])/λ[k]) < λtol=# 
 				λf = k
 			end
 		end
 
 		ε[k] = sqrt(ρ[k]) / abs(λ[min(k, λf)]) / sqrt(dot(x, x))
 
-		if mod(k, 10) == 1
-			k <= λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k])), λ = $(λ[min(k, λf)]), Λ = $(Λ[min(k, λf)])")
+		if k <= λf || mod(k-1, 10) == 0
+			k <= λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k])), λ = ($(λ[min(k, λf)]), $(Λ[min(k, λf)])), λres = $(abs((Λ[k] - Λ[k-1])/Λ[k]))")
 			k >  λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k]))")
 		end
 		

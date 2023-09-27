@@ -22,8 +22,8 @@ function newtonit!(f, u, v, r, (h_1, h_2, h_3); maxit, atol)
     for i in 1:maxit
 		A = linearize(f, u)
 		# assign!(v, 0)
-		assign!(v, (0, (A(v) + r)[2]))
-		(λ, Λ, ε) = cg!(A, v, -r; r = h_1, p = h_2, q = h_3, rtol = 1e-1, λtol = 1e-1, minit = 100, maxit = 1000)
+		# assign!(v, (0, (A(v) + r)[2]))
+		(λ, Λ, ε) = cg!(A, v, -r; r = h_1, p = h_2, q = h_3, rtol = 1e-1, minit = 20, maxit = 100)
 		
 		newton_update!(u, v, f)
 
