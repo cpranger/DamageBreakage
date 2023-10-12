@@ -18,14 +18,7 @@ gen_rand(::Field) = gen_rand()
 (gen_chss(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_chss() for n in N])...)
 (gen_rand(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_rand() for n in N])...)
 
-function test_poisson(p)
-	# axes
-	x  = Field((p.n[1],), ((0,), (1,)))
-	y  = Field((p.n[2],), ((0,), (1,)))
-	
-	assign!(x, fieldgen(i -> i))
-	assign!(y, fieldgen(i -> i))
-	
+function test_poisson(p, ax_x, ax_y)
 	# A(u) v = b
 	u = Field(p.n, div_stags)
 	v = Field(p.n, div_stags)
@@ -49,20 +42,13 @@ function test_poisson(p)
 	
 	newtonit!(x -> (f(x), bc(x)), u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
 
-	plt1 = heatmap(x, y, u, "u", c = :davos)
-	plt2 = heatmap(x, y, r, "r", c = :davos)
+	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
+	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
 	plt  = plot(plt1, plt2; layout = (1, 2))
 	display(plt)
 end
 
-function test_elasticity(p)
-	# axes
-	x  = Field((p.n[1],), ((0,), (1,)))
-	y  = Field((p.n[2],), ((0,), (1,)))
-	
-	assign!(x, fieldgen(i -> i))
-	assign!(y, fieldgen(i -> i))
-	
+function test_elastic(p, ax_x, ax_y)
 	# A(u) v = b
 	u = Vector(p.n, motion_stags)
 	v = Vector(p.n, motion_stags)
@@ -93,8 +79,8 @@ function test_elasticity(p)
 	
 	newtonit!(u -> (f(u), bc(u)), u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
 
-	plt1 = heatmap(x, y, u, "u", c = :davos)
-	plt2 = heatmap(x, y, r, "r", c = :davos)
+	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
+	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
 	plt  = plot(plt1, plt2; layout = (1, 2))
 	display(plt)
 end
@@ -120,8 +106,17 @@ function main()
 			arg_type = (NTuple{N, Int} where N)
     end
 	
-	test_poisson(parameters(; parse_args(s)...))
-	# test_elasticity(parameters(; parse_args(s)...))
+	p = parameters(; parse_args(s)...)
+
+	# axes
+	x  = Field((p.n[1],), ((0,), (1,)))
+	y  = Field((p.n[2],), ((0,), (1,)))
+	
+	assign!(x, fieldgen(i -> i))
+	assign!(y, fieldgen(i -> i))
+	
+	test_poisson(p, x, y)
+	test_elastic(p, x, y)
 end
 
 # see https://stackoverflow.com/a/63385854

@@ -1,6 +1,22 @@
 using OffsetArrays
 import LinearAlgebra
 
+function cg_pc_jacobi!(A, x, b, args...; q, d, kwargs...)
+	assign!(q, 0)
+	
+	assign!(d, 1/sqrt(abs(diag(q, A(q)))))
+	
+	Meta.@show (δ, Δ) = minmax(d)
+
+	assign!(b, b*d)
+	
+	(λ, Λ, ε) = cg!(y -> A(y*d)*d, x, b, args...; q = q, kwargs...)
+	
+	assign!(x, x*d)
+	
+	return (λ/δ^2, Λ/Δ^2, ε) # ε is unaffected because it is relative to the solution
+end
+
 function cg!(A, x, b; r, p, q, rtol, maxit, minit, quiet = false, λtol = rtol/10)
 	γ = OffsetArray(zeros(maxit+1), -1:maxit-1)
 	β = OffsetArray(zeros(maxit+1),  0:maxit)
