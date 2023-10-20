@@ -7,26 +7,28 @@ using StaggeredKernels.Plane
 
 function test__parabolic_scalar(p, ax_x, ax_y)
 	
+	Meta.@show 1/p.h^2
+
 	u =  Field(p.n, div_stags)
 	
-	f(u) = -divergence(grad(u))
+	f(u) = divergence(grad(u)) / p.h^2
 
 	bc(u0 = 0) = u -> (
-		"-y" => -FD(u,  :y),
-		"-x" =>     u,
-		"+x" =>     u,
-		"+y" =>     u - u0
+		"-y" => FD( u,  :y) / p.h,
+		"-x" =>    -u      ,
+		"+x" =>    -u      ,
+		"+y" =>   (-u + u0)
 	)
 
-	intg = tr_bdf2(x -> (f(x), bc(0)(x)), u; h_t = 1/p.h^2)
+	intg = tr_bdf2(x -> (f(x), bc(1)(x)), u; h_t = .01)
 
-	assign!(u, (0, -bc(1)(0)))
-
-	newtonit!(x -> (-f(x), -bc(1)(x)), u, intg.dw, intg.r, intg.h; maxit = 30, atol = 1e-5)
+	assign!(u, (0, bc(1)(0)))
+	
+	newtonit!(x -> (f(x), bc(1)(x)), u, intg.dw, intg.r, intg.h; maxit = 30, atol = 1e-5)
 	
 	display(heatmap(ax_x, ax_y, u, "u", c = :davos))
 
-	for i in 1:1
+	for i in 1:1000
 		println("STEP $i")
 		err = step!(intg; newton_maxit = 3, newton_atol = 1e-9)
 		println("time stepping error: $err.")

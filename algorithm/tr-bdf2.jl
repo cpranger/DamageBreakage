@@ -13,11 +13,10 @@ struct tr_bdf2 <: Integrator
     h_t
 end
 
-tr_bdf2(f,          y   ; h_t = 1.) = tr_bdf2(x -> x, f,    y;                             h_t = h_t)
-tr_bdf2(f_ex, f_im, y   ; h_t = 1.) = tr_bdf2(f_ex,   f_im, y, [deepcopy(y) for _ in 1:3]; h_t = h_t)
-tr_bdf2(f_ex, f_im, y, w; h_t     ) = tr_bdf2(f_ex,   f_im, y, deepcopy(w), deepcopy(w), deepcopy(w)..., h_t)
+tr_bdf2(f,          y; h_t = 1.) = tr_bdf2(x -> x, f,    y;  h_t = h_t)
+tr_bdf2(f_ex, f_im, y; h_t     ) = tr_bdf2(f_ex,   f_im, y, [deepcopy(y) for _ in 1:3], [deepcopy(y) for _ in 1:4], deepcopy(y), deepcopy(y), deepcopy(y), h_t)
 
-function step!(i::tr_bdf2, newton_maxit, newton_atol)
+function step!(i::tr_bdf2; newton_maxit, newton_atol)
 	assign!(i.w[1], i.y)
     
 	stage_1 = w_2 -> (i.y + i.h_t * (
@@ -38,7 +37,7 @@ function step!(i::tr_bdf2, newton_maxit, newton_atol)
 	))
 
     println("TR-BDF2 stage 2:")
-    newtonit!(stage_2(x), i.w[3], i.dw, i.r, i.h; maxit = newton_maxit, atol = newton_atol)
+    newtonit!(stage_2, i.w[3], i.dw, i.r, i.h; maxit = newton_maxit, atol = newton_atol)
 	
 	stage_e = e -> (i.h_t * (
 	    ( 1/3-sqrt(2)/3) * i.f_im(i.w[1])

@@ -14,7 +14,7 @@ function newton_update!(x, dx, s::SchurComplement; h = eps(Float32))
 	assign!(s.y, s.y - 1/D(1/s.f_y(x, s.y)))
 end
 
-function newtonit!(f, u, v, r, (h_1, h_2, h_3); maxit, atol)
+function newtonit!(f, u, v, r, h; maxit, atol)
 	assign!(r, f(u))
 	norm = sqrt <| dot(r, r)
 	println("Newton i = 0, ||r|| = $norm")
@@ -23,7 +23,7 @@ function newtonit!(f, u, v, r, (h_1, h_2, h_3); maxit, atol)
 		A = linearize(f, u)
 		# assign!(v, 0)
 		# assign!(v, (0, (A(v) + r)[2]))
-		(λ, Λ, ε) = cg!(A, v, -r; r = h_1, p = h_2, q = h_3, rtol = 1e-1, minit = 20, maxit = 100)
+		(λ, Λ, ε) = cg_pc_jacobi!(A, v, -r; h = h, rtol = 1e-1, minit = 20, maxit = 100)
 		
 		newton_update!(u, v, f)
 

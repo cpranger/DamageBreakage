@@ -21,7 +21,7 @@ gen_rand(::Field) = gen_rand()
 function test_poisson(p, ax_x, ax_y)
 	# A(u) v = b
 	u = Field(p.n, div_stags)
-	v = Field(p.n, div_stags)
+	v = deepcopy(u)
 
 	f  = x -> divergence(grad(x))
 	# f  = x -> divergence(abs(interpolate(x))*grad(x)) - p.h^2*x*(1 - x)
@@ -33,14 +33,12 @@ function test_poisson(p, ax_x, ax_y)
 	)
 	
 	# helpers
-	r   = Field(p.n, div_stags)
-	h_1 = Field(p.n, div_stags)
-	h_2 = Field(p.n, div_stags)
-	h_3 = Field(p.n, div_stags)
+	r   = deepcopy(u)
+	h   = Tuple([deepcopy(u) for _ in 1:5])
 		
 	assign!(u, 1)
 	
-	newtonit!(x -> (f(x), bc(x)), u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
+	newtonit!(x -> (f(x), bc(x)), u, v, r, h; maxit = 30, atol = 1e-9)
 
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
 	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
@@ -51,9 +49,11 @@ end
 function test_elastic(p, ax_x, ax_y)
 	# A(u) v = b
 	u = Vector(p.n, motion_stags)
-	v = Vector(p.n, motion_stags)
+	v = deepcopy(u)
 
-	f  = u -> divergence(symgrad(u))
+	s(e) = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * e
+	
+	f  = u -> divergence(s(symgrad(u)))
 	bc = u -> (;
 		x = (
 			"-y" => FD(  u.x, :y),
@@ -70,14 +70,12 @@ function test_elastic(p, ax_x, ax_y)
 	)
 	
 	# helpers
-	r   = Vector(p.n, motion_stags)
-	h_1 = Vector(p.n, motion_stags)
-	h_2 = Vector(p.n, motion_stags)
-	h_3 = Vector(p.n, motion_stags)
+	r   = deepcopy(u)
+	h   = Tuple([deepcopy(u) for _ in 1:5])
 		
 	assign!(u, gen_ones(u))
 	
-	newtonit!(u -> (f(u), bc(u)), u, v, r, (h_1, h_2, h_3); maxit = 30, atol = 1e-9)
+	newtonit!(u -> (f(u), bc(u)), u, v, r, h; maxit = 30, atol = 1e-9)
 
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
 	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
@@ -88,6 +86,10 @@ end
 function parameters(; nb)
 	n    =  nb .* BLOCK_SIZE         # mesh resolution
 	h    =  1 / (n[1] - 2)
+	
+	μ_0  =  1
+	λ_0  =  μ_0                      # assuming Poisson's ratio ν = 1/4
+	k_0  =  λ_0 + (2/3)*μ_0          # bulk modulus
 	
 	# collect all variables local to this function:
 	vars = Base.@locals
@@ -115,7 +117,7 @@ function main()
 	assign!(x, fieldgen(i -> i))
 	assign!(y, fieldgen(i -> i))
 	
-	test_poisson(p, x, y)
+	# test_poisson(p, x, y)
 	test_elastic(p, x, y)
 end
 

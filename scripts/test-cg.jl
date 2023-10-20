@@ -7,12 +7,9 @@ includet("./header.jl")
 using StaggeredKernels.Plane
 
 function test_poisson(p, ax_x, ax_y)
-	u   = Field(p.n, div_stags)
-	h_1 = deepcopy(u)
-	h_2 = deepcopy(u)
-	r   = deepcopy(u)
-	b   = deepcopy(u)
-	pc  = deepcopy(u)
+	u = Field(p.n, div_stags)
+	h = Tuple([deepcopy(u) for _ in 1:5])
+	b = deepcopy(u)
 	
 	f  = u -> divergence(grad(u)) - 1/1000
 	bc = u -> (
@@ -22,13 +19,16 @@ function test_poisson(p, ax_x, ax_y)
 		"+y" =>   ( -u+1  )
 	)
 
-	A = linearize(u -> (f(u), bc(u)), 0*u)
-	assign!(b, (f(0*u), bc(0*u)))
+	A = linearize(u -> (f(u), bc(u)), 0)
+	assign!(b, (f(u), bc(u)))
 	assign!(b, -b)
+	
+	assign!(u, (0, bc(0)))
+	# (λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
 
-	assign!(u, (0, bc(0*u)))
-	(λ, Λ, ε) = cg!(A, u, b; r = r, p = h_1, q = h_2, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
-	# (λ, Λ, ε) = cg_pc_jacobi!(A, u, b; d = pc, r = r, p = h_1, q = h_2, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	r = deepcopy(u);
+	assign!(r, b - A(u))
 
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
 	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
@@ -40,12 +40,12 @@ end
 
 function test_elastic(p, ax_x, ax_y)
 	u   = Vector(p.n, motion_stags)
-	h_1 = deepcopy(u)
-	h_2 = deepcopy(u)
-	r   = deepcopy(u)
 	b   = deepcopy(u)
+	h   = Tuple([deepcopy(u) for _ in 1:5])
 	
-	f  = u -> divergence(symgrad(u))
+	s(e) = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * e
+	
+	f  = u -> divergence(s(symgrad(u)))
 	bc = u -> (;
 		x = (
 			"-y" => FD(  u.x, :y),
@@ -62,12 +62,15 @@ function test_elastic(p, ax_x, ax_y)
 	)
 	
 	A = linearize(u -> (f(u), bc(u)), 0*u)
-	assign!(b, (f(0*u), bc(0*u)))
+	assign!(b, (f(u), bc(u)))
 	assign!(b, -b)
 	
 	assign!(u, (0, bc(0*u)))
-	(λ, Λ, ε) = cg!(A, u, b; r = r, p = h_1, q = h_2, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
-	
+	# (λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+
+	r = h[2]; assign!(r, b - A(u))
+
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
 	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
 	display <| plot(plt1, plt2; layout = (1, 2))
@@ -80,6 +83,10 @@ function parameters(; nb)
 	n    =  nb .* BLOCK_SIZE         # mesh resolution
 	o    =  n .- n .+ 1              # logical origin
 	
+	μ_0  =  1
+	λ_0  =  μ_0                      # assuming Poisson's ratio ν = 1/4
+	k_0  =  λ_0 + (2/3)*μ_0          # bulk modulus
+
 	# collect all variables local to this function:
 	vars = Base.@locals
 	
@@ -103,11 +110,11 @@ function main()
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i))
-	assign!(y, fieldgen(i -> i))
+	assign!(x, fieldgen(i -> i/(p.n[1]-2) - 0.5))
+	assign!(y, fieldgen(i -> i/(p.n[2]-2) - 0.5))
 	
-	test_poisson(p, x, y)
-	# test_elastic(p, x, y)
+	# test_poisson(p, x, y)
+	test_elastic(p, x, y)
 end
 
 # see https://stackoverflow.com/a/63385854
