@@ -23,12 +23,12 @@ function test__parabolic_scalar(p, ax_x, ax_y)
 	intg = tr_bdf2(x -> (f(x), bc(1)(x)), u; h_t = .01)
 
 	assign!(u, (0, bc(1)(0)))
-	
+
 	newtonit!(x -> (f(x), bc(1)(x)), u, intg.dw, intg.r, intg.h; maxit = 30, atol = 1e-5)
 	
 	display(heatmap(ax_x, ax_y, u, "u", c = :davos))
 
-	for i in 1:1000
+	for i in 1:10
 		println("STEP $i")
 		err = step!(intg; newton_maxit = 3, newton_atol = 1e-9)
 		println("time stepping error: $err.")
@@ -63,7 +63,7 @@ function test__parabolic_vector(p, ax_x, ax_y)
 			"+y" =>   ( -v.y    ) / p.h^2
 		)
 	)
-
+	
 	intg = tr_bdf2(f, u)
 	
 	err = step!(intg; bc = bc, newton_maxit = 30, newton_atol = 1e-9)

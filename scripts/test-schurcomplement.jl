@@ -6,14 +6,7 @@ includet("./header.jl")
 
 using StaggeredKernels.Plane
 
-function test_poisson(p)
-	# axes
-	ax_x  = Field((p.n[1],), ((0,), (1,)))
-	ax_y  = Field((p.n[2],), ((0,), (1,)))
-	
-	assign!(ax_x, fieldgen(i -> i))
-	assign!(ax_y, fieldgen(i -> i))
-	
+function test_poisson(p, ax_x, ax_y)
 	# A(u) v = b
 	u =  Field(p.n, div_stags)
 	v = Vector(p.n, motion_stags)
@@ -22,40 +15,31 @@ function test_poisson(p)
 		"-y" => FD(  u, :y),
 		"-x" =>   ( -u    ),
 		"+x" =>   ( -u    ),
-		"+y" =>   ( -u+1  )
+		"+y" =>   ( -u + 1)
 	)
 
 	f_u(u, v) = (divergence(v), bc(u))
+	f_v(u, v) =  grad(u) - v
 
-	f_v(u, v) = grad(u) - v
-
-	s = SchurComplement(f_u, f_v, v)
+	sc = SchurComplement(f_u, f_v, v)
 
 	# helpers
 	w   = deepcopy(u)
 	r   = deepcopy(u)
 	h   = Tuple([deepcopy(u) for _ in 1:5])
 		
-	assign!(u, (1, bc(0)))
-	assign!(v, grad(u))
+	assign!(u, (0, bc(u)))
 	
-	newtonit!(s, u, w, r, h; maxit = 30, atol = 1e-9)
-
+	newtonit!(sc, u, w, r, h; maxit = 30, atol = 1e-9)
+	
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
-	# plt2 = heatmap(ax_x, ax_y, v, "v", c = :davos)
+	plt2 = heatmap(ax_x, ax_y, v, "v", c = :davos)
 	plt3 = heatmap(ax_x, ax_y, r, "r", c = :davos)
-	plt  = plot(plt1, #=plt2,=# plt3; layout = (1, 2))
+	plt  = plot(plt1, plt2, plt3; layout = (1, 3))
 	display(plt)
 end
 
-function test_elastic(p)
-	# # axes
-	ax_x  = Field((p.n[1],), ((0,), (1,)))
-	ax_y  = Field((p.n[2],), ((0,), (1,)))
-	
-	assign!(ax_x, fieldgen(i -> i))
-	assign!(ax_y, fieldgen(i -> i))
-	
+function test_elastic(p, ax_x, ax_y)
 	s(e) = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * e
 	
 	# A(u) v = b
@@ -79,16 +63,16 @@ function test_elastic(p)
 	f_u(u, v) = (divergence(s(v)), bc(u))
 	f_v(u, v) = symgrad(u) - v
 	
-	s = SchurComplement(f_u, f_v, v)
+	sc = SchurComplement(f_u, f_v, v)
 
 	# helpers
 	w   = deepcopy(u)
 	r   = deepcopy(u)
 	h   = Tuple([deepcopy(u) for _ in 1:5])
-		
-	assign!(u, 1)
 	
-	newtonit!(s, u, w, r, h; maxit = 30, atol = 1e-9)
+	assign!(u, (0, bc(u)))
+
+	newtonit!(sc, u, w, r, h; maxit = 30, atol = 1e-9)
 
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
 	plt2 = heatmap(ax_x, ax_y, v, "v", c = :davos)
@@ -122,10 +106,18 @@ function main()
 			required = true
 			arg_type = (NTuple{N, Int} where N)
     end
+
+	p = parameters(; parse_args(s)...)
 	
-	test_poisson(parameters(; parse_args(s)...))
-	#    readline()
-	# test_elastic(parameters(; parse_args(s)...))
+	# axes
+	x  = Field((p.n[1],), ((0,), (1,)))
+	y  = Field((p.n[2],), ((0,), (1,)))
+	
+	assign!(x, fieldgen(i -> i/(p.n[1]-2) - 0.5))
+	assign!(y, fieldgen(i -> i/(p.n[2]-2) - 0.5))
+	
+	# test_poisson(p, x, y)
+	test_elastic(p, x, y)
 end
 
 # see https://stackoverflow.com/a/63385854

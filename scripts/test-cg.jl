@@ -24,9 +24,9 @@ function test_poisson(p, ax_x, ax_y)
 	assign!(b, -b)
 	
 	assign!(u, (0, bc(0)))
-	# (λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
-	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
-
+	(λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	# (λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	
 	r = deepcopy(u);
 	assign!(r, b - A(u))
 
@@ -51,7 +51,7 @@ function test_elastic(p, ax_x, ax_y)
 			"-y" => FD(  u.x, :y),
 			"-x" =>   ( -u.x    ),
 			"+x" =>   ( -u.x    ),
-			"+y" =>   (1-u.x    )
+			"+y" =>   (fieldgen((i, j) -> sin(pi*i/(p.n[1]-2))) - u.x)
 		),
 		y = (
 			"-y" =>   ( -u.y    ),
@@ -66,8 +66,8 @@ function test_elastic(p, ax_x, ax_y)
 	assign!(b, -b)
 	
 	assign!(u, (0, bc(0*u)))
-	# (λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
-	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	(λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	# (λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
 
 	r = h[2]; assign!(r, b - A(u))
 

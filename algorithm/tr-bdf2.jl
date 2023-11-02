@@ -14,7 +14,7 @@ struct tr_bdf2 <: Integrator
 end
 
 tr_bdf2(f,          y; h_t = 1.) = tr_bdf2(x -> x, f,    y;  h_t = h_t)
-tr_bdf2(f_ex, f_im, y; h_t     ) = tr_bdf2(f_ex,   f_im, y, [deepcopy(y) for _ in 1:3], [deepcopy(y) for _ in 1:4], deepcopy(y), deepcopy(y), deepcopy(y), h_t)
+tr_bdf2(f_ex, f_im, y; h_t     ) = tr_bdf2(f_ex,   f_im, y, [deepcopy(y) for _ in 1:3], [deepcopy(y) for _ in 1:5], deepcopy(y), deepcopy(y), deepcopy(y), h_t)
 
 function step!(i::tr_bdf2; newton_maxit, newton_atol)
 	assign!(i.w[1], i.y)
