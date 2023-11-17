@@ -96,7 +96,7 @@ function cg_pc_jacobi!(A, x, b; h, rtol, maxit, minit, quiet = false, λtol = rt
 		# 1/max(λ(A)Λ(L), Λ(A)λ(L)) <= 1/λ(AL) <= 1/λ(A)λ(L)
 		# |ε| <= sqrt(r^T z) / λ(AL) <= sqrt(r^T z) / λ(A)λ(L)
 
-		ε[end] = sqrt(rz[0]) / abs(λ[0]*m) / sqrt(m) / sqrt(dot(x, x))
+		ε[end] = sqrt(rz[0]) / abs(λ[0]*m) / sqrt(m) / l2(x)
 		k == 1 && (ε[1] = ε[end])
 		
 		if  k <= λf || mod(k, 10) == 0

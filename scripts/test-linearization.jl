@@ -38,8 +38,8 @@ function test_poisson(p, ax_x, ax_y)
 		
 	assign!(u, 1)
 	
-	newtonit!(x -> (f(x), bc(x)), u, v, r, h; maxit = 30, atol = 1e-9)
-
+	newtonit!(x -> (f(x), bc(x)), u, v, r, h; maxit = 30, rtol = 1e-9)
+	
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
 	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
 	plt  = plot(plt1, plt2; layout = (1, 2))
@@ -75,7 +75,7 @@ function test_elastic(p, ax_x, ax_y)
 		
 	assign!(u, gen_ones(u))
 	
-	newtonit!(u -> (f(u), bc(u)), u, v, r, h; maxit = 30, atol = 1e-9)
+	newtonit!(u -> (f(u), bc(u)), u, v, r, h; maxit = 30, rtol = 1e-9)
 
 	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
 	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
@@ -117,8 +117,8 @@ function main()
 	assign!(x, fieldgen(i -> i))
 	assign!(y, fieldgen(i -> i))
 	
-	# test_poisson(p, x, y)
-	test_elastic(p, x, y)
+	test_poisson(p, x, y)
+	# test_elastic(p, x, y)
 end
 
 # see https://stackoverflow.com/a/63385854

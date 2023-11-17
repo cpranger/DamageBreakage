@@ -26,54 +26,8 @@ function test_poisson(p, ax)
 	
 	r = deepcopy(u)
 	
-	# Meta.@show n = p.n[1]
-
-	# B = zeros(n, n, n, n)
-
-	# assign!(u, 0)
-	# for i in 1:n
-	# 	for j in 1:n
-	# 		for k in 1:n
-	# 			for l in 1:n
-	# 				u.data[1, k, l] = 1;
-	# 				assign!(r, A(u))
-	# 				B[i, j, k, l] = r.data[1, i, j]
-	# 				u.data[1, k, l] = 0;
-	# 			end
-	# 		end
-	# 	end
-	# end
-
-	# C = reshape(B, (n^2, n^2))
-	# display(C)
-
-	# d = reshape(b.data, n^2)
-	# display(d)
-
-	# display <| Plots.heatmap(1:n^2, 1:n^2, C, aspectratio = :equal, framestyle  = :box)
-
-	# println("Eigenvalues")
-	# display <| LinearAlgebra.eigvals(C)
-	# println("Eigenvectors")
-	# display <| LinearAlgebra.eigvecs(C)
-
-	# Meta.@show C\d
-
-	# Meta.@show LinearAlgebra.isposdef(.-C)
-
-	# # return
-	# readline()
-
 	assign!(u, (0, bc(0)))
-	# display <| reshape(u.data, n^2)
-
-	# r = deepcopy(u)
-	# assign!(r, b - A(u))
-	# display <| r.data
-	
-	# (λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-6, λtol = 1e-2, minit = 100, maxit = 1000)
-	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-6, λtol = 1e-2, minit = 12, maxit = 100)
-	# println  <| cg_petsc!(A, u, b, h, ax; normtype = :norm_preconditioned, hermitian = false, rtol = 1e-6, atol = 1e-6, dtol = 1e1, maxit = 100)
+	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-6, λtol = 1e-2, minit = 10, maxit = 100)
 	
 	r = deepcopy(u)
 	assign!(r, b - A(u))
