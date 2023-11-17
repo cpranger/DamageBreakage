@@ -30,7 +30,7 @@ function newtonit!(f, u, v, r, h; maxit, atol)
 
 		assign!(r, f(u))
 		norm = sqrt <| dot(r, r)
-		println("Newton i = $i, ||r|| = $norm, λ = ($(λ[end]), $(Λ[end]))")
+		println("Newton i = $i, ||r|| = $norm, λ = ($λ, $Λ)")
 		
 		norm > atol || break
 	end

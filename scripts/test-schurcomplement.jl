@@ -113,8 +113,8 @@ function main()
 	x  = Field((p.n[1],), ((0,), (1,)))
 	y  = Field((p.n[2],), ((0,), (1,)))
 	
-	assign!(x, fieldgen(i -> i/(p.n[1]-2) - 0.5))
-	assign!(y, fieldgen(i -> i/(p.n[2]-2) - 0.5))
+	assign!(x, fieldgen(i -> i*p.h - 0.5))
+	assign!(y, fieldgen(i -> i*p.h - 0.5))
 	
 	# test_poisson(p, x, y)
 	test_elastic(p, x, y)

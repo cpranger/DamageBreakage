@@ -1,146 +1,114 @@
 using OffsetArrays
-import LinearAlgebra
 
 pc_jacobi_apply(a::Tensor, b) = StaggeredKernels.TensorOp(:*, a, b)
 pc_jacobi_apply(a::Field,  b) =  StaggeredKernels.FieldOp(:*, a, b)
 
 function cg_pc_jacobi!(A, x, b; h, rtol, maxit, minit, quiet = false, λtol = rtol/10)
-	(d, r, z, p, q) = h
+	# after http://www.math.iit.edu/~fass/477577_Chapter_16.pdf
+	# with embedded Lanczos process from TODO
+
+	(j, r, z, p, Ap) = h
 	
-	assign!(q, 0)
-	assign!(d, 1/diag(q, A(q)))
-	Meta.@show (δ, Δ) = minmax(d)
+	assign!(p, 0) # temporary loan of p
+	assign!(j, abs <| 1/diag(p, A(p)))
+	(M, m) = 1 ./ minmax(j)
+	Meta.@show (M, m)
+	
+	M⁻¹ = x -> pc_jacobi_apply(x, j)
+	
+	α  = OffsetArray(zeros(2), -2:-1)
+	β  = OffsetArray(zeros(2),  -1:0)
+	rz = OffsetArray(zeros(2),  -1:0)
+	λ  = OffsetArray(zeros(2),  -1:0)
+	Λ  = OffsetArray(zeros(2),  -1:0)
+	ε  = OffsetArray(zeros(2),   1:2)
 
-	γ = OffsetArray(zeros(maxit+1), -1:maxit-1)
-	β = OffsetArray(zeros(maxit+1),  0:maxit)
-	α = OffsetArray(zeros(maxit),    1:maxit)
-	η = OffsetArray(zeros(maxit),    2:maxit+1)
-	ρ = OffsetArray(zeros(maxit+1),  0:maxit)
-	λ = OffsetArray(zeros(maxit+1),  0:maxit)
-	Λ = OffsetArray(zeros(maxit+1),  0:maxit)
-	ε = OffsetArray(zeros(maxit),    1:maxit)
-
-	γ[-1] = 1
+	γ  = OffsetArray(zeros(maxit),    1:maxit)
+	η  = OffsetArray(zeros(maxit),    2:maxit+1)
+	
+	α[-1] = 1
 	β[ 0] = 0
 
 	assign!(r, b - A(x))
-	assign!(z, pc_jacobi_apply(d, r))
+	assign!(z, M⁻¹(r))
 	assign!(p, z)
 	
-	ρ[0] = dot(r, z);# ρ[0] > atol || return [];
+	rz[0] = dot(r, z);# rz[0] > atol || return [];
 	
 	λ[0] = -1
 	Λ[0] = -1
 
 	λf  = maxit
-	χ   = dot(x, x)
-
+	
 	k = 1
 	for outer k in 1:maxit
-		assign!(q, A(p))
-		τ = dot(p, q); abs(τ) > 10*eps(τ) || break;
-		γ[k-1] = ρ[k-1] / τ
-		assign!(x, x + γ[k-1] * p)
-		assign!(r, r - γ[k-1] * q)
-		assign!(z, pc_jacobi_apply(d, r))
-		ρ[k] = dot(r, z); abs(ρ[k]) > 10*eps(ρ[k]) || break;
-		β[k] = ρ[k] / ρ[k-1]
-		assign!(p, z + β[k]*p)
+		assign!(Ap, A(p))
+		pAp = dot(p, Ap)
+		abs(pAp) > 10*eps(pAp) || break
 		
-		α[k]   = 1 / γ[k-1] + β[k-1] / γ[k-2]
-		η[k+1] = sqrt(β[k]) / γ[k-1]
-		# println("(α, η) = ($(α[k]), $(η[k+1]))")
-
+		# compute step length
+		α[-2] =  α[-1]
+		α[-1] = rz[ 0] / pAp
+		# update the approximate solution
+		assign!(x, x + α[-1] * p)
+		# update the residual
+		assign!(r, r - α[-1] * Ap)
+		assign!(z, M⁻¹(r))
+		rz[-1] = rz[0]
+		rz[ 0] = dot(r, z)
+		abs(rz[0]) > 10*eps(rz[0]) || break
+		# compute a gradient correction factor
+		β[-1] =  β[0]
+		β[ 0] = rz[0] / rz[-1]
+		# set the new search direction
+		assign!(p, z + β[0]*p)
+		
+		# update tridiagonalization
+		γ[k]   = 1 / α[-1] + β[-1] / α[-2]
+		η[k+1] = sqrt(β[0]) / α[-1]
+		
 		η[k+1] == 0 && break
 		
 		if k <= λf
-			T = LinearAlgebra.SymTridiagonal(α[1:k], η[2:k])
-			(λ[k], Λ[k]) = (extrema <| LinearAlgebra.eigvals(T)) ./ (δ, Δ)
-			if k >= 10 && abs((Λ[k] - Λ[k-1])/Λ[k]) < λtol#= && abs((λ[k] - λ[k-1])/λ[k]) < λtol=# 
+			T = LinearAlgebra.SymTridiagonal(γ[1:k], η[2:k])
+			(Λ[-1], λ[-1]) = (Λ[0], λ[0])
+			(Λ[ 0], λ[ 0]) = extrema <| LinearAlgebra.eigvals(T)
+			(λres, Λres)   = map(l -> abs(l[0] - l[-1])/abs(l[0]), (λ, Λ))
+			if k >= 10 && Λres < λtol#= && λres < λtol=# 
 				λf = k
 			end
 		end
-
-		ε[k] = sqrt(dot(r, r)) / abs(λ[min(k, λf)]) / sqrt(dot(x, x))
 		
-		if k <= λf || mod(k-1, 10) == 0
-			k <= λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k])), λ = $(λ[min(k, λf)]), Λ = $(Λ[min(k, λf)]), λres = $(abs((Λ[k] - Λ[k-1])/Λ[k]))")
-			k >  λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k]))")
+		# r = L^T A L L^-1 x - L^T b
+		# ε = x - x^*
+		# r = A x - L^T b - [A x^* - b = 0]
+		#   = A ε
+		# z = M^-1 A ε
+		# r^T z = (A ε)^T (M^-1 A ε)
+		#       = ε^T A^T M^-1 A ε
+		#       = ε^T (A^T L) (L^T A) ε
+		# sqrt(r^T z) = |AL ε|
+		# λ(AL) |ε| <= [sqrt(r^T z) = |AL ε|] <= Λ(AL) |ε|
+		# |ε| <= sqrt(r^T z) / λ(AL)
+		# σ(AL) in union(σ(A), σ(L))  >>coloquially speaking<<
+		# λ(AL) >= λ(A)λ(L)
+		# Λ(AL) <= Λ(A)Λ(L)
+		# 1/max(λ(A)Λ(L), Λ(A)λ(L)) <= 1/λ(AL) <= 1/λ(A)λ(L)
+		# |ε| <= sqrt(r^T z) / λ(AL) <= sqrt(r^T z) / λ(A)λ(L)
+
+		ε[end] = sqrt(rz[0]) / abs(λ[0]*m) / sqrt(m) / sqrt(dot(x, x))
+		k == 1 && (ε[1] = ε[end])
+		
+		if  k <= λf || mod(k, 10) == 0
+			k <= λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[end])), λ = $(λ[0]*m), Λ = $(Λ[0]*M), λres = $Λres")
+			k >  λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[end]))")
 		end
 		
-		k > minit && ε[k] < rtol &&
-			(!quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k]))"); break)
+		k > minit && ε[end] < rtol &&
+			(!quiet && println("cg: k = $k, log10(εr) = $(log10(ε[end]))"); break)
 	end
 
-	k == maxit && ε[k] >= rtol && !quiet && println("cg failed to converge in $k iterations")
+	k == maxit && ε[end] >= rtol && !quiet && println("cg failed to converge in $k iterations")
 
-	return (λ[1:λf], Λ[1:λf], ε[1:k])
-
-	return (λ/δ^2, Λ/Δ^2, ε) # ε is unaffected because it is relative to the solution
-end
-
-function cg!(A, x, b; h, rtol, maxit, minit, quiet = false, λtol = rtol/10)
-	(r, p, q) = h
-	
-	γ = OffsetArray(zeros(maxit+1), -1:maxit-1)
-	β = OffsetArray(zeros(maxit+1),  0:maxit)
-	α = OffsetArray(zeros(maxit),    1:maxit)
-	η = OffsetArray(zeros(maxit),    2:maxit+1)
-	ρ = OffsetArray(zeros(maxit+1),  0:maxit)
-	λ = OffsetArray(zeros(maxit+1),  0:maxit)
-	Λ = OffsetArray(zeros(maxit+1),  0:maxit)
-	ε = OffsetArray(zeros(maxit),    1:maxit)
-
-	γ[-1] = 1
-	β[ 0] = 0
-
-	assign!(r, b - A(x))
-	assign!(p, r)
-	
-	ρ[0] = dot(r, r);# ρ[0] > atol || return [];
-	
-	λ[0] = -1
-	Λ[0] = -1
-
-	λf  = maxit
-	χ   = dot(x, x)
-
-	k = 1
-	for outer k in 1:maxit
-		assign!(q, A(p))
-		τ = dot(p, q); abs(τ) > 10*eps(τ) || break;
-		γ[k-1] = ρ[k-1] / τ
-		assign!(x, x + γ[k-1] * p)
-		assign!(r, r - γ[k-1] * q)
-		ρ[k] = dot(r, r); abs(ρ[k]) > 10*eps(ρ[k]) || break;
-		β[k] = ρ[k] / ρ[k-1]
-		assign!(p, r + β[k]*p)
-		
-		α[k]   = 1 / γ[k-1] + β[k-1] / γ[k-2]
-		η[k+1] = sqrt(β[k]) / γ[k-1]
-		# println("(α, η) = ($(α[k]), $(η[k+1]))")
-
-		η[k+1] == 0 && break
-		
-		if k <= λf
-			T = LinearAlgebra.SymTridiagonal(α[1:k], η[2:k])
-			(Λ[k], λ[k]) = extrema <| LinearAlgebra.eigvals(T)
-			if k >= 10 && abs((Λ[k] - Λ[k-1])/Λ[k]) < λtol#= && abs((λ[k] - λ[k-1])/λ[k]) < λtol=# 
-				λf = k
-			end
-		end
-
-		ε[k] = sqrt(ρ[k]) / abs(λ[min(k, λf)]) / sqrt(dot(x, x))
-
-		if k <= λf || mod(k, 10) == 0 || k == maxit
-			k <= λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k])), λ = ($(λ[min(k, λf)]), $(Λ[min(k, λf)])), λres = $(abs((Λ[k] - Λ[k-1])/Λ[k]))")
-			k >  λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[k]))")
-		end
-		
-		k > minit && ε[k] < rtol && break
-	end
-
-	k == maxit && ε[k] >= rtol && !quiet && println("cg failed to converge in $k iterations")
-
-	return (λ[1:λf], Λ[1:λf], ε[1:k])
+	return (λ[0]*m, Λ[0]*M, ε[end])
 end
