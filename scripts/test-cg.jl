@@ -12,19 +12,16 @@ function test_poisson(p, ax)
 	h = Tuple([deepcopy(u) for _ in 1:5])
 	b = deepcopy(u)
 	
-	f  = u -> divergence(grad(u))# - 3*p.h^2
+	f  = u -> divergence(grad(u))
 	bc(u) = (
-		"-y" =>  FD(u, :y),
-		"+y" => 1 - u,
-		"-x" =>    -u,
-		"+x" =>    -u,
+		BC(-2, FD(u, :y)),
+		BC(+2,  1-u     ),
+		BC(-1,   -u     ),
+		BC(+1,   -u     ),
 	)
 
-	A = linearize(u -> (f(u), bc(u)), 0)
-	assign!(b, (f(0), bc(0)))
-	assign!(b, -b)
-	
-	r = deepcopy(u)
+	A = linearize(u -> (f(u), bc(u)), 0*u)
+	assign!(b, -((f(0*u), bc(0*u))))
 	
 	assign!(u, (0, bc(0)))
 	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-6, λtol = 1e-2, minit = 10, maxit = 100)
@@ -39,7 +36,7 @@ function test_poisson(p, ax)
 	return
 end
 
-function test_elastic(p, ax_x, ax_y)
+function test_elastic(p, ax)
 	u   = Vector(p.n, motion_stags)
 	b   = deepcopy(u)
 	h   = Tuple([deepcopy(u) for _ in 1:5])
@@ -49,34 +46,32 @@ function test_elastic(p, ax_x, ax_y)
 	f  = u -> divergence(s(symgrad(u)))
 	bc = u -> (;
 		x = (
-			"-y" => FD(  u.x, :y),
-			"-x" =>   ( -u.x    ),
-			"+x" =>   ( -u.x    ),
-			"+y" =>   (fieldgen((i, j) -> sin(pi*i/(p.n[1]-2))) - u.x)
+			BC(-2, FD(u.x, :y)),
+			BC(+2,  1-u.x     ),
+			BC(-1,   -u.x     ),
+			BC(+1,   -u.x     )
 		),
 		y = (
-			"-y" =>   ( -u.y    ),
-			"-x" =>   ( -u.y    ),
-			"+x" =>   ( -u.y    ),
-			"+y" =>   ( -u.y    )
+			BC(-2,   -u.y     ),
+			BC(+2,   -u.y     ),
+			BC(-1,   -u.y     ),
+			BC(+1,   -u.y     )
 		)
 	)
 	
 	A = linearize(u -> (f(u), bc(u)), 0*u)
-	assign!(b, (f(u), bc(u)))
-	assign!(b, -b)
+	assign!(b, -((f(u), bc(u))))
 	
 	assign!(u, (0, bc(0*u)))
-	(λ, Λ, ε) = cg!(A, u, b; h = h[1:3], rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
-	# (λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-8, λtol = 1e-2, minit = 100, maxit = 1000)
+	(λ, Λ, ε) = cg_pc_jacobi!(A, u, b; h = h, rtol = 1e-6, λtol = 1e-2, minit = 10, maxit = 200)
+	
+	r = deepcopy(u)
+	assign!(r, b - A(u))
 
-	r = h[2]; assign!(r, b - A(u))
-
-	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
-	plt2 = heatmap(ax_x, ax_y, r, "r", c = :davos)
+	plt1 = heatmap(ax..., u, "u", c = :davos)
+	plt2 = heatmap(ax..., r, "r", c = :davos)
 	display <| plot(plt1, plt2; layout = (1, 2))
 	
-	readline()
 	return
 end
 

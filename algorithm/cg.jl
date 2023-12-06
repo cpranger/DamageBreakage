@@ -1,7 +1,7 @@
 using OffsetArrays
 
 pc_jacobi_apply(a::Tensor, b) = StaggeredKernels.TensorOp(:*, a, b)
-pc_jacobi_apply(a::Field,  b) =  StaggeredKernels.FieldOp(:*, a, b)
+pc_jacobi_apply(a::Field,  b) = StaggeredKernels.ScalarOp(:*, a, b)
 
 function cg_pc_jacobi!(A, x, b; h, rtol, maxit, minit, quiet = false, λtol = rtol/10)
 	# after http://www.math.iit.edu/~fass/477577_Chapter_16.pdf

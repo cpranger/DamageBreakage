@@ -6,77 +6,78 @@ includet("./header.jl")
 
 using StaggeredKernels.Plane
 
-function test_poisson(p, ax_x, ax_y)
+function test_poisson(p, ax)
 	# A(u) v = b
 	u =  Field(p.n, div_stags)
 	v = Vector(p.n, motion_stags)
 	
 	bc(u) = (
-		"-y" => FD(  u, :y),
-		"-x" =>   ( -u    ),
-		"+x" =>   ( -u    ),
-		"+y" =>   ( -u + 1)
+		BC(-2, FD(u, :y)),
+		BC(+2,  1-u     ),
+		BC(-1,   -u     ),
+		BC(+1,   -u     )
 	)
 
-	f_u(u, v) = (divergence(v), bc(u))
-	f_v(u, v) =  grad(u) - v
+	f((u, v),) = (
+		(divergence(v), bc(u)),
+		       grad(u) - v
+	)
 
-	sc = SchurComplement(f_u, f_v, v)
+	sc = SchurComplement(f, v)
 
 	# helpers
-	w   = deepcopy(u)
 	r   = deepcopy(u)
-	h   = Tuple([deepcopy(u) for _ in 1:5])
+	h   = Tuple([deepcopy(u) for _ in 1:6])
 		
 	assign!(u, (0, bc(u)))
 	
-	newtonit!(sc, u, w, r, h; maxit = 30, atol = 1e-9)
+	newtonit!(sc, u, r, h; maxit = 30, rtol = 1e-9)
 	
-	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
-	plt2 = heatmap(ax_x, ax_y, v, "v", c = :davos)
-	plt3 = heatmap(ax_x, ax_y, r, "r", c = :davos)
+	plt1 = heatmap(ax..., u, "u", c = :davos)
+	plt2 = heatmap(ax..., v, "v", c = :davos)
+	plt3 = heatmap(ax..., r, "r", c = :davos)
 	plt  = plot(plt1, plt2, plt3; layout = (1, 3))
 	display(plt)
 end
 
-function test_elastic(p, ax_x, ax_y)
+function test_elastic(p, ax)
 	s(e) = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * e
 	
 	# A(u) v = b
 	u = Vector(p.n, motion_stags)
 	v = Tensor(p.n, Symmetric, strain_stags)
 	
-	bc(u) = (;
+	bc = u -> (;
 		x = (
-			"-y" => FD(u.x, :y),
-			"-x" =>   -u.x,
-			"+x" =>   -u.x,
-			"+y" =>  1-u.x
+			BC(-2, FD(u.x, :y)),
+			BC(+2,  1-u.x     ),
+			BC(-1,   -u.x     ),
+			BC(+1,   -u.x     )
 		),
 		y = (
-			"-y" =>   -u.y,
-			"-x" =>   -u.y,
-			"+x" =>   -u.y,
-			"+y" =>   -u.y
+			BC(-2,   -u.y     ),
+			BC(+2,   -u.y     ),
+			BC(-1,   -u.y     ),
+			BC(+1,   -u.y     )
 		)
 	)
-	f_u(u, v) = (divergence(s(v)), bc(u))
-	f_v(u, v) = symgrad(u) - v
+	f((u, v),) = (
+		(divergence(s(v)), bc(u)),
+		      symgrad(u) - v
+	)
 	
-	sc = SchurComplement(f_u, f_v, v)
+	sc = SchurComplement(f, v)
 
 	# helpers
-	w   = deepcopy(u)
 	r   = deepcopy(u)
-	h   = Tuple([deepcopy(u) for _ in 1:5])
+	h   = Tuple([deepcopy(u) for _ in 1:6])
 	
 	assign!(u, (0, bc(u)))
+	newtonit!(sc, u, r, h; maxit = 30, rtol = 1e-9)
 
-	newtonit!(sc, u, w, r, h; maxit = 30, atol = 1e-9)
-
-	plt1 = heatmap(ax_x, ax_y, u, "u", c = :davos)
-	plt2 = heatmap(ax_x, ax_y, v, "v", c = :davos)
-	plt3 = heatmap(ax_x, ax_y, r, "r", c = :davos)
+	plt1 = heatmap(ax..., u, "u", c = :davos)
+	plt2 = heatmap(ax..., v, "v", c = :davos)
+	plt3 = heatmap(ax..., r, "r", c = :davos)
 	plt  = plot(plt1, plt2, plt3; layout = (1, 3))
 	display(plt)
 end
@@ -110,14 +111,16 @@ function main()
 	p = parameters(; parse_args(s)...)
 	
 	# axes
-	x  = Field((p.n[1],), ((0,), (1,)))
-	y  = Field((p.n[2],), ((0,), (1,)))
+	ax  = (
+	    Field((p.n[1],), ((0,), (1,))),
+	    Field((p.n[2],), ((0,), (1,)))
+	)
 	
-	assign!(x, fieldgen(i -> i*p.h - 0.5))
-	assign!(y, fieldgen(i -> i*p.h - 0.5))
+	assign!(ax[1], fieldgen(i -> i*p.h - 0.5))
+	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
-	# test_poisson(p, x, y)
-	test_elastic(p, x, y)
+	# test_poisson(p, ax)
+	test_elastic(p, ax)
 end
 
 # see https://stackoverflow.com/a/63385854

@@ -5,138 +5,165 @@ include("./header.jl")
 using StaggeredKernels.Plane
 
 
-function test__parabolic_scalar(p, ax_x, ax_y)
-	
-	Meta.@show 1/p.h^2
-
-	u =  Field(p.n, div_stags)
-	
+function test__parabolic_scalar(p, ax)
 	f(u) = divergence(grad(u)) / p.h^2
-
-	bc(u0 = 0) = u -> (
-		"-y" => FD( u,  :y) / p.h,
-		"-x" =>    -u      ,
-		"+x" =>    -u      ,
-		"+y" =>   (-u + u0)
+	bc(u) = (
+		BC(-2, 0), BC(+2, 0), BC(-1, 0), BC(+1, 0)
 	)
+	bc_init(u) = (
+		BC(-2, FD(u, :y)),
+		BC(+2,  1-u     ),
+		BC(-1,   -u     ),
+		BC(+1,   -u     )
+	) ./ p.h^2
 
-	intg = tr_bdf2(x -> (f(x), bc(1)(x)), u; h_t = .005)
+	intg = tr_bdf2(x -> (f(x), bc(x)), Field(p.n, div_stags); h_t = .05)
 
-	for i in 1:3
+	init!(intg, x -> (-x, bc_init(x)); newton_maxit = 30, newton_rtol = 1e-6)
+	plt1 = heatmap(ax..., intg.y, "y", c = :davos)
+	plt2 = heatmap(ax..., intg.e, "e", c = :davos)
+	plt  = plot(plt1, plt2; layout = (1,2))
+	display(plt)
+	readline()
+
+	for i in 1:20
 		println("STEP $i")
-		err = step!(intg; newton_maxit = 3, newton_atol = 1e-9)
+		err = step!(intg; newton_maxit = 3, newton_rtol = 1e-6)
 		println("time stepping error: $err.")
-		plt1 = heatmap(ax_x, ax_y,      u, "u", c = :davos)
-		plt2 = heatmap(ax_x, ax_y, intg.e, "e", c = :davos)
-		# plt3 = heatmap(ax_x, ax_y, intg.r, "r", c = :davos)
-		plt  = plot(plt1, plt2#=, plt3=#; layout = (1,2))
+		plt1 = heatmap(ax..., intg.y, "u", c = :davos)
+		plt2 = heatmap(ax..., intg.e, "e", c = :davos)
+		plt  = plot(plt1, plt2; layout = (1,2))
+		display(plt)
+		readline()
+	end
+end
+
+function test__parabolic_vector(p, ax)
+	s(e)  = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * e
+	f(u)  = divergence(s(symgrad(u))) / p.h^2
+	bc(u) = (;
+		x = (BC(-2, 0), BC(+2, 0), BC(-1, 0), BC(+1, 0)) ./ p.h^2,
+		y = (BC(-2, 0), BC(+2, 0), BC(-1, 0), BC(+1, 0)) ./ p.h^2
+	)
+	bc_init(u) = (;
+		x = (
+			BC(-2,   -u.x),
+			BC(+2,  1-u.x),
+			BC(-1,   -u.x),
+			BC(+1,   -u.x)
+		) ./ p.h^2,
+		y = (
+			BC(-2,   -u.y),
+			BC(+2,   -u.y),
+			BC(-1,   -u.y),
+			BC(+1,   -u.y)
+		) ./ p.h^2
+	)
+	
+	intg = tr_bdf2(x -> (f(x), bc(x)), Vector(p.n, motion_stags); h_t = .05)
+
+	init!(intg, x -> (-x, bc_init(x)); newton_maxit = 30, newton_rtol = 1e-6)
+	plt1 = heatmap(ax..., intg.y, "y", c = :davos)
+	plt2 = heatmap(ax..., intg.e, "e", c = :davos)
+	plt  = plot(plt1, plt2; layout = (1,2))
+	display(plt)
+	readline()
+
+	for i in 1:20
+		println("STEP $i")
+		err = step!(intg; newton_maxit = 3, newton_rtol = 1e-6)
+		println("time stepping error: $err.")
+		plt1 = heatmap(ax..., intg.y, "u", c = :davos)
+		plt2 = heatmap(ax..., intg.e, "e", c = :davos)
+		plt  = plot(plt1, plt2; layout = (1,2))
+		display(plt)
+		readline()
+	end
+end
+
+function test_hyperbolic_scalar(p, ax)
+	u = Field(p.n, div_stags)
+	v = Vector(p.n, motion_stags)
+	
+	bc      = u -> (BC(-2, FD(u, :y) / p.h), BC(+2, 0), BC(-1, 0), BC(+1, 0))
+	bc_init = u -> (
+		BC(-2, FD(u, :y)),
+		BC(+2,  1-u     ),
+		BC(-1,   -u     ),
+		BC(+1,   -u     )
+	) ./ p.h^2
+	
+	f((u, v),) = (
+		(divergence(v) / p.h, bc(u)),
+		       grad(u) / p.h
+	)
+	
+	intg = tr_bdf2_schur(f, (u, v); h_t = .01)
+
+	init!(intg, ((u, v),) -> ((-u, bc_init(u)), -v); newton_maxit = 30, newton_rtol = 1e-6)
+	plt1 = heatmap(ax..., intg.y[1], "y", c = :davos)
+	plt2 = heatmap(ax..., intg.e[1], "e", c = :davos)
+	plt  = plot(plt1, plt2; layout = (1,2))
+	display(plt)
+
+	for i in 1:500
+		println("STEP $i")
+		err = step!(intg; newton_maxit = 3, newton_rtol = 1e-6)
+		println("time stepping error: $err.")
+		plt1 = heatmap(ax..., intg.y[1], "u", c = :davos)
+		plt2 = heatmap(ax..., intg.e[1], "e", c = :davos)
+		plt  = plot(plt1, plt2; layout = (1,2))
 		display(plt)
 	end
-	
 end
 
-function test__parabolic_vector(p, ax_x, ax_y)
+function test_hyperbolic_vector(p, ax)
+	u = Vector(p.n, motion_stags)
+	v = Tensor(p.n, Symmetric, strain_stags)
 	
-	v = Vector(p.n, motion_stags)
+	w(v) = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * v
 	
-	s(e) = (p.λ_0 * MajorIdentity() + p.μ_0 * MinorIdentity()) * e
-
-	f(v) = divergence(s(symgrad(v))) / p.h^2
-
-	bc(v) = (;
+	bc = u -> (;
+		x = (BC(-2, p.c_s * FD(u.x, :y) / p.h), BC(+2, 0), BC(-1, 0), BC(+1, 0)),
+		y = (BC(-2, 0), BC(+2, 0), BC(-1, 0), BC(+1, 0))
+	)
+	bc_init = u -> (;
 		x = (
-			"-y" => FD(  v.x, :y) / p.h^2,
-			"-x" =>   ( -v.x    ) / p.h^2,
-			"+x" =>   ( -v.x    ) / p.h^2,
-			"+y" =>   (1-v.x    ) / p.h^2
-		),
+			BC(-2, FD(u.x, :y)),
+			BC(+2,  1-u.x     ),
+			BC(-1,   -u.x     ),
+			BC(+1,   -u.x     )
+		) ./ p.h^2,
 		y = (
-			"-y" =>   ( -v.y    ) / p.h^2,
-			"-x" =>   ( -v.y    ) / p.h^2,
-			"+x" =>   ( -v.y    ) / p.h^2,
-			"+y" =>   ( -v.y    ) / p.h^2
-		)
+			BC(-2,  -u.y),
+			BC(+2,  -u.y),
+			BC(-1,  -u.y),
+			BC(+1,  -u.y)
+		) ./ p.h^2
 	)
 	
-	intg = tr_bdf2(f, u)
-	
-	err = step!(intg; bc = bc, newton_maxit = 30, newton_atol = 1e-9)
-
-	println("time stepping error: $err.")
-
-	plt1 = heatmap(ax_x, ax_y,      v, "v", c = :davos)
-	plt2 = heatmap(ax_x, ax_y, intg.e, "e", c = :davos)
-	plt3 = heatmap(ax_x, ax_y, intg.r, "r", c = :davos)
-	plt  = plot(plt1, plt2, plt3; layout = (1, 3))
-	display(plt)
-end
-
-function test_hyperbolic_scalar(p, ax_x, ax_y)
-	
-	u =  Field(p.n, div_stags)
-	v = Vector(p.n, motion_stags)
-	
-	f_u(u, v) = p(divergence(v)) / p.h
-	f_v(u, v) = grad(u) / p.h - v
-	bc_(u)    = (
-		"-y" => FD( u, :y) / p.h^2,
-		"-x" =>   (-u    ) / p.h^2,
-		"+x" =>   (-u    ) / p.h^2,
-		"+y" =>   (-u + 1) / p.h^2
-	)
-
-	s = SchurComplement(f_u, f_v, v)
-
-	intg = tr_bdf2(s, u)
-	
-	err = step!(intg; bc = bc_, newton_maxit = 30, newton_atol = 1e-9)
-
-	println("time stepping error: $err.")
-
-	plt1 = heatmap(ax_x, ax_y,      u, "u", c = :davos)
-	plt2 = heatmap(ax_x, ax_y, intg.e, "e", c = :davos)
-	plt3 = heatmap(ax_x, ax_y, intg.r, "r", c = :davos)
-	plt  = plot(plt1, plt2, plt3; layout = (1, 3))
-	display(plt)
-end
-
-function test_hyperbolic_vector(p, ax_x, ax_y)
-	
-	v = Vector(p.n, motion_stags)
-	e = Tensor(p.n, Symmetric, strain_stags)
-	
-	s(e) = (p.λ_0 * MajorIdentity() + p.μ_0 * MinorIdentity()) * e
-
-	f_v(v, e) = divergence(s(e)) / p.h
-	f_e(v, e) = symgrad(v) / p.h - e
-	bc_(v)    = (;
-		x = (
-			"-y" => FD(  v.x, :y) / p.h^2,
-			"-x" =>   ( -v.x    ) / p.h^2,
-			"+x" =>   ( -v.x    ) / p.h^2,
-			"+y" =>   (1-v.x    ) / p.h^2
-		),
-		y = (
-			"-y" =>   ( -v.y    ) / p.h^2,
-			"-x" =>   ( -v.y    ) / p.h^2,
-			"+x" =>   ( -v.y    ) / p.h^2,
-			"+y" =>   ( -v.y    ) / p.h^2
-		)
+	f((u, v),) = (
+		(divergence(w(v)) / p.h, bc(u)),
+		      symgrad(u)  / p.h
 	)
 	
-	s = SchurComplement(f_v, f_e, e)
+	intg = tr_bdf2_schur(f, (u, v); h_t = .01)
 
-	intg = tr_bdf2(s, u)
-	
-	err = step!(intg; bc = bc_, newton_maxit = 30, newton_atol = 1e-9)
-
-	println("time stepping error: $err.")
-
-	plt1 = heatmap(ax_x, ax_y, v, "v", c = :davos)
-	plt2 = heatmap(ax_x, ax_y, e, "e", c = :davos)
-	plt3 = heatmap(ax_x, ax_y, r, "r", c = :davos)
-	plt  = plot(plt1, plt2, plt3; layout = (1, 3))
+	init!(intg, ((u, v),) -> ((-u, bc_init(u)), -v); newton_maxit = 30, newton_rtol = 1e-6)
+	plt1 = heatmap(ax..., intg.y[1], "y", c = :davos)
+	plt2 = heatmap(ax..., intg.e[1], "e", c = :davos)
+	plt  = plot(plt1, plt2; layout = (1,2))
 	display(plt)
+
+	for i in 1:500
+		println("STEP $i")
+		err = step!(intg; newton_maxit = 3, newton_rtol = 1e-6)
+		println("time stepping error: $err.")
+		plt1 = heatmap(ax..., intg.y[1], "u", c = :davos)
+		plt2 = heatmap(ax..., intg.e[1], "e", c = :davos)
+		plt  = plot(plt1, plt2; layout = (1,2))
+		display(plt)
+	end
 end
 
 function parameters(; nb)
@@ -172,16 +199,18 @@ function main()
 	p = parameters(; parse_args(s)...); pprintln(p)
 	
 	# axes
-	ax_x  = Field((p.n[1],), ((0,), (1,)))
-	ax_y  = Field((p.n[2],), ((0,), (1,)))
+	ax  = (
+	    Field((p.n[1],), ((0,), (1,))),
+	    Field((p.n[2],), ((0,), (1,)))
+	)
 	
-	assign!(ax_x, fieldgen(i -> i))
-	assign!(ax_y, fieldgen(i -> i))
+	assign!(ax[1], fieldgen(i -> i*p.h - 0.5))
+	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
-	test__parabolic_scalar(p, ax_x, ax_y)
-	# test__parabolic_vector(p, ax_x, ax_y)
-	# test_hyperbolic_scalar(p, ax_x, ax_y)
-	# test_hyperbolic_vector(p, ax_x, ax_y)
+	# test__parabolic_scalar(p, ax)
+	# test__parabolic_vector(p, ax)
+	# test_hyperbolic_scalar(p, ax)
+	test_hyperbolic_vector(p, ax)
 	
 	"finished!"
 end
