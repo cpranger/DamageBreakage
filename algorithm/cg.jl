@@ -1,5 +1,48 @@
 using OffsetArrays
 
+function lanczos!(A; h, maxit, minit = 10, quiet = false, λtol)
+	(v_0, v_1, v_2, u) = h
+
+	γ = OffsetArray(zeros(maxit),    1:maxit)
+	η = OffsetArray(zeros(maxit+1),  1:maxit+1)
+	λ = OffsetArray(zeros(2),  -1:0)
+	Λ = OffsetArray(zeros(2),  -1:0)
+	
+	assign!(v_0, 0)
+	if A(v_0) isa Tuple && !(v_0 isa Tuple) # we have a BC
+		assign!(v_1, (fieldgen((_...) -> rand()), A(v_0)[2]))
+	else
+		assign!(v_1, fieldgen((_...) -> rand()))
+	end
+	assign!(v_1, v_1 / l2(v_1))
+    
+	η[1] = 0
+	
+	# From Meurant et al (2.1)
+	k = 1
+	for outer k in 1:maxit
+		assign!(u, A(v_1) - η[k] * v_0)
+		γ[k] = dot(u, v_1)
+		assign!(v_2, u - γ[k] * v_1)
+		η[k+1] = l2(v_2); η[k+1] > 10*eps(η[k+1]) || break
+		assign!(v_2, v_2 / η[k+1])
+		assign!(v_0, v_1)
+		assign!(v_1, v_2)
+		
+		# println("(γ, η) = ($(γ[k]), $(η[k+1]))")
+
+		T = LinearAlgebra.SymTridiagonal(γ[1:k], η[2:k])
+		(Λ[-1], λ[-1]) = (Λ[0], λ[0])
+		(Λ[ 0], λ[ 0]) = extrema <| LinearAlgebra.eigvals(T)
+		(λres, Λres)   = map(l -> abs(l[0] - l[-1])/abs(l[0]), (λ, Λ))
+		!quiet && println("Lanczos: k = $k, λ = $(λ[0]), Λ = $(Λ[0]), λres = $Λres")
+		k >= minit && Λres < λtol #= && λres < λtol=# && break
+	end
+	return (Λ[0], λ[0])
+end
+
+
+
 pc_jacobi_apply(a::Tensor, b) = StaggeredKernels.TensorOp(:*, a, b)
 pc_jacobi_apply(a::Field,  b) = StaggeredKernels.ScalarOp(:*, a, b)
 

@@ -6,17 +6,17 @@ includet("./header.jl")
 
 using StaggeredKernels.Plane
 
-gen_ones() = fieldgen((_...) -> 1)
-gen_chss() = fieldgen((i, j) -> Int(mod(i,2) == mod(j,2)) - Int(mod(i,2) != mod(j,2)))
-gen_rand() = fieldgen((_...) -> rand())
+# gen_ones() = fieldgen((_...) -> 1)
+# gen_chss() = fieldgen((i, j) -> Int(mod(i,2) == mod(j,2)) - Int(mod(i,2) != mod(j,2)))
+# gen_rand() = fieldgen((_...) -> rand())
 
-gen_ones(::Field) = gen_ones()
-gen_chss(::Field) = gen_chss()
-gen_rand(::Field) = gen_rand()
+# gen_ones(::Field) = gen_ones()
+# gen_chss(::Field) = gen_chss()
+# gen_rand(::Field) = gen_rand()
 
-(gen_ones(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_ones() for n in N])...)
-(gen_chss(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_chss() for n in N])...)
-(gen_rand(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_rand() for n in N])...)
+# (gen_ones(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_ones() for n in N])...)
+# (gen_chss(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_chss() for n in N])...)
+# (gen_rand(v::Tensor{S, NamedTuple{N, T}}) where {S, N, T}) = (; zip(N, [gen_rand() for n in N])...)
 
 function test_poisson(p, ax)
 	u     = Field(p.n, div_stags)

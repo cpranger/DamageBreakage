@@ -44,11 +44,12 @@ end
 
 function newtonit!(f, u, r, h; maxit, rtol)
 	v = h[1]
-	newton_update!(u, 0*u, f)
+	# newton_update!(u, 0*u, f)
 	
 	assign!(r, f(u))
-	norm0 = norm = sqrt <| dot(r, r)
+	norm0 = norm = l2(r)
 	println("Newton i = 0, ||r|| = $norm")
+	norm > 10*eps(norm) || return
 	
     for i in 1:maxit
 		A = linearize(f, u)
