@@ -131,23 +131,36 @@ end
 
 using OffsetArrays
 
-function brusselator(;a, b, x_0, y_0, nsteps, duration)
-	t = OffsetArray(zeros(nsteps+1), 0:nsteps)
-	x = OffsetArray(zeros(nsteps+1), 0:nsteps)
-	y = OffsetArray(zeros(nsteps+1), 0:nsteps)
+function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 1e-2, atol = 0.)
+	t  = OffsetArray(zeros(nsteps+1), 0:nsteps  )
+	dt = OffsetArray(zeros(nsteps  ), 0:nsteps-1)
+	du = OffsetArray(zeros(nsteps  ), 0:nsteps-1)
+	x  = OffsetArray(zeros(nsteps+1), 0:nsteps  )
+	y  = OffsetArray(zeros(nsteps+1), 0:nsteps  )
+	η  = OffsetArray(zeros(nsteps  ), 1:nsteps  )
 	
 	X = Field((1,), ((1,),))
 	Y = Field((1,), ((1,),))
+
+	assign!(X, x_0)
+	assign!(Y, y_0)
 
 	f((x, y),) = (
 		a + x^2*y - b*x - x,
 		  - x^2*y + b*x
 	)
 	
-	assign!(X, x_0)
-	assign!(Y, y_0)
+	if     imex == :explicit
+		f_ex = f
+		f_im = w -> 0w
+	elseif imex == :implicit
+		f_ex = w -> 0w
+		f_im = f
+	else
+		error("argument 'imex' is neither of (:implicit, :explicit)")
+	end
 
-	intg = tr_bdf2_schur(f, xy -> 0*xy, (X, Y))
+	intg = tr_bdf2_schur(f_ex, f_im, (X, Y))
 
 	k    = 0
 	t[k] = 0.
@@ -155,23 +168,41 @@ function brusselator(;a, b, x_0, y_0, nsteps, duration)
 	y[k] = Y.data[1]
 	println("t = $(t[k]), x = $(x[k]), y = $(y[k])")
 
+	dt_im = 0
+
 	while k < nsteps && t[k] < duration
 		k += 1
 
-		ρ = gershgorin!(linearize(f, (X, Y)), intg.g)
+		(ρ_ex, ρ_im) = map((f_ex, f_im)) do f
+			abs <| gershgorin!(linearize(f, (X, Y)), intg.g)[1]
+		end
 		
-		ν = 0.1 # safety factor
-		intg.dt[] = ν * sqrt(3) / abs(ρ[1])
-		print("t = $(t[k-1]), dt = $(intg.dt[]), ρ = $ρ, ")
+		ν = 0.01 # safety factor
+		dt_ex = ν .* sqrt(3) ./ ρ_ex
+		du[k-1] = ν .* sqrt(3) ./ ρ_im
+		if k == 1
+			dt_im = ν .* sqrt(3) ./ ρ_im
+		end
+		dt[k-1] = min(dt_ex, dt_im)
+		intg.dt[] = dt[k-1]
+		print("t = $(t[k-1]), dt = $(dt[k-1]), ")
 
-		step!(intg; newton_maxit = 0, newton_rtol = 0, quiet = true)
-
+		ε = step!(intg; newton_maxit = 30, newton_rtol = 1e-6, quiet = true)
+		# dimensionless error measure
+		η[k]  = max(map((ε, u) -> ε / (rtol * l2(u) + atol), ε, (X, Y))...)
+		dt_im = min(1.15*dt[k-1], dt[k-1] / cbrt(η[k]))
+		
 		t[k] = intg.t[]
 		x[k] = X.data[1]
 		y[k] = Y.data[1]
 		println("x = $(x[k]), y = $(y[k])")
 
-		display <| plot(t[0:k], [x[0:k] y[0:k]])
+		display <| plot(
+			plot(t[0:k  ], [x[0:k]  y[0:k]] ; label=["x (-)" "y (-)"]),
+			plot(t[1:k  ], log10.(η[1:k]   ); label="log₁₀ ε (-)"),
+			plot(t[0:k-1], [log10.(dt[0:k-1]) log10.(du[0:k-1])]; label=["log₁₀ dt (-)" "log₁₀ dt_ex (-)"]),
+			; layout = (3,1)
+		)
 	end
 	
 end
@@ -218,7 +249,7 @@ function main()
 	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
 	# lid_driven(:scalar, :parabolic, :explicit, p, ax)
-	brusselator(a = 1, b = 3, x_0 = 1, y_0 = 1, nsteps = 10000, duration = 30)
+	brusselator(imex = :implicit, a = 1, b = 3, x_0 = 1, y_0 = 1, nsteps = 10000, duration = 30)
 	
 	"finished!"
 end
