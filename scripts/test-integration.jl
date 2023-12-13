@@ -42,6 +42,7 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 4, rtol = 1e-4, atol
 		w = v -> v
 		_grad = grad
 	
+	
 	elseif rank == :vector
 		u = Vector(p.n, motion_stags)
 		v = Tensor(p.n, Symmetric, strain_stags)
