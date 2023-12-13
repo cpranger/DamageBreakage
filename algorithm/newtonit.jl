@@ -42,14 +42,16 @@ function newton_update!(x, dx, s::SchurComplement; h = eps(Float32))
 	assign!(s.y, s.y + dy)
 end
 
-function newtonit!(f, u, r, h; maxit, rtol)
+function newtonit!(f, u, r, h; maxit, rtol, quiet = false)
+	maxit > 0 || return
+	
 	v = h[1]
 	# newton_update!(u, 0*u, f)
 	
 	assign!(r, f(u))
 	norm0 = norm = l2(r)
-	println("Newton i = 0, ||r|| = $norm")
 	norm > 10*eps(norm) || return
+	println("Newton i = 0, ||r|| = $norm")
 	
     for i in 1:maxit
 		A = linearize(f, u)

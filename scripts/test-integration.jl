@@ -41,7 +41,7 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 4, rtol = 1e-4, atol
 		
 		w = v -> v
 		_grad = grad
-
+	
 	elseif rank == :vector
 		u = Vector(p.n, motion_stags)
 		v = Tensor(p.n, Symmetric, strain_stags)
@@ -128,6 +128,53 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 4, rtol = 1e-4, atol
 	end
 end
 
+using OffsetArrays
+
+function brusselator(;a, b, x_0, y_0, nsteps, duration)
+	t = OffsetArray(zeros(nsteps+1), 0:nsteps)
+	x = OffsetArray(zeros(nsteps+1), 0:nsteps)
+	y = OffsetArray(zeros(nsteps+1), 0:nsteps)
+	
+	X = Field((1,), ((1,),))
+	Y = Field((1,), ((1,),))
+
+	f((x, y),) = (
+		a + x^2*y - b*x - x,
+		  - x^2*y + b*x
+	)
+	
+	assign!(X, x_0)
+	assign!(Y, y_0)
+
+	intg = tr_bdf2_schur(f, xy -> 0*xy, (X, Y))
+
+	k    = 0
+	t[k] = 0.
+	x[k] = X.data[1]
+	y[k] = Y.data[1]
+	println("t = $(t[k]), x = $(x[k]), y = $(y[k])")
+
+	while k < nsteps && t[k] < duration
+		k += 1
+
+		ρ = gershgorin!(linearize(f, (X, Y)), intg.g)
+		
+		ν = 0.1 # safety factor
+		intg.dt[] = ν * sqrt(3) / abs(ρ[1])
+		print("t = $(t[k-1]), dt = $(intg.dt[]), ρ = $ρ, ")
+
+		step!(intg; newton_maxit = 0, newton_rtol = 0, quiet = true)
+
+		t[k] = intg.t[]
+		x[k] = X.data[1]
+		y[k] = Y.data[1]
+		println("x = $(x[k]), y = $(y[k])")
+
+		display <| plot(t[0:k], [x[0:k] y[0:k]])
+	end
+	
+end
+
 function parameters(; nb)
 	n    =  nb .* BLOCK_SIZE         # mesh resolution
 	h    =  1 / (n[1] - 2)
@@ -169,7 +216,8 @@ function main()
 	assign!(ax[1], fieldgen(i -> i*p.h - 0.5))
 	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
-	lid_driven(:scalar, :parabolic, :explicit, p, ax)
+	# lid_driven(:scalar, :parabolic, :explicit, p, ax)
+	brusselator(a = 1, b = 3, x_0 = 1, y_0 = 1, nsteps = 10000, duration = 30)
 	
 	"finished!"
 end
