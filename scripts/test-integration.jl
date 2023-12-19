@@ -131,10 +131,9 @@ end
 
 using OffsetArrays
 
-function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 1e-2, atol = 0.)
+function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 0., atol = 0.)
 	t  = OffsetArray(zeros(nsteps+1), 0:nsteps  )
 	dt = OffsetArray(zeros(nsteps  ), 0:nsteps-1)
-	du = OffsetArray(zeros(nsteps  ), 0:nsteps-1)
 	x  = OffsetArray(zeros(nsteps+1), 0:nsteps  )
 	y  = OffsetArray(zeros(nsteps+1), 0:nsteps  )
 	η  = OffsetArray(zeros(nsteps  ), 1:nsteps  )
@@ -177,14 +176,12 @@ function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 1e-2, atol
 			abs <| gershgorin!(linearize(f, (X, Y)), intg.g)[1]
 		end
 		
-		ν = 0.01 # safety factor
+		ν = 0.5 # safety factor
 		dt_ex = ν .* sqrt(3) ./ ρ_ex
-		du[k-1] = ν .* sqrt(3) ./ ρ_im
 		if k == 1
 			dt_im = ν .* sqrt(3) ./ ρ_im
 		end
-		dt[k-1] = min(dt_ex, dt_im)
-		intg.dt[] = dt[k-1]
+		intg.dt[] = dt[k-1] = min(dt_ex, dt_im)
 		print("t = $(t[k-1]), dt = $(dt[k-1]), ")
 
 		ε = step!(intg; newton_maxit = 30, newton_rtol = 1e-6, quiet = true)
@@ -200,11 +197,70 @@ function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 1e-2, atol
 		display <| plot(
 			plot(t[0:k  ], [x[0:k]  y[0:k]] ; label=["x (-)" "y (-)"]),
 			plot(t[1:k  ], log10.(η[1:k]   ); label="log₁₀ ε (-)"),
-			plot(t[0:k-1], [log10.(dt[0:k-1]) log10.(du[0:k-1])]; label=["log₁₀ dt (-)" "log₁₀ dt_ex (-)"]),
+			plot(t[0:k-1], log10.(dt[0:k-1]); label="log₁₀ dt (-)"),
 			; layout = (3,1)
 		)
 	end
+end
+
+function brusselator_diffusion(p, ax; a, b, x_0, y_0, Dx, Dy, nsteps, duration, rtol = 0., atol = 0.)
+	t  = OffsetArray(zeros(nsteps+1), 0:nsteps  )
+	dt = OffsetArray(zeros(nsteps  ), 0:nsteps-1)
+	η  = OffsetArray(zeros(nsteps  ), 1:nsteps  )
 	
+	x = Field(p.n, div_stags)
+	y = Field(p.n, div_stags)
+
+	σ = 2
+
+	assign!(x, fieldgen((i, j) -> max(0, min(4.5, x_0 + (rand()-0.5)*2*σ))))
+	assign!(y, fieldgen((i, j) -> max(0, min(4.5, y_0 + (rand()-0.5)*2*σ))))
+
+	f_ex((x, y),) = (
+		(divergence(Dx*grad(x)) + a + x^2*y - b*x - x, zero_bc(0)(x)),
+		(divergence(Dy*grad(y))     - x^2*y + b*x,     zero_bc(0)(y))
+	)
+
+	f_im = xy -> 0*xy
+	# f_im((x, y),) = (
+	# 	(divergence(Dx*grad(x)), zero_bc(0)(x)),
+	# 	(divergence(Dy*grad(y)), zero_bc(0)(y))
+	# )
+	
+	intg = tr_bdf2(f_ex, f_im, (x, y))
+
+	k    = 0
+	t[k] = 0.
+
+	dt_im = 0
+
+	while k < nsteps && t[k] < duration
+		k += 1
+
+		ρ_ex = abs <| gershgorin!(linearize(f_ex, (x, y)), intg.h[1:2])[1]
+		
+		ν = 0.5 # safety factor
+		dt_ex = ν .* sqrt(3) ./ ρ_ex
+		if k == 1
+			dt_im = dt_ex
+		end
+		intg.dt[] = dt[k-1] = min(dt_ex, dt_im)
+		println("t = $(t[k-1]), dt = $(dt[k-1]), ")
+
+		ε = step!(intg; newton_maxit = 30, newton_rtol = 1e-5, quiet = true)
+		# dimensionless error measure
+		η[k]  = max(map((ε, u) -> ε / (rtol * l2(u) + atol), ε, (x, y))...)
+		dt_im = min(1.15*dt[k-1], dt[k-1] / cbrt(η[k]))
+		
+		t[k] = intg.t[]
+		
+		display <| plot(
+			plot(heatmap(ax..., intg.y[1],   "x", c = :davos), heatmap(ax..., intg.y[2],   "y", c = :davos); layout = (1,2)),
+			plot(heatmap(ax..., intg.e[1], "e_x", c = :davos), heatmap(ax..., intg.e[2], "e_y", c = :davos); layout = (1,2)),
+			plot(t[1:k], [log10.(η[1:k]) log10.(dt[0:k-1])]; label = ["log₁₀ ε (-)" "log₁₀ dt (-)"]),
+			; layout = (3,1)
+		)
+	end
 end
 
 function parameters(; nb)
@@ -249,7 +305,7 @@ function main()
 	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
 	# lid_driven(:scalar, :parabolic, :explicit, p, ax)
-	brusselator(imex = :implicit, a = 1, b = 3, x_0 = 1, y_0 = 1, nsteps = 10000, duration = 30)
+	brusselator_diffusion(p, ax; a = 1, b = 3, x_0 = 1, y_0 = 1, Dx = 0.2, Dy = 0.02, nsteps = 30000, duration = Inf, rtol = 1e-3)
 	
 	"finished!"
 end

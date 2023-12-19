@@ -43,6 +43,7 @@ end
 
 
 
+pc_jacobi_apply(a::Tuple,  b) = a*b
 pc_jacobi_apply(a::Tensor, b) = StaggeredKernels.TensorOp(:*, a, b)
 pc_jacobi_apply(a::Field,  b) = StaggeredKernels.ScalarOp(:*, a, b)
 
@@ -52,7 +53,7 @@ function cg_pc_jacobi!(A, x, b; h, rtol, maxit, minit, quiet = false, λtol = rt
 
 	(j, r, z, p, Ap) = h
 	
-	assign!(p, 0) # temporary loan of p
+	assign!(p, 0*p) # temporary loan of p
 	assign!(j, abs <| 1/diag(p, A(p)))
 	(M, m) = 1 ./ minmax(j)
 	Meta.@show (M, m)
