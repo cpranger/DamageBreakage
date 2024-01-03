@@ -54,6 +54,7 @@ tr_bdf2_schur(f_ex, f_im, y; dt = Ref(0.)) = tr_bdf2_schur(f_ex,     f_im, y, [d
 tr_bdf2_dr(   f_ex, f_im, y::Tuple;      dt = Ref(0.)) = tr_bdf2_dr(f_ex, f_im, NamedTuple{(:v, :e, :α)}(y); dt = dt)
 tr_bdf2_dr(   f_ex, f_im, y::NamedTuple; dt = Ref(0.)) = tr_bdf2_dr(f_ex, f_im, y, [deepcopy(y) for _ in 1:5]..., (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]), [deepcopy((; e = y.e)) for _ in 1:2], Ref(0.), dt)
 
+
 tr_bdf2_stage_1(f_ex, f_im, w_1, dt) = w_2 -> (w_1 + dt * (
 	(2/1-sqrt(2)/1) * f_ex(w_1)
   + (1/1-sqrt(2)/2) * f_im(w_1)
@@ -159,14 +160,14 @@ function step!(i::tr_bdf2_dr; rtol, atol = 0, newton_maxit, newton_atol = 0, new
 	assign!(i.w_1, i.y)
 
 	quiet || println("TR-BDF2 DR stage 1:")
-	assign!(i.w_2,   stage_1(null))
+	assign!(i.w_2, stage_1(values(null)))
 	ve = SchurComplement(((v, e),) -> stage_1((v, e, null.α),)[1:2], i.w_2.e)
 	α  = α -> stage_1((null.v, null.e, α),)[3]
 	newtonit!(ve, i.w_2.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	newtonit!(α,  i.w_2.α, i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 
     quiet || println("TR-BDF2 DR stage 2:")
-    assign!(i.w_3,   stage_2(null))
+    assign!(i.w_3, stage_2(values(null)))
 	ve = SchurComplement(((v, e),) -> stage_2((v, e, null.α),)[1:2], i.w_3.e)
 	α  = α -> stage_2((null.v, null.e, α),)[3]
 	newtonit!(ve, i.w_3.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
@@ -176,7 +177,7 @@ function step!(i::tr_bdf2_dr; rtol, atol = 0, newton_maxit, newton_atol = 0, new
 	assign!(i.e_ex, expl_err)
 	
 	quiet || println("TR-BDF2 DR implicit error:")
-	assign!(i.e_im, impl_err(null))
+	assign!(i.e_im, impl_err(values(null)))
     ve = SchurComplement(((v, e),) -> impl_err((v, e, null.α),)[1:2], i.e_im.e)
 	α  = α -> impl_err((null.v, null.e, α),)[3]
 	newtonit!(ve, i.e_im.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
@@ -186,7 +187,7 @@ function step!(i::tr_bdf2_dr; rtol, atol = 0, newton_maxit, newton_atol = 0, new
 	assign!(i.y, update)
 	
 	η_ex = map((e, y) -> l2(e) / (rtol * l2(y) + atol), i.e_ex, i.y)
-	η_ex = map((e, y) -> l2(e) / (rtol * l2(y) + atol), i.e_im, i.y)
+	η_im = map((e, y) -> l2(e) / (rtol * l2(y) + atol), i.e_im, i.y)
 	
 	quiet || println("t = $(i.t[]), dt = $(i.dt[]), η_ex = $η_ex, η_im = $η_im")
 	
