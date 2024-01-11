@@ -55,29 +55,25 @@ tr_bdf2_dr(   f_ex, f_im, y::Tuple;      dt = Ref(0.)) = tr_bdf2_dr(f_ex, f_im, 
 tr_bdf2_dr(   f_ex, f_im, y::NamedTuple; dt = Ref(0.)) = tr_bdf2_dr(f_ex, f_im, y, [deepcopy(y) for _ in 1:5]..., (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]), [deepcopy((; e = y.e)) for _ in 1:2], Ref(0.), dt)
 
 
-tr_bdf2_stage_1(f_ex, f_im, w_1, dt) = w_2 -> (w_1 + dt * (
+tr_bdf2_lhs(f_im, dt) = w -> w - dt * (1/1-sqrt(2)/2) * f_im(w)
+
+tr_bdf2_stage_1_rhs(f_ex, f_im, w_1, dt) = w_1 + dt * (
 	(2/1-sqrt(2)/1) * f_ex(w_1)
   + (1/1-sqrt(2)/2) * f_im(w_1)
-)) - (w_2 - dt * (
-	(1/1-sqrt(2)/2) * f_im(w_2)
-))
+)
 
-tr_bdf2_stage_2(f_ex, f_im, w_1, w_2, dt) = w_3 -> (w_1 + dt * (
+tr_bdf2_stage_2_rhs(f_ex, f_im, w_1, w_2, dt) = w_1 + dt * (
 	(1/2-sqrt(2)/3) * f_ex(w_1) + (1/2+sqrt(2)/3) * f_ex(w_2)
   + (    sqrt(2)/4) * f_im(w_1) + (    sqrt(2)/4) * f_im(w_2)
-)) - (w_3 - dt * (
-	(1/1-sqrt(2)/2) * f_im(w_3)
-))
+)
 
-tr_bdf2_impl_err(f_ex, f_im, w_1, w_2, w_3, dt) = e -> (dt * (
+tr_bdf2_impl_err_rhs(f_im, w_1, w_2, w_3, dt) = dt * (
 	( 1/3-sqrt(2)/3) * f_im(w_1)
   + ( 1/3          ) * f_im(w_2)
   + (-2/3+sqrt(2)/3) * f_im(w_3)
-)) - (e - dt * (
-	( 1/1-sqrt(2)/2) * f_im(e)
-))
+)
 
-tr_bdf2_expl_err(f_ex, f_im, w_1, w_2, w_3, dt) = dt * (
+tr_bdf2_expl_err(f_ex, w_1, w_2, w_3, dt) = dt * (
 	( 1/2-sqrt(2)/2) * f_ex(w_1)
   + ( 1/2          ) * f_ex(w_2)
   + (-1/1+sqrt(2)/2) * f_ex(w_3)
@@ -102,33 +98,70 @@ function init!(i::tr_bdf2_schur, func; newton_maxit, newton_rtol, quiet = false)
 	newtonit!(sc, i.y[1], i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 end
 
-function step!(i::tr_bdf2_schur; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false)
-	stage_1  = tr_bdf2_stage_1( i.f_ex, i.f_im, i.w_1, i.dt[])
-	stage_2  = tr_bdf2_stage_2( i.f_ex, i.f_im, i.w_1, i.w_2, i.dt[])
-	impl_err = tr_bdf2_impl_err(i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
-	expl_err = tr_bdf2_expl_err(i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
-	update   = tr_bdf2_update(  i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
+function step!(i::tr_bdf2; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false)
+	lhs          = tr_bdf2_lhs(                 i.f_im,                      i.dt[])
+	stage_1_rhs  = tr_bdf2_stage_1_rhs( i.f_ex, i.f_im, i.w_1,               i.dt[])
+	stage_2_rhs  = tr_bdf2_stage_2_rhs( i.f_ex, i.f_im, i.w_1, i.w_2,        i.dt[])
+	impl_err_rhs = tr_bdf2_impl_err_rhs(        i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
+	expl_err     = tr_bdf2_expl_err(    i.f_ex,         i.w_1, i.w_2, i.w_3, i.dt[])
+	update       = tr_bdf2_update(      i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
 	
-	null = 0 * i.y
+	assign!(i.w_1, i.y)
+
+	quiet || println("TR-BDF2 stage 1:")
+	assign!(i.w_2, stage_1_rhs)
+	newtonit!(w -> stage_1_rhs - lhs(w),  i.w_2,  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+
+	quiet || println("TR-BDF2 stage 2:")
+    assign!(i.w_3, stage_2_rhs)
+	newtonit!(w -> stage_2_rhs - lhs(w),  i.w_3,  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+
+	quiet || println("TR-BDF2 explicit error:")
+	assign!(i.e_ex, expl_err)
+    
+	quiet || println("TR-BDF2 implicit error:")
+	assign!(i.e_im, impl_err_rhs)
+    newtonit!(w -> impl_err_rhs - lhs(w), i.e_im, i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+
+	quiet || println("TR-BDF2 update:")
+	assign!(i.y, update)
+	
+	i.t[] += i.dt[]
+
+	η_ex = max(map((u, ε) -> l2(ε) / (rtol * l2(u) + atol), i.y, i.e_ex)...)
+	η_im = max(map((u, ε) -> l2(ε) / (rtol * l2(u) + atol), i.y, i.e_im)...)
+
+	return (i.t[], η_ex, η_im)
+end
+
+function step!(i::tr_bdf2_schur; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false)
+	lhs          = tr_bdf2_lhs(                 i.f_im,                      i.dt[])
+	stage_1_rhs  = tr_bdf2_stage_1_rhs( i.f_ex, i.f_im, i.w_1,               i.dt[])
+	stage_2_rhs  = tr_bdf2_stage_2_rhs( i.f_ex, i.f_im, i.w_1, i.w_2,        i.dt[])
+	impl_err_rhs = tr_bdf2_impl_err_rhs(        i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
+	expl_err     = tr_bdf2_expl_err(    i.f_ex,         i.w_1, i.w_2, i.w_3, i.dt[])
+	update       = tr_bdf2_update(      i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
+	
+	# null = 0 * i.y
 
 	assign!(i.w_1, i.y)
 
 	quiet || println("TR-BDF2 Schur stage 1:")
-	assign!(i.w_2,   stage_1(null))
-	sc = SchurComplement(stage_1, i.w_2[2])
+	assign!(i.w_2, stage_1_rhs)
+	sc = SchurComplement(w -> stage_1_rhs - lhs(w), i.w_2[2])
 	newtonit!(sc, i.w_2[1],  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 
     quiet || println("TR-BDF2 Schur stage 2:")
-    assign!(i.w_3,   stage_2(null))
-	sc = SchurComplement(stage_2, i.w_3[2])
+    assign!(i.w_3, stage_2_rhs)
+	sc = SchurComplement(w -> stage_2_rhs - lhs(w), i.w_3[2])
 	newtonit!(sc, i.w_3[1],  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 
 	quiet || println("TR-BDF2 Schur explicit error:")
 	assign!(i.e_ex, expl_err)
 	
 	quiet || println("TR-BDF2 Schur implicit error:")
-	assign!(i.e_im, impl_err(null))
-    sc = SchurComplement(impl_err, i.e_im[2])
+	assign!(i.e_im, impl_err_rhs)
+    sc = SchurComplement(w -> impl_err_rhs - lhs(w), i.e_im[2])
 	newtonit!(sc, i.e_im[1], i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 
 	quiet || println("TR-BDF2 Schur update:")
@@ -142,45 +175,48 @@ function step!(i::tr_bdf2_schur; rtol, atol = 0, newton_maxit, newton_rtol, quie
 	return (η_ex, η_im)
 end
 
-
-
-
-
 function step!(i::tr_bdf2_dr; rtol, atol = 0, newton_maxit, newton_atol = 0, newton_rtol, quiet = false, ρ_ex = 0, safety = .95, growth = 1.15)
-	stage_1  = tr_bdf2_stage_1( i.f_ex, i.f_im, values(i.w_1), i.dt[])
-	stage_2  = tr_bdf2_stage_2( i.f_ex, i.f_im, values(i.w_1), values(i.w_2), i.dt[])
-	impl_err = tr_bdf2_impl_err(i.f_ex, i.f_im, values(i.w_1), values(i.w_2), values(i.w_3), i.dt[])
-	expl_err = tr_bdf2_expl_err(i.f_ex, i.f_im, values(i.w_1), values(i.w_2), values(i.w_3), i.dt[])
-	update   = tr_bdf2_update(  i.f_ex, i.f_im, values(i.w_1), values(i.w_2), values(i.w_3), i.dt[])
+	lhs          = tr_bdf2_lhs(                 i.f_im,                                              i.dt[])
+	stage_1_rhs  = tr_bdf2_stage_1_rhs( i.f_ex, i.f_im, values(i.w_1),                               i.dt[])
+	stage_2_rhs  = tr_bdf2_stage_2_rhs( i.f_ex, i.f_im, values(i.w_1), values(i.w_2),                i.dt[])
+	impl_err_rhs = tr_bdf2_impl_err_rhs(        i.f_im, values(i.w_1), values(i.w_2), values(i.w_3), i.dt[])
+	expl_err     = tr_bdf2_expl_err(    i.f_ex,         values(i.w_1), values(i.w_2), values(i.w_3), i.dt[])
+	update       = tr_bdf2_update(      i.f_ex, i.f_im, values(i.w_1), values(i.w_2), values(i.w_3), i.dt[])
 	
 	i.dt[] = min(i.dt[], safety * sqrt(3) / ρ_ex)
 
-	null = 0 * i.y
+	# null = 0 * i.y
 
 	assign!(i.w_1, i.y)
 
 	quiet || println("TR-BDF2 DR stage 1:")
-	assign!(i.w_2, stage_1(values(null)))
-	ve = SchurComplement(((v, e),) -> stage_1((v, e, null.α),)[1:2], i.w_2.e)
-	α  = α -> stage_1((null.v, null.e, α),)[3]
+	assign!(i.w_2, stage_1_rhs)
+	ve = SchurComplement(((v, e),) -> (stage_1_rhs - lhs((v, e, i.y.α),))[1:2], i.w_2.e)
+	α  = α -> (stage_1_rhs - lhs((i.y.v, i.y.e, α),))[3]
+	quiet || println("velocity-strain:")
 	newtonit!(ve, i.w_2.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+	quiet || println("damage:")
 	newtonit!(α,  i.w_2.α, i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 
-    quiet || println("TR-BDF2 DR stage 2:")
-    assign!(i.w_3, stage_2(values(null)))
-	ve = SchurComplement(((v, e),) -> stage_2((v, e, null.α),)[1:2], i.w_3.e)
-	α  = α -> stage_2((null.v, null.e, α),)[3]
+	quiet || println("TR-BDF2 DR stage 2:")
+    assign!(i.w_3, stage_2_rhs)
+	ve = SchurComplement(((v, e),) -> (stage_2_rhs - lhs((v, e, i.y.α),))[1:2], i.w_3.e)
+	α  = α -> (stage_2_rhs - lhs((i.y.v, i.y.e, α),))[3]
+	quiet || println("velocity-strain:")
 	newtonit!(ve, i.w_3.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+	quiet || println("damage:")
 	newtonit!(α,  i.w_3.α, i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	
 	quiet || println("TR-BDF2 DR explicit error:")
 	assign!(i.e_ex, expl_err)
 	
 	quiet || println("TR-BDF2 DR implicit error:")
-	assign!(i.e_im, impl_err(values(null)))
-    ve = SchurComplement(((v, e),) -> impl_err((v, e, null.α),)[1:2], i.e_im.e)
-	α  = α -> impl_err((null.v, null.e, α),)[3]
+	assign!(i.e_im, impl_err_rhs)
+    ve = SchurComplement(((v, e),) -> (impl_err_rhs - lhs((v, e, i.y.α),))[1:2], i.e_im.e)
+	α  = α -> (impl_err_rhs - lhs((i.y.v, i.y.e, α),))[3]
+	quiet || println("velocity-strain:")
 	newtonit!(ve, i.e_im.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+	quiet || println("damage:")
 	newtonit!(α,  i.e_im.α, i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 
 	quiet || println("TR-BDF2 DR update:")
@@ -194,49 +230,6 @@ function step!(i::tr_bdf2_dr; rtol, atol = 0, newton_maxit, newton_atol = 0, new
 	i.t[] += i.dt[]
 
     i.dt[] = min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)), growth) * i.dt[]
-
-	return (i.t[], η_ex, η_im)
-end
-
-
-
-
-
-
-
-function step!(i::tr_bdf2; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false)
-	stage_1  = tr_bdf2_stage_1( i.f_ex, i.f_im, i.w_1, i.dt[])
-	stage_2  = tr_bdf2_stage_2( i.f_ex, i.f_im, i.w_1, i.w_2, i.dt[])
-	impl_err = tr_bdf2_impl_err(i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
-	expl_err = tr_bdf2_expl_err(i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
-	update   = tr_bdf2_update(  i.f_ex, i.f_im, i.w_1, i.w_2, i.w_3, i.dt[])
-	
-	null = 0 * i.y
-
-	assign!(i.w_1, i.y)
-
-	quiet || println("TR-BDF2 stage 1:")
-	assign!(i.w_2, stage_1(null))
-	newtonit!(stage_1,  i.w_2,  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
-
-	quiet || println("TR-BDF2 stage 2:")
-    assign!(i.w_3, stage_2(null))
-	newtonit!(stage_2,  i.w_3,  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
-
-	quiet || println("TR-BDF2 explicit error:")
-	assign!(i.e_ex, expl_err)
-    
-	quiet || println("TR-BDF2 implicit error:")
-	assign!(i.e_im, impl_err(null))
-    newtonit!(impl_err, i.e_im, i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
-
-	quiet || println("TR-BDF2 update:")
-	assign!(i.y, update)
-	
-	i.t[] += i.dt[]
-
-	η_ex = max(map((u, ε) -> l2(ε) / (rtol * l2(u) + atol), i.y, i.e_ex)...)
-	η_im = max(map((u, ε) -> l2(ε) / (rtol * l2(u) + atol), i.y, i.e_im)...)
 
 	return (i.t[], η_ex, η_im)
 end
