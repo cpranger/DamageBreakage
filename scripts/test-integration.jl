@@ -4,17 +4,19 @@ include("./header.jl")
 
 using StaggeredKernels.Plane
 
-function display_2d(ax, intg::tr_bdf2)
-	plt1 = heatmap(ax..., intg.y, "y", c = :davos)
-	plt2 = heatmap(ax..., intg.e, "e", c = :davos)
-	plt  = plot(plt1, plt2; layout = (1,2))
+function display_2d(ax, intg::tr_bdf2{Intg_})
+	plt1 = heatmap(ax..., intg.y,    "y",    c = :davos)
+	plt2 = heatmap(ax..., intg.e_ex, "e_ex", c = :davos)
+	plt3 = heatmap(ax..., intg.e_im, "e_im", c = :davos)
+	plt  = plot(plt1, plt2, plt3; layout = (1,3))
 	display(plt)
 end
 
-function display_2d(ax, intg::tr_bdf2_schur)
+function display_2d(ax, intg::tr_bdf2{Intg_SCR})
 	plt1 = heatmap(ax..., intg.y[1], "y", c = :davos)
-	plt2 = heatmap(ax..., intg.e[1], "e", c = :davos)
-	plt  = plot(plt1, plt2; layout = (1,2))
+	plt2 = heatmap(ax..., intg.e_ex[1], "e_ex", c = :davos)
+	plt3 = heatmap(ax..., intg.e_im[1], "e_im", c = :davos)
+	plt  = plot(plt1, plt2, plt3; layout = (1,3))
 	display(plt)
 end
 
@@ -32,7 +34,9 @@ zero_bc(s #=true for static=#) = u -> (
 	BC(+1, s*( -u))
 )
 
-function lid_driven(rank, bolicity, imex, p, ax; duration = 4, rtol = 1e-4, atol = 1e-4)
+using Traceur
+
+function lid_driven(rank, bolicity, imex, p, ax; duration = 0.005, rtol = 1e-4, atol = 1e-4)
 	if     rank == :scalar
 		u =  Field(p.n, div_stags)
 		v = Vector(p.n, motion_stags)
@@ -70,24 +74,31 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 4, rtol = 1e-4, atol
 			    _grad(u)  / p.h
 	)
 	
+	# expr = (divergence(w(_grad(u))) / p.h, bc(u))
+	# for _ in 1:50000
+	# 	assign!(u, expr)
+	# 	# assign!(v, _grad(u))
+	# end
+	# return
+
 	# second-order IC and RHS for parabolic problems
 	i(u::AbstractObject) = i((u,       0*v),      )[1]
 	f(u::AbstractObject) = f((u, f((u, 0*v),)[2]),)[1]
 
 	if     imex == :explicit
 		f_ex = f
-		f_im = w -> 0w
+		f_im = nullfunc
 	elseif imex == :implicit
-		f_ex = w -> 0w
+		f_ex = nullfunc
 		f_im = f
 	else
 		error("argument 'imex' is neither of (:implicit, :explicit)")
 	end
 
 	if     bolicity == :parabolic
-		intg =       tr_bdf2(f_ex, f_im,  u    )
+		intg = tr_bdf2(Intg_,     u,     f_ex = f_ex, f_im = f_im)
 	elseif bolicity == :hyperbolic
-		intg = tr_bdf2_schur(f_ex, f_im, (u, v))
+		intg = tr_bdf2(Intg_SCR, (u, v), f_ex = f_ex, f_im = f_im)
 	else
 		error("argument 'bolicity' is neither of (:parabolic, :hyperbolic).")
 	end
@@ -113,19 +124,23 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 4, rtol = 1e-4, atol
 	intg.dt[] = min(dt_ex, dt_im)
 	Meta.@show (dt_ex, dt_im)
 	
+	k = 1
 	while intg.t[] < duration
-		println("STEP $i, implicit error: $(
-			err = step!(intg; newton_maxit = 3, newton_rtol = 1e-6)
+		
+		println("STEP $k, t = $(intg.t[]), dt = $(intg.dt[]), ε_im,ex = $(
+			((_, ε_ex, ε_im) = step!(intg; rtol = rtol, atol = atol, newton_maxit = 3, newton_rtol = 1e-6, quiet = (imex == :explicit)))[2:3]
 		)")
 		
-		display_2d(ax, intg)
-
-		# dimensionless error measure
-		η = err / (rtol * l2(u) + atol)
+		mod(k, 50) == 0 && display_2d(ax, intg)
 
 		# amend time step
-		intg.dt[] = min(dt_ex, ν*intg.dt[]/cbrt(η))
-		Meta.@show intg.dt[]
+		dt_expl = intg.dt[] / sqrt(ε_ex)
+		dt_impl = intg.dt[] / cbrt(ε_im)
+		dt_grow = intg.dt[] / .95
+		dt_stab = 0.95 * sqrt(3) / ρ_ex
+		intg.dt[] = min(dt_grow, dt_expl, dt_impl, dt_stab)
+		
+		k += 1
 	end
 end
 
@@ -266,9 +281,7 @@ function brusselator_diffusion(p, ax; a, b, x_0, y_0, Dx, Dy, nsteps, duration, 
 		println("t = $(t[k-1]), dt = $(dt[k]), ")
 
 		# step, computes dimensionless error measure
-		(ε_expl[k], ε_impl[k]) = step!(intg; rtol = rtol, atol = atol, newton_maxit = 30, newton_rtol = 1e-5, quiet = true)
-		
-		t[k] = intg.t[]
+		(t[k], ε_expl[k], ε_impl[k]) = step!(intg; rtol = rtol, atol = atol, newton_maxit = 30, newton_rtol = 1e-5, quiet = true)
 		
 		display <| plot(
 			plot(heatmap(ax..., intg.y[1],   "x", c = :davos), heatmap(ax..., intg.y[2],   "y", c = :davos); layout = (1,2)),
@@ -321,8 +334,8 @@ function main()
 	assign!(ax[1], fieldgen(i -> i*p.h - 0.5))
 	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
-	# lid_driven(:scalar, :parabolic, :explicit, p, ax)
-	brusselator_diffusion(p, ax; a = 1, b = 3, x_0 = 1, y_0 = 1, Dx = 0.2, Dy = 0.02, nsteps = 30000, duration = Inf, rtol = 1e-3)
+	lid_driven(:vector, :parabolic, :explicit, p, ax)
+	# brusselator_diffusion(p, ax; a = 1, b = 3, x_0 = 1, y_0 = 1, Dx = 0.2, Dy = 0.02, nsteps = 30000, duration = Inf, rtol = 1e-3)
 	# brusselator(; imex = :explicit, a = 1, b = 3, x_0 = 1.5, y_0 = 1.5, nsteps = 30000, duration = 30, rtol = 1e-4)
 	
 	"finished!"
