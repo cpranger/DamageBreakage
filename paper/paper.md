@@ -19,15 +19,17 @@ Let $t \in \mathrm{T}$ denote a coordinate in a half-open interval $\mathrm{T} =
 let $\vec{x} \in \Omega$ be a coordinate in a rectangular region $\Omega = [0,l_1] \otimes [0,l_2] \otimes [0,l_3] \subset \mathbb{R}^3$ of 3-space with boundary $\partial\Omega$.
 
 We wish to examine the behavior of an elastic solid occupying the region $\mathrm{T} \otimes \Omega$ with its initial configuration specified on $\partial \mathrm{T}$, that is steadily loaded by displacement boundary conditions on $\partial\Omega_u \subseteq \partial\Omega$, and occasionally rapidly unloaded by transient anelastic processes, by transient material degradation, or by combinations thereof. To this end we consider Cauchy's linear momentum balance law
+
 $$\frac{\tilde{d}\vec{v}}{dt} = \frac{1}{r} \nabla \cdot \boldsymbol{s} + \vec{g},$$
 (2.1)
+
 together with the mass balance law
-$$
-	\frac{\tilde{d}r}{dt} = -r \nabla \cdot \vec{v},
-$$ (2.2)
+
+$$\frac{\tilde{d}r}{dt} = -r \nabla \cdot \vec{v},$$ (2.2)
+
 in which $r = r(t,\vec{x})$ denotes the mass density, $\vec{v} = \vec{v}(t,\vec{x})$ the material velocity, $\boldsymbol{s} = \boldsymbol{s}(t,\vec{x})$ Cauchy's stress tensor, and $\vec{g} = \vec{g}(t,\vec{x})$ represents the action of body forces, gravitational or otherwise. Body forces are ignored from here on ($\vec{g}(t,\vec{x}) = 0$) at no loss of generality -- although the physical framework developed here ignores self-gravitation. At considerable loss of generality, but required for the sake of concise argument, is our choice to ignore advection and distortion within the elastic body. The material derivative $\tilde{d}/dt$, that is to be evaluated along the characteristic of flow, is replaced by the partial derivative $\partial/\partial t$. The divergence $\nabla \cdot \boldsymbol{s}$ of the Cauchy stress tensor $\boldsymbol{s}$, which formally is to be evaluated in coordinates $\vec{x} + \vec{u}$ distorted by displacement $\vec{u} = \vec{u}(t,\vec{x})$, is instead evaluated in the reference coordinate system $\vec{x}$. The density deviations due to volume change are assumed to have a negligible impact on the dynamic momentum balance, i.e. $\tilde{d}r/dt = \partial r/\partial t = 0$. The displacement $\vec{u} = \vec{u}(t,\vec{x})$ itself is governed by
-$$
-	\frac{\tilde{d}\vec{u}}{dt} = F_{\vec{u}}(\vec{v}) = \vec{v} \approx \frac{\partial \vec{u}}{\partial t}.
+
+$$\frac{\tilde{d}\vec{u}}{dt} = F_{\vec{u}}(\vec{v}) = \vec{v} \approx \frac{\partial \vec{u}}{\partial t}.
 $$ (2.3)
 We will revisit the implications of these choices in the context of the present methodological work in the discussion in Section [Discussion].
 
