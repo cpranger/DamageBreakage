@@ -20,11 +20,15 @@ let $\vec{x} \in \Omega$ be a coordinate in a rectangular region $\Omega = [0,l_
 
 We wish to examine the behavior of an elastic solid occupying the region $\mathrm{T} \otimes \Omega$ with its initial configuration specified on $\partial \mathrm{T}$, that is steadily loaded by displacement boundary conditions on $\partial\Omega_u \subseteq \partial\Omega$, and occasionally rapidly unloaded by transient anelastic processes, by transient material degradation, or by combinations thereof. To this end we consider Cauchy's linear momentum balance law
 
-$$\frac{\tilde{d}\vec{v}}{dt} = \frac{1}{r} \nabla \cdot \boldsymbol{s} + \vec{g},$$ (2.1)
+$$\\
+    \frac{\tilde{d}\vec{v}}{dt} = \frac{1}{r} \nabla \cdot \boldsymbol{s} + \vec{g},
+$$ (2.1)
 
 together with the mass balance law
 
-$$\frac{\tilde{d}r}{dt} = -r \nabla \cdot \vec{v},$$ (2.2)
+$$\\
+    \frac{\tilde{d}r}{dt} = -r \nabla \cdot \vec{v},
+$$ (2.2)
 
 in which $r = r(t,\vec{x})$ denotes the mass density, $\vec{v} = \vec{v}(t,\vec{x})$ the material velocity, $\boldsymbol{s} = \boldsymbol{s}(t,\vec{x})$ Cauchy's stress tensor, and $\vec{g} = \vec{g}(t,\vec{x})$ represents the action of body forces, gravitational or otherwise. Body forces are ignored from here on ($\vec{g}(t,\vec{x}) = 0$) at no loss of generality -- although the physical framework developed here ignores self-gravitation. At considerable loss of generality, but required for the sake of concise argument, is our choice to ignore advection and distortion within the elastic body. The material derivative $\tilde{d}/dt$, that is to be evaluated along the characteristic of flow, is replaced by the partial derivative $\partial/\partial t$. The divergence $\nabla \cdot \boldsymbol{s}$ of the Cauchy stress tensor $\boldsymbol{s}$, which formally is to be evaluated in coordinates $\vec{x} + \vec{u}$ distorted by displacement $\vec{u} = \vec{u}(t,\vec{x})$, is instead evaluated in the reference coordinate system $\vec{x}$. The density deviations due to volume change are assumed to have a negligible impact on the dynamic momentum balance, i.e. $\tilde{d}r/dt = \partial r/\partial t = 0$. The displacement $\vec{u} = \vec{u}(t,\vec{x})$ itself is governed by
 
@@ -42,9 +46,11 @@ We will revisit the implications of these choices in the context of the present 
 % This solution eliminates differential equation (2.1) and unknown $r$ from the problem. -->
 
 In line with our assumption of a sufficiently distortion-free elastic medium is the use of the (symmetric) infinitesimal strain tensor
-$$
+
+$$\\
 	\boldsymbol{\varepsilon} = \nabla^\mathrm{s} \vec{u} = \frac{1}{2} \left[ ( \nabla \vec{u})^\mathrm{T} + (\nabla \vec{u}) \right] = \boldsymbol{e} + \bar{\boldsymbol{e}},
 $$ (2.4)
+
 which, as indicated, is additively decomposed into an elastic part $\boldsymbol{e} = \boldsymbol{e}(t,\vec{x})$ and an anelastic part $\bar{\boldsymbol{e}} = \bar{\boldsymbol{e}}(t,\vec{x})$.
 <!-- % We choose to invert the relationship (2.4) for the function
 % \begin{align} \label{eq:inftalstrain2}
@@ -52,36 +58,48 @@ which, as indicated, is additively decomposed into an elastic part $\boldsymbol{
 % \end{align} -->
 
 An isotropic but otherwise quite general nonlinear elastic constitutive equation with structural stresses [e.g. Lyakhovksy et al., 2014b] is given by
-$$ %\label{eq:elasticconst}
+
+$$\\
 	\boldsymbol{s}(\boldsymbol{e}, \alpha) = \lambda(\vec{x},\alpha, \jmath(\boldsymbol{e})) \,\boldsymbol{\delta} \;\mathrm{tr}\; \boldsymbol{e} + 2 \mu(\vec{x},\alpha, \jmath(\boldsymbol{e})) \boldsymbol{e} - \vartheta(\vec{x}) (\nabla \alpha) \otimes (\nabla \alpha).
 $$ (2.5)
+
 Here $\lambda$ and $\mu$ are the so-called Lam\'e parameters of an isotropic elastic solid, and $\vartheta$ an additional elastic modulus associated with the structural stresses incurred by the damage field $\alpha = \alpha(t,\vec{x})$. The notation $\jmath(e)$ refers to the three scalar invariants $(J_1, J_2, J_3)$ of the elastic strain tensor, indicating that (2.5) is isotropic. The symbol $\boldsymbol{\delta}$ denotes the three-dimensional identity tensor. We note that the functional forms of $\lambda$ and $\mu$ in (2.5) can not be arbitrarily chosen; they must derive from an energy functional that is convex in $\boldsymbol{e}$. The damage parameter $\alpha$ is assumed to be governed by an evolution equation of the reaction-diffusion type
-$$ %\label{eq:alphaode}
+
+$$\\
 	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\mathrm{a}(\alpha)\nabla \alpha \right] + R_\mathrm{a}( \jmath(\boldsymbol{e}), \alpha) = F_\mathrm{a}( \jmath(\boldsymbol{e}), \alpha ),
 $$ (2.6)
+
 with nonlinear diffusivity $D_\mathrm{a} = D_\mathrm{a}(\alpha)$ and the reaction (or source) terms collected in $R_\mathrm{a}$. Reaction and diffusion are further grouped in the function $F_\mathrm{a}$, which incorporates the differential operator $\nabla$.
 
 We revisit the Cauchy momentum balance equation (2.1), which we combine with (2.5) to yield the concise representation
-$$ %\label{eq:momentum2}
+
+$$\\
 	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath(\boldsymbol{e}),\alpha) \boldsymbol{e} \right] + R_{\vec{v}}(\alpha) =  F_{\mathrm{v}}(\boldsymbol{e}, \alpha),
 $$ (2.7)
+
 with fourth-order stiffness tensor $\mathbf{S}$ and reaction/source term $R_{\vec{v}}$, both of which have access to the differential operator $\nabla$. [REDO] [TODO: density?]
 
 The anelastic part $\bar{\boldsymbol{e}}$ of the strain tensor $\boldsymbol{\varepsilon}$ is governed by Koiter's rule for non-associated plasticity [Koiter, 1953]:
-$$
+
+$$\\
 	\frac{\partial \bar{\boldsymbol{e}}}{\partial t} = \gamma(\beta) \frac{\partial }{\partial \boldsymbol{s}} G(\jmath(\boldsymbol{s})),
 $$ (2.8)
+
 in which the function $G$ takes the role of a so-called _plastic potential_, and the scalar coefficient $\gamma = \gamma(\beta)$ is called the _plastic multiplier_. In traditional plasticity models, $\gamma$ is used as a Lagrange multiplier that optimizes [TODO: finish], but here we assume that it is a direct function of a further damage field $\beta = \beta(t,\vec{x})$, which itself smoothly evolves according to the reaction-diffusion equation
-$$ %\label{eq:betaode}
+
+$$\\
 	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath(\boldsymbol{e}), \alpha, \beta) =  F_\mathrm{b}(\jmath(\boldsymbol{e}), \alpha, \beta),
 $$ (2.9)
+
 with nonlinear diffusivity $D_\mathrm{b} = D_\mathrm{b}(\beta)$ and the reaction (or source) terms collected in $R_\mathrm{b}$. As in (2.6), reaction and diffusion are further grouped in the function $F_\mathrm{b}$, which incorporates the differential operator $\nabla$.
 
 Koiter's rule (2.8) can also be directly stated in terms of unknowns $\alpha$, $\beta$, and the invariants of $\boldsymbol{e}$. We make use of this fact, and the relation (2.4), to write an evolution equation for the elastic part of the strain rate,
-$$ %\label{eq:koiter2}
+
+$$\\
 	\frac{\partial \boldsymbol{e}}{\partial t} = \nabla^\mathrm{s} \vec{v} - \frac{\partial \bar{\boldsymbol{e}}}{\partial t} = \nabla^\mathrm{s} \vec{v} - \gamma(\beta) G'(\alpha, \jmath(\boldsymbol{e})) = F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath(\boldsymbol{e})),
 $$ (2.10)
-$$
+
+$$\\
 	G'(\alpha, \jmath(\boldsymbol{e})) = \frac{\partial G(\jmath(\boldsymbol{s}(\boldsymbol{e},\alpha)))}{\partial \boldsymbol{s}(\boldsymbol{e},\alpha)}.
 $$ (2.11)
 
@@ -95,31 +113,40 @@ Special cases of the rheology (2.4)--(2.7) include the damage-breakage rheology 
 **3.1: IMEX split**
 
 All in all, we consider the system
-$$ %\label{eq:system}
+
+$$\\
 	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath(\boldsymbol{e}),\alpha) \boldsymbol{e} \right] + R_{\vec{v}}(\alpha) =  F_{\mathrm{v}}(\boldsymbol{e}, \alpha),
 $$ (3.1a)
-$$
+
+$$\\
 	\frac{\partial \boldsymbol{e}}{\partial t} = \nabla^\mathrm{s} \vec{v} - \gamma(\beta) G'(\alpha, \jmath(\boldsymbol{e})) = F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath(\boldsymbol{e})),
 $$ (3.1b)
-$$
+
+$$\\
 	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha( \jmath(\boldsymbol{e}), \alpha) = F_\mathrm{a}( \jmath(\boldsymbol{e}), \alpha ),
 $$ (3.1c)
-$$
+
+$$\\
 	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath(\boldsymbol{e}), \alpha, \beta) =  F_\mathrm{b}(\jmath(\boldsymbol{e}), \alpha, \beta).
 $$ (3.1d)
+
 We also consider an approximation to this system:
-$$ %\label{eq:approxsystem}
+$$\\
 	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath(\boldsymbol{e}),\alpha_0) \boldsymbol{e} \right] =  \tilde{F}_{\mathrm{v}}(\boldsymbol{e}),
 $$ (3.2a)
-$$
+
+$$\\
 	\frac{\partial \boldsymbol{e}}{\partial t} = \nabla^\mathrm{s} \vec{v} = \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}),
 $$ (3.2b)
-$$
+
+$$\\
 	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha( \jmath(\boldsymbol{e}_0), \alpha) = \tilde{F}_\mathrm{a}(\alpha),
 $$ (3.2c)
-$$
+
+$$\\
 	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath(\boldsymbol{e}_0), \alpha_0, \beta) =  \tilde{F}_\mathrm{b}(\beta),
 $$ (3.2d)
+
 which is evaluated given some known $\boldsymbol{e}_0$, $\alpha_0$, and $\beta_0$. We will assume that
 <!-- \label{eq:imexconditions} -->
 $$ %\label{eq:imexconditionsa}
