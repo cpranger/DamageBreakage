@@ -38,12 +38,12 @@ $$
 
 We will revisit the implications of these choices in the context of the present methodological work in the discussion in Section [Discussion].
 
-<!-- %Combining the mass balance law (2.1) with \eqref{eq:displacement} and solving for $r = r(\vec{u})$ gives
+<!-- %Combining the mass balance law {eq:2.1} with {eq:2.3} and solving for $r = r(\vec{u})$ gives
 % \begin{align} \label{eq:density}
 	% r(\vec{u}) = r_0 \exp \nabla \cdot (\vec{u} - \vec{u}_0) = r_0 \exp \nabla \cdot \vec{u},  \quad \vec{u}(t = 0,\vec{x}) &= \vec{u}_0(\vec{x}) = \vec{0}, \\
 	% r(t=0,\vec{x}) &= r_0(\vec{x}). \nonumber
 % \end{align}
-% This solution eliminates differential equation (2.1) and unknown $r$ from the problem. -->
+% This solution eliminates differential equation {eq:2.1} and unknown $r$ from the problem. -->
 
 In line with our assumption of a sufficiently distortion-free elastic medium is the use of the (symmetric) infinitesimal strain tensor
 
@@ -52,7 +52,7 @@ $$\tag{eq:2.4}
 $$
 
 which, as indicated, is additively decomposed into an elastic part $\boldsymbol{e} = \boldsymbol{e}(t,\vec{x})$ and an anelastic part $\bar{\boldsymbol{e}} = \bar{\boldsymbol{e}}(t,\vec{x})$.
-<!-- % We choose to invert the relationship (2.4) for the function
+<!-- % We choose to invert the relationship {eq:2.4} for the function
 % \begin{align} \label{eq:inftalstrain2}
 	% \boldsymbol{e}_\mathrm{e} = \boldsymbol{e}_\mathrm{e}(\nabla^\mathrm{s} \vec{u}, \bar{\boldsymbol{e}}) = \nabla^\mathrm{s} \vec{u} - \bar{\boldsymbol{e}}.
 % \end{align} -->
@@ -81,29 +81,29 @@ with fourth-order stiffness tensor $\mathbf{S}$ and reaction/source term $R_{\ve
 
 The anelastic part $\bar{\boldsymbol{e}}$ of the strain tensor $\boldsymbol{\varepsilon}$ is governed by Koiter's rule for non-associated plasticity [Koiter, 1953]:
 
-$$\\
+$$\tag{eq:2.8}
 	\frac{\partial \bar{\boldsymbol{e}}}{\partial t} = \gamma(\beta) \frac{\partial }{\partial \boldsymbol{s}} G(\jmath(\boldsymbol{s})),
-$$ (2.8)
+$$
 
 in which the function $G$ takes the role of a so-called _plastic potential_, and the scalar coefficient $\gamma = \gamma(\beta)$ is called the _plastic multiplier_. In traditional plasticity models, $\gamma$ is used as a Lagrange multiplier that optimizes [TODO: finish], but here we assume that it is a direct function of a further damage field $\beta = \beta(t,\vec{x})$, which itself smoothly evolves according to the reaction-diffusion equation
 
-$$\\
+$$\tag{eq:2.9}
 	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath(\boldsymbol{e}), \alpha, \beta) =  F_\mathrm{b}(\jmath(\boldsymbol{e}), \alpha, \beta),
-$$ (2.9)
+$$
 
-with nonlinear diffusivity $D_\mathrm{b} = D_\mathrm{b}(\beta)$ and the reaction (or source) terms collected in $R_\mathrm{b}$. As in (2.6), reaction and diffusion are further grouped in the function $F_\mathrm{b}$, which incorporates the differential operator $\nabla$.
+with nonlinear diffusivity $D_\mathrm{b} = D_\mathrm{b}(\beta)$ and the reaction (or source) terms collected in $R_\mathrm{b}$. As in {eq:2.6}, reaction and diffusion are further grouped in the function $F_\mathrm{b}$, which incorporates the differential operator $\nabla$.
 
-Koiter's rule (2.8) can also be directly stated in terms of unknowns $\alpha$, $\beta$, and the invariants of $\boldsymbol{e}$. We make use of this fact, and the relation (2.4), to write an evolution equation for the elastic part of the strain rate,
+Koiter's rule {eq:2.8} can also be directly stated in terms of unknowns $\alpha$, $\beta$, and the invariants of $\boldsymbol{e}$. We make use of this fact, and the relation {eq:2.4}, to write an evolution equation for the elastic part of the strain rate,
 
-$$\\
+$$\tag{eq:2.10}
 	\frac{\partial \boldsymbol{e}}{\partial t} = \nabla^\mathrm{s} \vec{v} - \frac{\partial \bar{\boldsymbol{e}}}{\partial t} = \nabla^\mathrm{s} \vec{v} - \gamma(\beta) G'(\alpha, \jmath(\boldsymbol{e})) = F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath(\boldsymbol{e})),
-$$ (2.10)
+$$
 
-$$\\
+$$\tag{eq:2.11}
 	G'(\alpha, \jmath(\boldsymbol{e})) = \frac{\partial G(\jmath(\boldsymbol{s}(\boldsymbol{e},\alpha)))}{\partial \boldsymbol{s}(\boldsymbol{e},\alpha)}.
-$$ (2.11)
+$$
 
-Special cases of the rheology (2.4)--(2.7) include the damage-breakage rheology of [Lyakhovski, Ben-Zion, et al., 2011, 2014a, 2014b, etc.], the rate and state rheology of [Pranger et al., 2022], and the temperature and grain-size dependent rheology of [The Geodynamicists]. We will use [one or the other or both] to test our algorithm in [section X]. Ultimately, we seek to find a sufficiently accurate numerical approximation to (2.1)--(2.7) in terms of trajectories of the state fields $\vec{u}$, $\vec{v}$, $\bar{\boldsymbol{e}}$, $\alpha$, and $\beta$ in the interior of the domain $\mathrm{T} \otimes \Omega$, given sufficient data on $\partial \mathrm{T}$ and $\partial \Omega$.
+Special cases of the rheology {eq:2.4}--{eq:2.7} include the damage-breakage rheology of [Lyakhovski, Ben-Zion, et al., 2011, 2014a, 2014b, etc.], the rate and state rheology of [Pranger et al., 2022], and the temperature and grain-size dependent rheology of [The Geodynamicists]. We will use [one or the other or both] to test our algorithm in [section X]. Ultimately, we seek to find a sufficiently accurate numerical approximation to {eq:2.1}--{eq:2.7} in terms of trajectories of the state fields $\vec{u}$, $\vec{v}$, $\bar{\boldsymbol{e}}$, $\alpha$, and $\beta$ in the interior of the domain $\mathrm{T} \otimes \Omega$, given sufficient data on $\partial \mathrm{T}$ and $\partial \Omega$.
 
 > TODO: include temperature
 
@@ -114,70 +114,69 @@ Special cases of the rheology (2.4)--(2.7) include the damage-breakage rheology 
 
 All in all, we consider the system
 
-$$\\
+$$\tag{eq:3.1a}
 	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath(\boldsymbol{e}),\alpha) \boldsymbol{e} \right] + R_{\vec{v}}(\alpha) =  F_{\mathrm{v}}(\boldsymbol{e}, \alpha),
-$$ (3.1a)
+$$
 
-$$\\
+$$\tag{eq:3.1b}
 	\frac{\partial \boldsymbol{e}}{\partial t} = \nabla^\mathrm{s} \vec{v} - \gamma(\beta) G'(\alpha, \jmath(\boldsymbol{e})) = F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath(\boldsymbol{e})),
-$$ (3.1b)
+$$
 
-$$\\
+$$\tag{eq:3.1c}
 	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha( \jmath(\boldsymbol{e}), \alpha) = F_\mathrm{a}( \jmath(\boldsymbol{e}), \alpha ),
-$$ (3.1c)
+$$
 
-$$\\
+$$\tag{eq:3.1d}
 	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath(\boldsymbol{e}), \alpha, \beta) =  F_\mathrm{b}(\jmath(\boldsymbol{e}), \alpha, \beta).
-$$ (3.1d)
+$$
 
 We also consider an approximation to this system:
-$$\\
+$$\tag{eq:3.2a}
 	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath(\boldsymbol{e}),\alpha_0) \boldsymbol{e} \right] =  \tilde{F}_{\mathrm{v}}(\boldsymbol{e}),
-$$ (3.2a)
+$$
 
-$$\\
+$$\tag{eq:3.2b}
 	\frac{\partial \boldsymbol{e}}{\partial t} = \nabla^\mathrm{s} \vec{v} = \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}),
-$$ (3.2b)
+$$
 
-$$\\
+$$\tag{eq:3.2c}
 	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha( \jmath(\boldsymbol{e}_0), \alpha) = \tilde{F}_\mathrm{a}(\alpha),
-$$ (3.2c)
+$$
 
-$$\\
+$$\tag{eq:3.2d}
 	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath(\boldsymbol{e}_0), \alpha_0, \beta) =  \tilde{F}_\mathrm{b}(\beta),
-$$ (3.2d)
+$$
 
 which is evaluated given some known $\boldsymbol{e}_0$, $\alpha_0$, and $\beta_0$. We will assume that
-<!-- \label{eq:imexconditions} -->
-$$\\ %\label{eq:imexconditionsa}
-	\frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} = \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}} \tag{3.3a}
+$$\tag{eq:3.3a}
+	\frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} = \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}}
 $$
 
-$$\\ %\label{eq:imexconditionsb}
-	\frac{\partial F_{\mathrm{a}}}{\partial \nabla \alpha} = \frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \nabla \alpha} \tag{3.3b} 
+$$\tag{eq:3.3b}
+	\frac{\partial F_{\mathrm{a}}}{\partial \nabla \alpha} = \frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \nabla \alpha}
 $$
 
-$$\\ %\label{eq:imexconditionsc}
-	\frac{\partial F_{\mathrm{b}}}{\partial \nabla \beta} = \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \nabla \beta} \tag{3.3c}
+$$\tag{eq:3.3c}
+	\frac{\partial F_{\mathrm{b}}}{\partial \nabla \beta} = \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \nabla \beta}
 $$
 
 Using this approximation, the complete system is then again written as
-$$ %\label{eq:imexsystem}
+$$\tag{3.4a}
 	\frac{\partial\vec{v}}{\partial t} = \left[F_{\mathrm{v}}(\boldsymbol{e}, \alpha) - \tilde{F}_{\mathrm{v}}(\boldsymbol{e})\right] + \tilde{F}_{\mathrm{v}}(\boldsymbol{e}), 
-$$ (3.4a)
 $$
+$$\tag{3.4b}
 	\frac{\partial \boldsymbol{e}}{\partial t} = \left[F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath(\boldsymbol{e})) - \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v})\right] + \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}), 
-$$ (3.4b)
 $$
+$$\tag{3.4c}
 	\frac{\partial\alpha}{\partial t} = \left[F_\mathrm{a}( \jmath(\boldsymbol{e}), \alpha ) - \tilde{F}_\mathrm{a}(\alpha)\right] + \tilde{F}_\mathrm{a}(\alpha), 
-$$ (3.4c)
 $$
+$$\tag{3.4d}
 	\frac{\partial\beta}{\partial t}  = \left[F_\mathrm{b}(\jmath(\boldsymbol{e}), \alpha, \beta) - \tilde{F}_\mathrm{b}(\beta)\right] + \tilde{F}_\mathrm{b}(\beta),
-$$ (3.4d)
+$$
 We will use an implicit-explicit (IMEX) time integration scheme to solve the terms in square brackets explicit in time, and the remainders implicit in time.
 
-The explicit part of (3.4a)--(3.4d) is assigned a Jacobian $\mathbf{J}_\mathrm{ex}$, and the implicit part a Jacobian $\mathbf{J}_\mathrm{im}$, both of which are given by
-$$
+The explicit part of {eq:3.4a}--{eq:3.4d} is assigned a Jacobian $\mathbf{J}_\mathrm{ex}$, and the implicit part a Jacobian $\mathbf{J}_\mathrm{im}$, both of which are given by
+$$\tag{eq:3.5a}
 	\mathbf{J}_\mathrm{ex} = \begin{bmatrix}
 		  0
 		& \frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}
@@ -196,8 +195,8 @@ $$
 		& \frac{\partial F_{\mathrm{b}}}{\partial \alpha}
 		& \frac{\partial F_{\mathrm{b}}}{\partial \beta} - \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
 	\end{bmatrix},
-$$ (3.5a)
 $$
+$$\tag{eq:3.5b}
 	\mathbf{J}_\mathrm{im} = \begin{bmatrix}
 		  0
 		& \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}
@@ -216,11 +215,11 @@ $$
 		& 0
 		& \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
 	\end{bmatrix}.
-$$ (3.5b)
-The term in the first column of $\mathbf{J}_\mathrm{ex}$ cancels due to (3.3a).
+$$
+The term in the first column of $\mathbf{J}_\mathrm{ex}$ cancels due to {eq:3.3a}.
 
 In order to determine a stable time step [Section X], we would like to determine the spectral radius $\rho(\mathbf{J}_\mathrm{ex})$ of $\mathbf{J}_\mathrm{ex}$, which is the largest element by absolute value of its (complex) spectrum $\sigma(\mathbf{J}_\mathrm{ex})$. We can create the block structure
-$$
+$$\tag{eq:3.6}
 	\mathbf{J}_\mathrm{ex} = \left[\begin{array}{c|ccc}
 			  0
 			& \frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}
@@ -239,13 +238,13 @@ $$
 			& \frac{\partial F_{\mathrm{b}}}{\partial \alpha}
 			& \frac{\partial F_{\mathrm{b}}}{\partial \beta} - \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
 		\end{array}\right] = \begin{bmatrix} 0 & \vec{\mathbf{B}}^\mathrm{T} \\[.7em] \vec{\mathbf{0}} & \mathbf{D}\;\, \end{bmatrix},
-$$ (3.6)
+$$
 and use the Schur determinant theorem,
-$$ %\label{eq:schurdet}
+$$\tag{eq:3.7}
 	\mathrm{det}\begin{pmatrix} A & B \\ C & D \end{pmatrix} = \mathrm{det}(A) \mathrm{det}(D - C A^{-1} B) = \mathrm{det}(D)\mathrm{det}(A - B D^{-1} C),
-$$ (3.7)
+$$
 so that
-$$ %\label{eq:jacspectrum}
+$$
 	\sigma(\mathbf{J}_\mathrm{ex}) = \{ \lambda \in \mathbb{C} : \mathrm{det}( \mathbf{J}_\mathrm{ex} - \lambda \mathbf{I} ) = 0 \}
 $$
 $$
@@ -254,10 +253,10 @@ $$
 $$
 	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_\mathrm{v})\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} ) = 0 \}
 $$
-$$
+$$\tag{eq:3.8}
 	= \sigma(0) \cup \sigma(\mathbf{D}) = \{ 0 \} \cup \sigma(\mathbf{D}).
-$$ (3.8)
-On account of conditions (3.3b, 3.3c), all elements of the matrix $\mathbf{D}$ are diagonal submatrices. The multidiagonal matrices $\frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}$ and $\frac{\partial F_{\mathrm{v}}}{\partial \alpha}$ that are contained in the block $\vec{\mathbf{B}}$ are eliminated from the eigenvalue problem (3.8) due to the Schur determinant theorem (3.7) and the vector of zero blocks $\vec{\mathbf{0}}$.
+$$
+On account of conditions {eq:3.3b}--{eq:3.3c}, all elements of the matrix $\mathbf{D}$ are diagonal submatrices. The multidiagonal matrices $\frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}$ and $\frac{\partial F_{\mathrm{v}}}{\partial \alpha}$ that are contained in the block $\vec{\mathbf{B}}$ are eliminated from the eigenvalue problem {eq:3.8} due to the Schur determinant theorem {eq:3.7} and the vector of zero blocks $\vec{\mathbf{0}}$.
 
 <!-- Because of the diagonality of the blocks constituting $\mathbf{D}$, the remaining eigenvalue problem could be solved locally and in parallel for each grid point $i$:
 $$ %\label{eq:jacspectrum2}
@@ -280,12 +279,12 @@ The diagonality properties listed above also mean that the spectrum of the expli
 **3.2: Runge-Kutta extensions of the TR-BDF2 scheme**
 
 We base our time integration scheme on the established TR-BDF2 scheme [references] with its explicit extension [Giraldo et al., 2013]. The TR-BDF2 scheme consists of a fractional trapezoidal (TR) step as a first stage, which is then completed with a second-order Backward Difference Formula (BDF2) stage. For an ODE $\partial y/\partial t = f(t, y)$ the scheme can be expressed as
-$$
+$$\tag{eq:3.9a}
 	y_{n+\gamma} - \left(\frac{\gamma}{2}\right) h_t f(t_n + \gamma h_t, y_{n+\gamma}) = y_n + \left(\frac{\gamma}{2}\right) h_t f(t_n, y_n),
-$$ (3.9a)
 $$
+$$\tag{eq:3.9b}
 	y_{n+1} - \left(\frac{1-\gamma}{2-\gamma}\right) h_t f(t_n + h_t, y_{n+1}) = \left(\frac{1}{\gamma(2-\gamma)}\right) y_{n+\gamma} + \left(1 - \frac{1}{\gamma(2-\gamma)}\right) y_n.
-$$ (3.9b)
+$$
 Here, $h_t$ is the time step size, and $\gamma \in (0,1]$ is the fraction of the time step over which the first trapezoidal stage is computed, with a choice of $\gamma = 1$ representing a purely trapezoidal end member.
 <!-- For a test equation $\partial y/\partial t = \lambda y$, $\lambda \in \mathbb{C}$, the TR-BDF2 scheme has the direct update form
 \begin{subequations} \label{eq:trbdf2poly0} \begin{align}
