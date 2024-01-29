@@ -198,7 +198,7 @@ function damage_isotropic(p, ax; nsteps, duration, rtol, atol = 0)
 end
 
 function parameters(; nb)
-	n    =  (50, 50) .* BLOCK_SIZE   # mesh resolution
+	n    =  (100, 100) .* BLOCK_SIZE   # mesh resolution
 	h    =  1 / (n[1] - 2)
 	l    =  (n .- 2) .* h            # physical domain size
 	
@@ -246,7 +246,7 @@ function main()
 	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
 	# lid_driven(:scalar, :parabolic, :explicit, p, ax)
-	damage_isotropic(p, ax; nsteps = 1000, duration = Inf, rtol = 1e-3)
+	damage_isotropic(p, ax; nsteps = 2, duration = Inf, rtol = 1e-3)
 	
 	"finished!"
 end
