@@ -131,6 +131,7 @@ $$\tag{eq:3.1d}
 $$
 
 We also consider an approximation to this system:
+
 $$\tag{eq:3.2a}
 	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath(\boldsymbol{e}),\alpha_0) \boldsymbol{e} \right] =  \tilde{F}_{\mathrm{v}}(\boldsymbol{e}),
 $$
@@ -148,6 +149,7 @@ $$\tag{eq:3.2d}
 $$
 
 which is evaluated given some known $\boldsymbol{e}_0$, $\alpha_0$, and $\beta_0$. We will assume that
+
 $$\tag{eq:3.3a}
 	\frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} = \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}}
 $$
@@ -161,21 +163,27 @@ $$\tag{eq:3.3c}
 $$
 
 Using this approximation, the complete system is then again written as
+
 $$\tag{3.4a}
 	\frac{\partial\vec{v}}{\partial t} = \left[F_{\mathrm{v}}(\boldsymbol{e}, \alpha) - \tilde{F}_{\mathrm{v}}(\boldsymbol{e})\right] + \tilde{F}_{\mathrm{v}}(\boldsymbol{e}), 
 $$
+
 $$\tag{3.4b}
 	\frac{\partial \boldsymbol{e}}{\partial t} = \left[F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath(\boldsymbol{e})) - \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v})\right] + \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}), 
 $$
+
 $$\tag{3.4c}
 	\frac{\partial\alpha}{\partial t} = \left[F_\mathrm{a}( \jmath(\boldsymbol{e}), \alpha ) - \tilde{F}_\mathrm{a}(\alpha)\right] + \tilde{F}_\mathrm{a}(\alpha), 
 $$
+
 $$\tag{3.4d}
 	\frac{\partial\beta}{\partial t}  = \left[F_\mathrm{b}(\jmath(\boldsymbol{e}), \alpha, \beta) - \tilde{F}_\mathrm{b}(\beta)\right] + \tilde{F}_\mathrm{b}(\beta),
 $$
+
 We will use an implicit-explicit (IMEX) time integration scheme to solve the terms in square brackets explicit in time, and the remainders implicit in time.
 
 The explicit part of {eq:3.4a}--{eq:3.4d} is assigned a Jacobian $\mathbf{J}_\mathrm{ex}$, and the implicit part a Jacobian $\mathbf{J}_\mathrm{im}$, both of which are given by
+
 $$\tag{eq:3.5a}
 	\mathbf{J}_\mathrm{ex} = \begin{bmatrix}
 		  0
@@ -196,6 +204,7 @@ $$\tag{eq:3.5a}
 		& \frac{\partial F_{\mathrm{b}}}{\partial \beta} - \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
 	\end{bmatrix},
 $$
+
 $$\tag{eq:3.5b}
 	\mathbf{J}_\mathrm{im} = \begin{bmatrix}
 		  0
@@ -216,9 +225,11 @@ $$\tag{eq:3.5b}
 		& \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
 	\end{bmatrix}.
 $$
+
 The term in the first column of $\mathbf{J}_\mathrm{ex}$ cancels due to {eq:3.3a}.
 
 In order to determine a stable time step [Section X], we would like to determine the spectral radius $\rho(\mathbf{J}_\mathrm{ex})$ of $\mathbf{J}_\mathrm{ex}$, which is the largest element by absolute value of its (complex) spectrum $\sigma(\mathbf{J}_\mathrm{ex})$. We can create the block structure
+
 $$\tag{eq:3.6}
 	\mathbf{J}_\mathrm{ex} = \left[\begin{array}{c|ccc}
 			  0
@@ -239,23 +250,31 @@ $$\tag{eq:3.6}
 			& \frac{\partial F_{\mathrm{b}}}{\partial \beta} - \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
 		\end{array}\right] = \begin{bmatrix} 0 & \vec{\mathbf{B}}^\mathrm{T} \\[.7em] \vec{\mathbf{0}} & \mathbf{D}\;\, \end{bmatrix},
 $$
+
 and use the Schur determinant theorem,
+
 $$\tag{eq:3.7}
 	\mathrm{det}\begin{pmatrix} A & B \\ C & D \end{pmatrix} = \mathrm{det}(A) \mathrm{det}(D - C A^{-1} B) = \mathrm{det}(D)\mathrm{det}(A - B D^{-1} C),
 $$
+
 so that
+
+$$\\
+    \sigma(\mathbf{J}_\mathrm{ex}) = \{ \lambda \in \mathbb{C} : \mathrm{det}( \mathbf{J}_\mathrm{ex} - \lambda \mathbf{I} ) = 0 \}
 $$
-	\sigma(\mathbf{J}_\mathrm{ex}) = \{ \lambda \in \mathbb{C} : \mathrm{det}( \mathbf{J}_\mathrm{ex} - \lambda \mathbf{I} ) = 0 \}
-$$
-$$
+
+$$\\
 	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_\mathrm{v})\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} - \vec{\mathbf{0}}(-\lambda I_\mathrm{v})^{-1}\vec{\mathbf{B}}^\mathrm{T} ) = 0 \}
 $$
-$$
+
+$$\\
 	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_\mathrm{v})\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} ) = 0 \}
 $$
+
 $$\tag{eq:3.8}
 	= \sigma(0) \cup \sigma(\mathbf{D}) = \{ 0 \} \cup \sigma(\mathbf{D}).
 $$
+
 On account of conditions {eq:3.3b}--{eq:3.3c}, all elements of the matrix $\mathbf{D}$ are diagonal submatrices. The multidiagonal matrices $\frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}$ and $\frac{\partial F_{\mathrm{v}}}{\partial \alpha}$ that are contained in the block $\vec{\mathbf{B}}$ are eliminated from the eigenvalue problem {eq:3.8} due to the Schur determinant theorem {eq:3.7} and the vector of zero blocks $\vec{\mathbf{0}}$.
 
 <!-- Because of the diagonality of the blocks constituting $\mathbf{D}$, the remaining eigenvalue problem could be solved locally and in parallel for each grid point $i$:
@@ -279,12 +298,15 @@ The diagonality properties listed above also mean that the spectrum of the expli
 **3.2: Runge-Kutta extensions of the TR-BDF2 scheme**
 
 We base our time integration scheme on the established TR-BDF2 scheme [references] with its explicit extension [Giraldo et al., 2013]. The TR-BDF2 scheme consists of a fractional trapezoidal (TR) step as a first stage, which is then completed with a second-order Backward Difference Formula (BDF2) stage. For an ODE $\partial y/\partial t = f(t, y)$ the scheme can be expressed as
+
 $$\tag{eq:3.9a}
 	y_{n+\gamma} - \left(\frac{\gamma}{2}\right) h_t f(t_n + \gamma h_t, y_{n+\gamma}) = y_n + \left(\frac{\gamma}{2}\right) h_t f(t_n, y_n),
 $$
+
 $$\tag{eq:3.9b}
 	y_{n+1} - \left(\frac{1-\gamma}{2-\gamma}\right) h_t f(t_n + h_t, y_{n+1}) = \left(\frac{1}{\gamma(2-\gamma)}\right) y_{n+\gamma} + \left(1 - \frac{1}{\gamma(2-\gamma)}\right) y_n.
 $$
+
 Here, $h_t$ is the time step size, and $\gamma \in (0,1]$ is the fraction of the time step over which the first trapezoidal stage is computed, with a choice of $\gamma = 1$ representing a purely trapezoidal end member.
 <!-- For a test equation $\partial y/\partial t = \lambda y$, $\lambda \in \mathbb{C}$, the TR-BDF2 scheme has the direct update form
 \begin{subequations} \label{eq:trbdf2poly0} \begin{align}
