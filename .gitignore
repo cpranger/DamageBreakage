@@ -24,3 +24,4 @@ docs/site/
 Manifest.toml
 scripts/Project.toml
 algorithm/cg-petsc.jl
+paper/.ipynb_checkpoints/*

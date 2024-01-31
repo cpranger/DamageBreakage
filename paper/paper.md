@@ -164,19 +164,19 @@ $$
 
 Using this approximation, the complete system is then again written as
 
-$$\tag{3.4a}
+$$\tag{eq:3.4a}
 	\frac{\partial\vec{v}}{\partial t} = \left[F_{\mathrm{v}}(\boldsymbol{e}, \alpha) - \tilde{F}_{\mathrm{v}}(\boldsymbol{e})\right] + \tilde{F}_{\mathrm{v}}(\boldsymbol{e}), 
 $$
 
-$$\tag{3.4b}
+$$\tag{eq:3.4b}
 	\frac{\partial \boldsymbol{e}}{\partial t} = \left[F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath(\boldsymbol{e})) - \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v})\right] + \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}), 
 $$
 
-$$\tag{3.4c}
+$$\tag{eq:3.4c}
 	\frac{\partial\alpha}{\partial t} = \left[F_\mathrm{a}( \jmath(\boldsymbol{e}), \alpha ) - \tilde{F}_\mathrm{a}(\alpha)\right] + \tilde{F}_\mathrm{a}(\alpha), 
 $$
 
-$$\tag{3.4d}
+$$\tag{eq:3.4d}
 	\frac{\partial\beta}{\partial t}  = \left[F_\mathrm{b}(\jmath(\boldsymbol{e}), \alpha, \beta) - \tilde{F}_\mathrm{b}(\beta)\right] + \tilde{F}_\mathrm{b}(\beta),
 $$
 
