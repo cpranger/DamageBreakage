@@ -432,7 +432,7 @@ $$
 
 ----
 
-![fig:stab](figures/stability.png)
+![fig:stab](https://media.githubusercontent.com/media/cpranger/DamageBreakage/main/paper/figures/stability.png)
 
 > Stability regions $\lvert P(h_t \lambda) \rvert \leq 1$ in the complex plane $h_t \lambda \in \mathbb{C}$ derived from the scalar test equation $\partial y / \partial t = \lambda y$, of (top left) the second-order L-stable TR-BDF2 scheme, (top right) its third-order diagonally implicit Runge-Kutta extension, (bottom left) an embedded second-order explicit Runge-Kutta scheme, and (bottom right) an embedded third-order explicit Runge-Kutta scheme. In the latter, a circular region $D$ is plotted with origin $0$ and radius $\sqrt{3}$, the intersection of which with the left half plane is a proper subset of the stability region $\lvert P(h_t \lambda) \rvert \leq 1$ of the explicit 3rd-order Runge-Kutta scheme by which the explicit part of the equations is integrated.
 
