@@ -308,142 +308,219 @@ $$\tag{eq:3.9b}
 $$
 
 Here, $h_t$ is the time step size, and $\gamma \in (0,1]$ is the fraction of the time step over which the first trapezoidal stage is computed, with a choice of $\gamma = 1$ representing a purely trapezoidal end member.
-<!-- For a test equation $\partial y/\partial t = \lambda y$, $\lambda \in \mathbb{C}$, the TR-BDF2 scheme has the direct update form
-\begin{subequations} \label{eq:trbdf2poly0} \begin{align}
-	P_\mathrm{im}(h_t \lambda) y_{n+1} &= P_\mathrm{im,2}(h_t \lambda) P_\mathrm{im,1}(h_t \lambda) y_{n+1} = P_\mathrm{ex}(h_t \lambda) y_n, \\
-	% \left(1 - \left(\frac{\gamma}{2}\right) h_t \lambda \right) \left(1 - \left(\frac{1-\gamma}{2-\gamma}\right) h_t \lambda \right) y_{n+1} &= \left(\frac{1}{\gamma(2-\gamma)}\right) \left(1 + \left(\frac{\gamma}{2}\right) h_t \lambda \right) y_n + \left(1 - \frac{1}{\gamma(2-\gamma)} \right) \left(1 - \left(\frac{\gamma}{2}\right) h_t \lambda \right) y_n.
-	P_\mathrm{im,1}(z) &= \left(1 - \left(\frac{\gamma}{2}\right) z \right) \\
-	P_\mathrm{im,2}(z) &= \left(1 - \left(\frac{1-\gamma}{2-\gamma}\right) z \right) \\
-	P_\mathrm{im}(z) = P_\mathrm{im,2}(z) P_\mathrm{im,1}(z) &= 1 + \left( \frac{\gamma^2-2}{4-2\gamma} \right) z + \left( \frac{\gamma-\gamma^2}{4-2\gamma} \right) z^2 \\
-	P_\mathrm{ex}(z) &= 1 + \left( \frac{1}{2-\gamma}-\frac{\gamma}{2}\right) z.
-\end{align} \end{subequations}
+For a test equation $\partial y/\partial t = \lambda y$, $\lambda \in \mathbb{C}$, the TR-BDF2 scheme has the direct form
+
+$$\tag{eq:3.10a} %\label{eq:trbdf2poly0}
+	P_\mathrm{im}(h_t \lambda) y_{n+1} = P_\mathrm{im,2}(h_t \lambda) P_\mathrm{im,1}(h_t \lambda) y_{n+1} = P_\mathrm{ex}(h_t \lambda) y_n,
+$$
+
+<!--$$
+	\left(1 - \left(\frac{\gamma}{2}\right) h_t \lambda \right) \left(1 - \left(\frac{1-\gamma}{2-\gamma}\right) h_t \lambda \right) y_{n+1} &= \left(\frac{1}{\gamma(2-\gamma)}\right) \left(1 + \left(\frac{\gamma}{2}\right) h_t \lambda \right) y_n + \left(1 - \frac{1}{\gamma(2-\gamma)} \right) \left(1 - \left(\frac{\gamma}{2}\right) h_t \lambda \right) y_n.
+$$-->
+
+$$\tag{eq:3.10b}
+	P_\mathrm{im,1}(z) = \left(1 - \left(\frac{\gamma}{2}\right) z \right),
+$$
+
+$$\tag{eq:3.10c}
+	P_\mathrm{im,2}(z) = \left(1 - \left(\frac{1-\gamma}{2-\gamma}\right) z \right),
+$$
+
+$$\tag{eq:3.10d}
+	P_\mathrm{im}(z) = P_\mathrm{im,2}(z) P_\mathrm{im,1}(z) = 1 + \left( \frac{\gamma^2-2}{4-2\gamma} \right) z + \left( \frac{\gamma-\gamma^2}{4-2\gamma} \right) z^2,
+$$
+
+$$\tag{eq:3.10e}
+	P_\mathrm{ex}(z) = 1 + \left( \frac{1}{2-\gamma}-\frac{\gamma}{2}\right) z.
+$$
+
 We can see that the scheme is L-stable as long as $\gamma \neq 1$, since then the polynomial order of $P_\mathrm{im} > P_\mathrm{ex}$ and thus $\lim\limits_{h_t \lambda \to\pm\infty} P_\mathrm{ex}(h_t \lambda)/P_\mathrm{im}(h_t \lambda) = 0$ (i.e. for negative $\lambda$, the solution $y$ has a steady state on which it converges as the step size increases).
 
 Plugging in the analytical solution $y_n = 1$, $y_{n+1} = \exp{h_t \lambda}$ and substituting the latter with its Taylor series approximation around $h_t \lambda = 0$, we obtain
-\begin{subequations} \label{eq:trbdf2poly1} \begin{align}
-	P_\mathrm{im}(h_t \lambda) \left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \mathcal{O}(h_t^3) \right) - P_\mathrm{ex}(h_t \lambda) &= \mathcal{O}(h_t^3),
-\end{align} \end{subequations}
+
+$$\tag{eq:3.11}
+	P_\mathrm{im}(h_t \lambda) \left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \mathcal{O}(h_t^3) \right) - P_\mathrm{ex}(h_t \lambda) = \mathcal{O}(h_t^3),
+$$
+
 which proves the second-order consistency of the combined scheme.
 
 The free parameter $\gamma$ is chosen such that for the system of ODEs $\partial y / \partial t = J y$, the operators $P_\mathrm{im,2}(h_t J)$ and $P_\mathrm{im,1}(h_t J)$ are the same and are assembled only once per time step\footnote{We implement matrix-free algorithms and so the assembly cost is no issue for us.}. Thus,
-\begin{align}
+$$\tag{eq:3.12}
 	\frac{\gamma}{2} = \frac{1-\gamma}{2-\gamma} \implies \gamma = 2 \pm \sqrt{2}.
-\end{align}
+$$
 The solution with minus sign, $2 - \sqrt{2} \approx 0.586$ not only lies in the desired interval $(0,1]$, but also yields a much lower coefficient of the $\mathcal{O}(h_t^3)$ truncation error ($\sim 0.04$ vs. $\sim 1.4$) and is therefore selected.
 
-We continue the analysis of the TR-BDF2 scheme in the framework of a three-stage Runge-Kutta method, which is written for the autonomous ODE $\partial y/\partial t = f(y)$ as
-\begin{subequations} \label{eq:rk2} \begin{align}
-	w_1 &= y_n \\
-	w_2 &= y_n + h_t\left[ \left(1-\frac{1}{\sqrt{2}}\right) f(w_1) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_2) \right], \\
-	w_3 &= y_n + h_t \left[ \left(\frac{1}{2\sqrt{2}}\right) f(w_1) + \left(\frac{1}{2\sqrt{2}}\right) f(w_2) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_3) \right], \\
-	y_{n+1} &= w_3.
-\end{align} \end{subequations}
-The first and last assignments are redundant, and the corresponding fields $w_1$ and $w_3$ do not need to be stored. We can however make use of the structure of \cref{eq:rk2} to create the derived method
-\begin{subequations} \label{eq:rk3} \begin{align}
-	w_1 &= y_n \\
-	w_2 &= y_n + h_t\left[ \left(1-\frac{1}{\sqrt{2}}\right) f(w_1) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_2) \right], \\
-	w_3 &= y_n + h_t \left[ \left(\frac{1}{2\sqrt{2}}\right) f(w_1) + \left(\frac{1}{2\sqrt{2}}\right) f(w_2) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_3) \right], \\
-	y^\ast_{n+1} &= y_n + h_t \left[ b_1 f(w_1) + b_2 f(w_2) + b_3 f(w_3) \right],
-\end{align} \end{subequations}
-with coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ that are to be chosen to yield a method that eliminates the third-order truncation error $\mathcal{O}(h_t^3)$, which does however come at the cost of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to \cref{eq:trbdf2poly1}, we now obtain
-\begin{subequations} \label{eq:trbdf2poly2} \begin{align}
-	P^\ast_\mathrm{im}(h_t \lambda) \left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \frac{1}{6}(h_t \lambda)^3 + \mathcal{O}(h_t^4) \right) - P^\ast_\mathrm{ex}(h_t \lambda) &= g_1(b) (h_t \lambda) + g_2(b) (h_t \lambda)^2 + g_3(b) (h_t \lambda)^3 + \mathcal{O}(h_t^4),
-\end{align} \end{subequations}
+We continue the analysis of the TR-BDF2 scheme in the framework of a three-stage diagonally implicit Runge-Kutta method, which is written for the autonomous ODE $\partial y/\partial t = f(y)$ as
+
+$$\tag{eq:3.13a}
+	w_1 = y_n + h_t \left[ \tilde{a}_{11} f(w_1) \right], \phantom{+ \tilde{a}_{12} f(w_2) + \tilde{a}_{13} f(w_3)}
+$$
+$$\tag{eq:3.13b}
+	w_2 = y_n + h_t \left[ \tilde{a}_{21} f(w_1) + \tilde{a}_{22} f(w_2) \right], \phantom{+ \tilde{a}_{23} f(w_3)}
+$$
+$$\tag{eq:3.13c}
+	w_3 = y_n + h_t \left[ \tilde{a}_{31} f(w_1) + \tilde{a}_{32} f(w_2) + \tilde{a}_{33} f(w_3) \right],
+$$
+$$\tag{eq:3.13d}
+	y^\ast_{n+1} = y_n + h_t \left[ b_1 f(w_1) + b_2 f(w_2) + b_3 f(w_3) \right],
+$$
+
+with coefficients $\tilde{a}$ given by
+
+When the coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ in {eq:3.13d} are chosen equal to the corresponding coefficients $\tilde{a}_3^\mathrm{T} = [\tilde{a}_{31}, \tilde{a}_{32}, \tilde{a}_{33}]$ in {eq:3.13c}, we obtain a redundant reformulation of the original TR-BDF2 scheme with. The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
+
+<!-- The first and last assignments are redundant, and the corresponding fields $w_1$ and $w_3$ do not need to be stored. We can however make use of the structure of {eq:3.13} to create the derived method
+
+$$\tag{eq:3.14a}
+	w_1 = y_n,
+$$
+$$\tag{eq:3.14b}
+	w_2 = y_n + h_t\left[ \left(1-\frac{1}{\sqrt{2}}\right) f(w_1) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_2) \right],
+$$
+$$\tag{eq:3.14c}
+	w_3 = y_n + h_t \left[ \left(\frac{1}{2\sqrt{2}}\right) f(w_1) + \left(\frac{1}{2\sqrt{2}}\right) f(w_2) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_3) \right],
+$$
+$$\tag{eq:3.14d}
+	y^\ast_{n+1} = y_n + h_t \left[ b_1 f(w_1) + b_2 f(w_2) + b_3 f(w_3) \right],
+$$
+
+with coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ that are to be chosen to yield a method that eliminates  -->
+
+$$\tag{eq:3.15}
+	P^\ast_\mathrm{im}(h_t \lambda) \left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \frac{1}{6}(h_t \lambda)^3 + \mathcal{O}(h_t^4) \right) - P^\ast_\mathrm{ex}(h_t \lambda) = \\[1em]
+    = g_1(b) (h_t \lambda) + g_2(b) (h_t \lambda)^2 + g_3(b) (h_t \lambda)^3 + \mathcal{O}(h_t^4),
+$$
+
 with the appropriate polynomials $P^\ast_\mathrm{im}$ and $P^\ast_\mathrm{ex}$, and coefficients $g(b)^\mathrm{T} = [g_1(b), g_2(b), g_3(b)]$, which are equated to zero to yield:
-\begin{subequations} \label{eq:trbdf2poly3} \begin{align}
-	P^\ast_\mathrm{im}(h_t \lambda) &\left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \frac{1}{6}(h_t \lambda)^3 + \mathcal{O}(h_t^4) \right) - P^\ast_\mathrm{ex}(h_t \lambda) =  \mathcal{O}(h_t^4), \\
-	b_1 &= \tfrac{1}{3} - \tfrac{1}{12}\sqrt{2}, \\
-	b_2 &= \tfrac{1}{3} + \tfrac{1}{4} \sqrt{2}, \\
-	b_3 &= \tfrac{1}{3} - \tfrac{1}{6} \sqrt{2}.
-\end{align} \end{subequations}
+
+$$\tag{eq:3.16}
+	P^\ast_\mathrm{im}(h_t \lambda) \left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \frac{1}{6}(h_t \lambda)^3 + \mathcal{O}(h_t^4) \right) - P^\ast_\mathrm{ex}(h_t \lambda) =  \mathcal{O}(h_t^4), \\[1em]
+	b_1 = \tfrac{1}{3} - \tfrac{1}{12}\sqrt{2}, \\[1em]
+	b_2 = \tfrac{1}{3} + \tfrac{1}{4} \sqrt{2}, \\[1em]
+	b_3 = \tfrac{1}{3} - \tfrac{1}{6} \sqrt{2}.
+$$
 
 Having computed a stable second-order accurate approximation $y_{n+1}$ to the solution $y(t_n + h_t)$, and a third-order accurate approximation $y^\ast_{n+1}$ to the same, we may estimate the $\mathcal{O}(h^3)$ truncation error $\epsilon_{n+1}$ as
-\begin{align} \label{eq:trbdf2error1}
+$$\tag{eq:3.17}
 	\epsilon_{n+1} - \left(1-\frac{1}{\sqrt{2}}\right) h_t f(\epsilon_{n+1}) = y^\ast_{n+1} - y_{n+1}.
-\end{align}
+$$
 The implicit filter is due to [Shampine 1984, Hosea \& Shampine, 1996; in Bonaventura 2018] and gives the error measure $\epsilon^{n+1}$ the correct limit behavior for large $h_t$.
 
-Finally, we seek a three-stage explicit Runge-Kutta scheme that complements the TR-BDF2 scheme by utilizing the same fractional step $\gamma h_t = (2 - \sqrt{2}) h_t$ and the same final stage coefficients $b^\mathrm{T} = [1/(2\sqrt{2}), 1/(2\sqrt{2}), 1 - 1/\sqrt{2}]$ (compare \cref{eq:rk2,eq:rk3}; see [Giraldo, 2013]). We thus seek the coefficient $a_{32}$ in
-\begin{subequations} \label{eq:rk4} \begin{align}
-	w_1 &= y_n \\
-	w_2 &= y_n + h_t \left(2-\sqrt{2}\right) f(w_1), \\
-	w_3 &= y_n + h_t \left[ (1 - a_{32}) f(w_1) + a_{32} f(w_2) \right], \\
-	y^\ast_{n+1} &= y_n + h_t \left[ \left(\frac{1}{2\sqrt{2}}\right) f(w_1) + \left(\frac{1}{2\sqrt{2}}\right) f(w_2) + \left(1 - \frac{1}{\sqrt{2}}\right) f(w_3) \right],
-\end{align} \end{subequations}
+Finally, we seek a three-stage explicit Runge-Kutta scheme that complements the TR-BDF2 scheme by utilizing the same fractional step $\gamma h_t = (2 - \sqrt{2}) h_t$ and the same final stage coefficients $b^\mathrm{T} = [1/(2\sqrt{2}), 1/(2\sqrt{2}), 1 - 1/\sqrt{2}]$ (compare {eq:3.13}, {eq:3.18}; see [Giraldo, 2013]). We thus seek the coefficient $a_{32}$ in
+
+$$\tag{eq:3.18}
+	w_1 = y_n \\[1em]
+	w_2 = y_n + h_t \left(2-\sqrt{2}\right) f(w_1), \\[1em]
+	w_3 = y_n + h_t \left[ (1 - a_{32}) f(w_1) + a_{32} f(w_2) \right], \\[1em]
+	y^\ast_{n+1} = y_n + h_t \left[ \left(\frac{1}{2\sqrt{2}}\right) f(w_1) + \left(\frac{1}{2\sqrt{2}}\right) f(w_2) + \left(1 - \frac{1}{\sqrt{2}}\right) f(w_3) \right],
+$$
+
 that maximizes the accuracy of the method. We again construct the update for the test equation $\partial y/\partial t = \lambda y$, $\lambda \in \mathbb{C}$,
-\begin{align} \label{eq:expoly}
-	y_{n+1} &= P(h_t \lambda) y_n, \\
-	P(z) &= 1 + z + \frac{1}{2}z^2 + (3 - 2\sqrt{2}) a_{32} z^3 \\
-	P(h_t \lambda) - \exp(h_t \lambda) &= \left((3 - 2\sqrt{2}) a_{32} - \frac{1}{6} \right) (h_t \lambda)^3 + \mathcal{O}(h_t^4) \\
-	&= \mathcal{O}(h_t^4) \iff a_{32} = \tfrac{1}{2} + \tfrac{1}{3}\sqrt{2}.
-\end{align}
 
-\begin{figure}[htbp]
-  \centering
-  \label{fig:stabilityregions}\includegraphics[width=\columnwidth]{figures/stabilityregions}
-  \caption{Stability regions $\lvert P(h_t \lambda) \rvert \leq 1$ in the complex plane $h_t \lambda \in \mathbb{C}$ derived from the scalar test equation $\partial y / \partial t = \lambda y$, of (\emph{a}) the second-order L-stable TR-BDF2 scheme, (\emph{b}) its third-order diagonally implicit Runge-Kutta extension, and (\emph{c}) its associated third-order explicit Runge-Kutta counterpart. In (\emph{c}), a circular region $D$ is plotted with origin $0$ and radius $\sqrt{3}$, the intersection of which with the left half plane is a proper subset of the stability region $\lvert P(h_t \lambda) \rvert \leq 1$ of the explicit Runge-Kutta scheme.}
-  \label{fig:testfig}
-\end{figure}
+$$\tag{eq:3.19a} %\label{eq:expoly}
+	y_{n+1} = P(h_t \lambda) y_n,
+$$
+$$\tag{eq:3.19b}
+	P(z) = 1 + z + \frac{1}{2}z^2 + (3 - 2\sqrt{2}) a_{32} z^3
+$$
+$$\tag{eq:3.19c}
+	P(h_t \lambda) - \exp(h_t \lambda) = \left((3 - 2\sqrt{2}) a_{32} - \frac{1}{6} \right) (h_t \lambda)^3 + \mathcal{O}(h_t^4)
+$$
+$$\tag{eq:3.19d}
+	= \mathcal{O}(h_t^4) \iff a_{32} = \tfrac{1}{2} + \tfrac{1}{3}\sqrt{2}.
+$$
 
-The stability regions of the three schemes derived here (second-order L-stable TR-BDF2, its third-order diagonally implicit Runge-Kutta extension, and its associated third-order explicit Runge-Kutta counterpart) are plotted in \cref{fig:stabilityregions}. In panel \emph{c} of the same figure, the region of stability of the explicit RK scheme is approximated with a circular region with radius $\sqrt{3}$ centered around the origin. The intersection of this region with the left half complex plane is a proper subset of the complete stability region, and allows us to determine an appropriate time step using only the the spectral radius of the explicit Jacobian $\mathbf{J}_\mathrm{ex}$ (see \cref{sect:imexsplit}):
-\begin{align} \label{eq:timestep1}
+----
+
+![fig:stab](figures/stability.png)
+
+> Stability regions $\lvert P(h_t \lambda) \rvert \leq 1$ in the complex plane $h_t \lambda \in \mathbb{C}$ derived from the scalar test equation $\partial y / \partial t = \lambda y$, of (top left) the second-order L-stable TR-BDF2 scheme, (top right) its third-order diagonally implicit Runge-Kutta extension, (bottom left) an embedded second-order explicit Runge-Kutta scheme, and (bottom right) an embedded third-order explicit Runge-Kutta scheme. In the latter, a circular region $D$ is plotted with origin $0$ and radius $\sqrt{3}$, the intersection of which with the left half plane is a proper subset of the stability region $\lvert P(h_t \lambda) \rvert \leq 1$ of the explicit 3rd-order Runge-Kutta scheme by which the explicit part of the equations is integrated.
+
+The stability regions of the four schemes derived here (second-order L-stable TR-BDF2, its third-order diagonally implicit Runge-Kutta extension, its associated third-order explicit Runge-Kutta counterpart, and its embedded second-order explicit RK method) are plotted in Figure {fig:stab}. In the bottom-right panel of the same figure, the region of stability of the explicit RK scheme is approximated with a circular region with radius $\sqrt{3}$ centered around the origin. The intersection of this region with the left half complex plane is a proper subset of the complete stability region, and allows us to determine an appropriate time step using only the the spectral radius of the explicit Jacobian $\mathbf{J}_\mathrm{ex}$ (see Section 3.1):
+
+$$\tag{eq:3.20}
 	h_t = \sqrt{3}/\rho(\mathbf{J}_\mathrm{ex}).
-\end{align}
-Since the circular region intersects the imaginary axis at critical stability and passes close by the three complex zeroes of the stability polynomial, this choice gives both excellent conservation properties of the purely hyperbolic components, and excellent damping properties of the stiff dissipative components. We will refine the issue of time step selection in \cref{sect:errorcontrol}.
+$$
 
-\subsection{TR-BDF2 in an Additive Runge-Kutta IMEX Scheme}
+Since the circular region intersects the imaginary axis at critical stability and passes close by the three complex zeroes of the stability polynomial, this choice gives both excellent conservation properties of the purely hyperbolic components, and excellent damping properties of the stiff dissipative components. We will refine the issue of time step selection in Section 3.4.
 
-An idea first developed in [Giraldo, 2013], the additive IMEX split system \cref{eq:imexsystem} can be solved by a second-order Additive Runge-Kutta (ARK) discretization [references -- Giraldo2013 and references 1, 21, 26 therein], in which the third-order explicit scheme \cref{eq:rk4} is used for the explicit terms, the second-order, L-stable implicit scheme \ref{eq:rk2} is used for the implicit terms, and the second-order truncation error of the implicitly solved terms is estimated using \cref{eq:rk3,eq:trbdf2poly3,eq:trbdf2error1}.
+**3.3: TR-BDF2 in an Additive Runge-Kutta IMEX Scheme**
+
+An idea first developed in [Giraldo, 2013], the additive IMEX split system {eq:3.4a}--{eq:3.4d} can be solved by a second-order Additive Runge-Kutta (ARK) discretization [references -- Giraldo2013 and references 1, 21, 26 therein], in which the third-order explicit scheme {eq:3.18} is used for the explicit terms, the second-order, L-stable implicit scheme \ref{eq:3.13} is used for the implicit terms, the third-order truncation error of the implicitly solved terms is estimated using {eq:3.18}, {eq:3.16}, and {eq:3.17}, and the second-order truncation error of the explicitly solved terms estimated using {[TODO]}.
 
 The resulting Additive Runge-Kutta method is written as
-\begin{subequations} \label{eq:imexark} \begin{align}
-	w_i = y^n &+ h_t \sum\limits_{j=1}^{i-1} a_{ij} \left[ F(w_j) - \tilde{F}(w_j) \right] \nonumber \\
-	          &+ h_t \sum\limits_{j=1}^{i} \tilde{a}_{ij} \tilde{F}(w_j), \qquad i = 1, \ldots, s \\
-	y^{n+1} = y^n &+ h_t \sum\limits_{j=1}^{s} b_{j} F(w_j) \\
-	(\mathbf{I} - \tilde{b}_{s} h_t \mathbf{J}_\mathrm{im}) \epsilon^{n+1} &= h_t \sum\limits_{j=1}^{s} (b^\ast_{j} - b_{j}) \tilde{F}(w_j), \label{eq:imexarkc}
-\end{align} \end{subequations}
-with $y^n = [ \vec{v}(t_n), \mathbf{e}(t_n), \alpha(t_n), \beta(t_n) ]^\mathrm{T}$, $F = [ F_\mathrm{v}, F_\mathrm{e}, F_\mathrm{a}, F_\mathrm{b} ]^\mathrm{T}$, $\tilde{F} = [ \tilde{F}_\mathrm{v}, \tilde{F}_\mathrm{e}, \tilde{F}_\mathrm{a}, \tilde{F}_\mathrm{b} ]^\mathrm{T}$, and coefficients $a$, $\tilde{a}$, $b$, $b^\ast$ given, based on the values derived in \cref{sect:trbdf2coeff}, by
-\begin{subequations} \label{eq:coeff} \begin{align}
-	a &= \begin{bmatrix}
+
+$$\tag{eq:3.21a} %\label{eq:imexark}
+	w_i = y^n + h_t \sum\limits_{j=1}^{i-1} a_{ij} \left[ F(w_j) - \tilde{F}(w_j) \right] \\
+	          + h_t \sum\limits_{j=1}^{i} \tilde{a}_{ij} \tilde{F}(w_j), \qquad i = 1, \ldots, s
+$$
+
+$$\tag{eq:3.21b}
+	y^{n+1} = y^n + h_t \sum\limits_{j=1}^{s} b_{j} F(w_j)
+$$
+
+$$\tag{eq:3.21c} %\label{eq:imexarkc}
+	(\mathbf{I} - \tilde{b}_{s} h_t \mathbf{J}_\mathrm{im}) \epsilon^{n+1} = h_t \sum\limits_{j=1}^{s} (b^\ast_{j} - b_{j}) \tilde{F}(w_j),
+$$
+
+with $y^n = [ \vec{v}(t_n), \mathbf{e}(t_n), \alpha(t_n), \beta(t_n) ]^\mathrm{T}$, $F = [ F_\mathrm{v}, F_\mathrm{e}, F_\mathrm{a}, F_\mathrm{b} ]^\mathrm{T}$, $\tilde{F} = [ \tilde{F}_\mathrm{v}, \tilde{F}_\mathrm{e}, \tilde{F}_\mathrm{a}, \tilde{F}_\mathrm{b} ]^\mathrm{T}$, and coefficients $a$, $\tilde{a}$, $b$, $b^\ast$ given, based on the values derived in Section 3.2, by
+
+$$\tag{eq:3.22a} %\label{eq:coeff}
+	a = \begin{bmatrix}
 		0                   & 0                & 0              \\[.7em]
 		2-\sqrt{2}          & 0                & 0              \\[.7em]
 		\frac{1}{2} - \frac{1}{3}\sqrt{2}  & \tfrac{1}{2} + \frac{1}{3}\sqrt{2} & 0              
-	\end{bmatrix} \\
-	\tilde{a} &= \begin{bmatrix}
+	\end{bmatrix}
+$$
+
+$$\tag{eq:3.22a}
+	\tilde{a} = \begin{bmatrix}
 		0                   & 0                & 0              \\[.7em]
 		1 - \frac{1}{2}\sqrt{2}      & 1 - \frac{1}{2}\sqrt{2}   & 0              \\[.7em]
 		\frac{1}{4}\sqrt{2}          & \frac{1}{4}\sqrt{2}       & 1 - \frac{1}{2}\sqrt{2} 
-	\end{bmatrix} \\
-	b &= \left[
+	\end{bmatrix}
+$$
+
+$$\tag{eq:3.22c}
+	b = \left[
 		\tfrac{1}{4}\sqrt{2},\;\; \tfrac{1}{4}\sqrt{2},\;\; 1 - \tfrac{1}{2}\sqrt{2}
-	\right]^\mathrm{T} \\
-	b^\ast &= \left[
+	\right]^\mathrm{T}
+$$
+
+$$\tag{eq:3.22d}
+	b^\ast = \left[
 		\tfrac{1}{3} - \tfrac{1}{12}\sqrt{2},\;\; \tfrac{1}{3} + \tfrac{1}{4} \sqrt{2},\;\; \tfrac{1}{3} - \tfrac{1}{6} \sqrt{2}
 	\right]^\mathrm{T}
-\end{align} \end{subequations}
+$$
 
-The overall truncation error of this ARK scheme is $\mathcal{O}(h_t^3)$ (it is thus accurate/consistent to second order), but the error measure $\epsilon_{n+1}$ only estimates the truncation error associated with the implicit components, since the explicit scheme already has the maximal third-order accuracy that can be expected of an explicit three-stage RK method. We do not however see this as a major drawback since the explicitly solved subsystem can be expected to be highly stiff, with the time step chosen by \cref{eq:timestep1} sufficiently affected by the unphysical peripheral components of the spectrum that it causes the physical components to be exceedingly accurately solved. Since the implicitly solved PDE components are not subject to a stability barrier, the same argument does not extend to them and their error must be monitored, and the time step further reduced if necessary.
+The overall truncation error of this ARK scheme is $\mathcal{O}(h_t^3)$ (it is thus accurate/consistent to second order), but the error measure $\epsilon_{n+1}$ only estimates the truncation error associated with the implicit components, since the explicit scheme already has the maximal third-order accuracy that can be expected of an explicit three-stage RK method. We do not however see this as a major drawback since the explicitly solved subsystem can be expected to be highly stiff, with the time step chosen by {eq:3.20} sufficiently affected by the unphysical peripheral components of the spectrum that it causes the physical components to be exceedingly accurately solved. Since the implicitly solved PDE components are not subject to a stability barrier, the same argument does not extend to them and their error must be monitored, and the time step further reduced if necessary.
 
-\subsection{Error Control}\label{sect:errorcontrol}
+**3.4: Error Control**
 
-Inspired by the multi-rate extension of TR-BDF2 of [Bonaventura et al., 2018], we design the following much simplified mechanism for controlling the error on the implicitly solved components of \cref{eq:imexsystem}. We estimate the implicit error using \cref{eq:imexarkc}. Then, given the absolute and relative tolerances $\tau_\mathrm{a}$ and $\tau_\mathrm{r}$, we compute the dimensionless error measure
-\begin{align}
+Inspired by the multi-rate extension of TR-BDF2 of [Bonaventura et al., 2018], we design the following much simplified mechanism for controlling the error on the implicitly solved components of {eq:3.4}. We estimate the implicit error using {eq:3.21c}. Then, given the absolute and relative tolerances $\tau_\mathrm{a}$ and $\tau_\mathrm{r}$, we compute the dimensionless error measure
+
+$$\tag{eq:3.23}
 	\eta_i = \frac{\epsilon_{n+1,i}}{\tau_\mathrm{r} \lvert y_{n+1,i} \rvert + \tau_\mathrm{a}}.
-\end{align}
+$$
+
 We then compute the $L_\infty$ norm of $\eta$ over the vector blocks $[\vec{v}_{n+1},\mathbf{e}_{n+1}]$ (since these two will be solved together in block reduced form), $[\alpha_{n+1}]$, and $[\beta_{n+1}]$. We denote these maximum dimensionless errors by $\eta_\mathrm{v}$, $\eta_\mathrm{a}$, and $\eta_\mathrm{b}$, respectively.
 
 If any of these measures exceed a value of one, a new time step is computed by [Bonaventura 2018 and references [14], [19] therein]
-\begin{align}
+
+$$\tag{eq:3.24}
 	h_t^\ast = \nu h_t \mathrm{max}(\eta_\mathrm{v}, \eta_\mathrm{a}, \eta_\mathrm{b})^{-1/3},
-\end{align}
+$$
+
 with $\nu \in (0, 1)$ a safety coefficient and the power $1/3$ specific to a method with second-order accuracy.
 
-The time step is then redone with $h_t^\ast$ and this process is repeated until $\mathrm{max}(\eta_\mathrm{v}, \eta_\mathrm{a}, \eta_\mathrm{b}) \leq 1$. When this condition is satisfied, there ought to be some lingering memory of the failure of the explicit step, and the time step selection \cref{eq:timestep1} is best amended with the recursion
-\begin{align} \label{eq:timestep2}
+The time step is then redone with $h_t^\ast$ and this process is repeated until $\mathrm{max}(\eta_\mathrm{v}, \eta_\mathrm{a}, \eta_\mathrm{b}) \leq 1$. When this condition is satisfied, there ought to be some lingering memory of the failure of the explicit step, and the time step selection {eq:3.20} is best amended with the recursion
+
+$$\tag{eq:3.25} %\label{eq:timestep2}
 	h_t^{(n+1)} = \mathrm{min}( \sqrt{3}/\rho(\mathbf{J}_\mathrm{ex}), (1/\nu) h_t^{(n)} ),
-\end{align}
+$$
+
 with the same safety coefficient $\nu \in (0, 1)$.
 
 At each stage of time step refinement the initial guess of the new solution may be significantly improved by exploiting the globally $C_1$-continuous cubic Hermite interpolation that is given in [Section 5 of Bonaventura et al., 2018], which requires only the known solution stages in its evaluation.
 
-[It might actually be possible to save some refinements by solving a constraint optimization problem using the cubic Hermite interpolation of the solution over the time step, optimizing the non-dimensional error measure $\eta$ subject to the constraint $\eta \geq \nu$.] -->
+[It might actually be possible to save some refinements by solving a constraint optimization problem using the cubic Hermite interpolation of the solution over the time step, optimizing the non-dimensional error measure $\eta$ subject to the constraint $\eta \geq \nu$.]
