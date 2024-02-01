@@ -275,25 +275,34 @@ $$\tag{eq:3.8}
 	= \sigma(0) \cup \sigma(\mathbf{D}) = \{ 0 \} \cup \sigma(\mathbf{D}).
 $$
 
-On account of conditions {eq:3.3b}--{eq:3.3c}, all elements of the matrix $\mathbf{D}$ are diagonal submatrices. The multidiagonal matrices $\frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}$ and $\frac{\partial F_{\mathrm{v}}}{\partial \alpha}$ that are contained in the block $\vec{\mathbf{B}}$ are eliminated from the eigenvalue problem {eq:3.8} due to the Schur determinant theorem {eq:3.7} and the vector of zero blocks $\vec{\mathbf{0}}$.
+On account of conditions {eq:3.3b}--{eq:3.3c}, all elements of the matrix $\mathbf{D}$ are diagonal submatrices, and the remaining eigenvalue problem could be solved point-wise and in parallel. The multidiagonal matrices $\frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}$ and $\frac{\partial F_{\mathrm{v}}}{\partial \alpha}$ that are contained in the block $\vec{\mathbf{B}}$ are eliminated from the eigenvalue problem {eq:3.8} due to the Schur determinant theorem {eq:3.7} and the vector of zero blocks $\vec{\mathbf{0}}$.
 
-<!-- Because of the diagonality of the blocks constituting $\mathbf{D}$, the remaining eigenvalue problem could be solved locally and in parallel for each grid point $i$:
-$$ %\label{eq:jacspectrum2}
-	\jmath(\mathbf{J}_\mathrm{ex,i}) = \{ 0 \} \cup \jmath(\mathbf{D}) \\
-	= \{ 0 \} \cup \{ \jmath\left(\begin{bmatrix}
-		  \frac{\partial F_{\mathrm{e},i}}{\partial \mathbf{e}_i}
-		& \frac{\partial F_{\mathrm{e},i}}{\partial \alpha_i}
-		& \frac{\partial F_{\mathrm{e},i}}{\partial \beta_i} \\[.7em]
-		  \frac{\partial F_{\mathrm{a},i}}{\partial \mathbf{e}_i}
-		& \frac{\partial F_{\mathrm{a},i}}{\partial \alpha_i} - \frac{\partial \tilde{F}_{\mathrm{a},i}}{\partial \alpha_i}
-		& 0 \\[.7em]
-		  \frac{\partial F_{\mathrm{b},i}}{\partial \mathbf{e}_i}
-		& \frac{\partial F_{\mathrm{b},i}}{\partial \alpha_i}
-		& \frac{\partial F_{\mathrm{b},i}}{\partial \beta_i} - \frac{\partial \tilde{F}_{\mathrm{b},i}}{\partial \beta_i}
-	\end{bmatrix}\right), i = 1, \ldots, n \}.
+Should we need the spectrum of the implicitly solved system's Jacobian $\mathbf{J}_\mathrm{im}$ in {eq:3.5b}, we can make use of its partly disjoint block structure in combination with the property
+
+$$\tag{eq:3.u}
+    \sigma\begin{pmatrix}
+        0 & B \\
+        C & 0
+    \end{pmatrix} = \pm \sqrt{\sigma\begin{pmatrix}
+        0 & B \\
+        C & 0
+    \end{pmatrix}^2} = \pm \sqrt{\sigma\begin{pmatrix}
+        B C & 0 \\
+        0 & C B
+    \end{pmatrix}}.% = \pm \sqrt{\sigma(B C) \cup \sigma(C B)}
 $$
-We use a local Rayleigh quotient iteration using the assembled adjugate of $\mathbf{J}_\mathrm{ex,i}$ to determine the spectral radius of the complete explicit Jacobian $\mathbf{J}_\mathrm{ex}$.
-The diagonality properties listed above also mean that the spectrum of the explicit Jacobian $\mathbf{J}_\mathrm{ex}$ is independent of the distance associated with the spatial discretization, which fortunately means that the number of explicit stages is  to first order independent of grid refinement (but see [Section Y] for a more thorough analysis). -->
+
+to write
+
+$$\\\tag{eq:3.v}
+    \sigma(\mathbf{J}_\mathrm{im}) = \pm \sqrt{\sigma \left(\frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}} \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}}\right) }
+    \cup \pm \sqrt{\sigma \left(\frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}} \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}\right) }
+    \cup \sigma\left(\frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \alpha}\right)
+    \cup \sigma\left(\frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}\right).
+$$
+
+The square roots and plusminus signs in {eq:3.u} and {eq:3.v} should be understood to be applied element-wise. Since the operators in {eq:3.v} are all real negative (semi-)definite, the spectrum $\sigma(\mathbf{J}_\mathrm{im})$ is anticipated to occupy an interval on the negative real axis, and an interval on the imaginary axis.
+
 
 **3.2: Runge-Kutta extensions of the TR-BDF2 scheme**
 
@@ -344,11 +353,13 @@ $$
 
 which proves the second-order consistency of the combined scheme.
 
-The free parameter $\gamma$ is chosen such that for the system of ODEs $\partial y / \partial t = J y$, the operators $P_\mathrm{im,2}(h_t J)$ and $P_\mathrm{im,1}(h_t J)$ are the same and are assembled only once per time step\footnote{We implement matrix-free algorithms and so the assembly cost is no issue for us.}. Thus,
+The free parameter $\gamma$ is chosen such that for the system of ODEs $\partial y / \partial t = J y$, the operators $P_\mathrm{im,2}(h_t J)$ and $P_\mathrm{im,1}(h_t J)$ are the same and are assembled only once per time step[^1]. Thus,
 $$\tag{eq:3.12}
 	\frac{\gamma}{2} = \frac{1-\gamma}{2-\gamma} \implies \gamma = 2 \pm \sqrt{2}.
 $$
 The solution with minus sign, $2 - \sqrt{2} \approx 0.586$ not only lies in the desired interval $(0,1]$, but also yields a much lower coefficient of the $\mathcal{O}(h_t^3)$ truncation error ($\sim 0.04$ vs. $\sim 1.4$) and is therefore selected.
+
+[^1]: We implement matrix-free algorithms and so the assembly cost is no issue for us.
 
 We continue the analysis of the TR-BDF2 scheme in the framework of a three-stage diagonally implicit Runge-Kutta method, which is written for the autonomous ODE $\partial y/\partial t = f(y)$ as
 
@@ -363,6 +374,29 @@ $$\tag{eq:3.13c}
 $$
 $$\tag{eq:3.13d}
 	y^\ast_{n+1} = y_n + h_t \left[ b_1 f(w_1) + b_2 f(w_2) + b_3 f(w_3) \right],
+$$
+
+and which is summarized by its Butcher tableau
+
+$$
+    \begin{array}{c|ccc}
+			  c_1
+			& \tilde{a}_{11}
+			& 0
+			& 0 \\[.7em]
+			  c_2
+			& \tilde{a}_{21}
+			& \tilde{a}_{22}
+			& 0 \\[.7em]
+			  c_3
+			& \tilde{a}_{31}
+			& \tilde{a}_{32}
+			& \tilde{a}_{33} \\[.7em]\hline\\[-.5em]
+			   
+			& b_1
+			& b_2
+			& b_3
+		\end{array}
 $$
 
 with coefficients $\tilde{a}$ given by
