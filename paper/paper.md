@@ -148,7 +148,7 @@ $$\tag{eq:3.2d}
 	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath(\boldsymbol{e}_0), \alpha_0, \beta) =  \tilde{F}_\mathrm{b}(\beta),
 $$
 
-which is evaluated given some known $\boldsymbol{e}_0$, $\alpha_0$, and $\beta_0$. We will assume that
+which is evaluated given some known $\boldsymbol{e}_0$, $\alpha_0$, and $\beta_0$. We will ensure that
 
 $$\tag{eq:3.3a}
 	\frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} = \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}}
@@ -190,7 +190,7 @@ $$\tag{eq:3.5a}
 		& \frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}
 		& \frac{\partial F_{\mathrm{v}}}{\partial \alpha}
 		& 0 \\[.7em]
-		  \left\{ \frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} - \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}} = 0 \right\}
+		  0 % \left\{ \frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} - \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}} = 0 \right\}
 		& \frac{\partial F_{\mathrm{e}}}{\partial \mathbf{e}}
 		& \frac{\partial F_{\mathrm{e}}}{\partial \alpha}
 		& \frac{\partial F_{\mathrm{e}}}{\partial \beta} \\[.7em]
@@ -226,7 +226,7 @@ $$\tag{eq:3.5b}
 	\end{bmatrix}.
 $$
 
-The term in the first column of $\mathbf{J}_\mathrm{ex}$ cancels due to {eq:3.3a}.
+<!-- The term in the first column of $\mathbf{J}_\mathrm{ex}$ cancels due to {eq:3.3a}. -->
 
 In order to determine a stable time step [Section X], we would like to determine the spectral radius $\rho(\mathbf{J}_\mathrm{ex})$ of $\mathbf{J}_\mathrm{ex}$, which is the largest element by absolute value of its (complex) spectrum $\sigma(\mathbf{J}_\mathrm{ex})$. We can create the block structure
 
@@ -305,6 +305,121 @@ The square roots and plusminus signs in {eq:3.u} and {eq:3.v} should be understo
 
 
 **3.2: Runge-Kutta extensions of the TR-BDF2 scheme**
+
+Following [Giraldo et al., 2013], we adopt a three-stage additive Runge-Kutta scheme that integrates the additively decomposed autonomous ODE
+
+$$\tag{eq:3.t}
+    \partial y/\partial t = g(y) + \tilde{f}(y), \qquad g(y) := f(y) - \tilde{f}(y)
+$$
+
+(cf. {eq:3.4a}--{eq:3.4d}) by 
+
+$$\tag{eq:3.tta} %\label{eq:imexark}
+	w_i  =    y^n + h_t \sum\limits_{j=1}^{i-1} a_{ij} g(w_j) \\
+	\hspace{11em} + h_t \sum\limits_{j=1}^{i} \tilde{a}_{ij} \tilde{f}(w_j), \qquad i = 1, \ldots, 3
+$$
+
+$$\tag{eq:3.ttb}
+	y^{n+1} = y^n + h_t \sum\limits_{j=1}^{3} b_{j} \left[g(w_j) + \tilde{f}(w_j) \right]
+$$
+
+Which can be sumarized in the two Butcher tableaus
+
+$$\tag{eq:3.ttt}
+    \begin{array}{c|ccc}
+			  c_1
+			& 0
+			& 0
+			& 0 \\[.7em]
+			  c_2
+			& a_{21}
+			& 0
+			& 0 \\[.7em]
+			  c_3
+			& a_{31}
+			& a_{32}
+			& 0 \\[.7em]\hline\\[-.5em]
+			   
+			& b_1
+			& b_2
+			& b_3
+		\end{array} \qquad \qquad \begin{array}{c|ccc}
+			  c_1
+			& \tilde{a}_{11}
+			& 0
+			& 0 \\[.7em]
+			  c_2
+			& \tilde{a}_{21}
+			& \tilde{a}_{22}
+			& 0 \\[.7em]
+			  c_3
+			& \tilde{a}_{31}
+			& \tilde{a}_{32}
+			& \tilde{a}_{33} \\[.7em]\hline\\[-.5em]
+			   
+			& b_1
+			& b_2
+			& b_3
+		\end{array}.
+$$
+
+in which the fractional steps $c^T h_t = [c_1 h_t, c_2 h_t, c_3 h_t]$ are not explicitly used in the formulation {eq:3.tta}--{eq:3.ttb}, but are implicitly given by
+
+$$\tag{eq:3.tttt}
+    c_i = \sum_{j=1}^{i-1} a_{ij} = \sum_{j=1}^{i} \tilde{a}_{ij}
+$$
+
+Remaining in line with [Giraldo, 2013] we fill the coefficients of the implicit part of the scheme with values from the TR-BDF2 scheme[references], which generates an intermediate stage value at time $t_n + \gamma h_t$ using the trapezoidal scheme, and finishes with an application of the second-order backwards difference formula over the stage values. For $\gamma = 2-\sqrt{2} \approx 0.58...$, a singly diagonally implicit Runge-Kutta (SDIRK) scheme is obtained for the implicit integrator, meaning that any assembled implicit operator can be reused for both stages. We use matrix-free solvers (Section [TODO]), so we merely gain an aesthetic benefit. The resulting Butcher tableau reads
+
+$$\tag{eq:3.ttt}
+    \begin{array}{c|ccc}
+			  0
+			& 0
+			& 0
+			& 0 \\[.7em]
+			  2-\sqrt{2}
+			& 2-\sqrt{2}
+			& 0
+			& 0 \\[.7em]
+			  1
+			& 1 - a_{32}
+			& a_{32}
+			& 0 \\[.7em]\hline\\[-.5em]
+			   
+			&     \tfrac{1}{4}\sqrt{2}
+			&     \tfrac{1}{4}\sqrt{2}
+			& 1 - \tfrac{1}{2}\sqrt{2}
+		\end{array} \qquad \qquad \begin{array}{c|ccc}
+			  0
+			& 0
+			& 0
+			& 0 \\[.7em]
+			  2 -             \sqrt{2}
+			& 1 - \tfrac{1}{2}\sqrt{2}
+			& 1 - \tfrac{1}{2}\sqrt{2}
+			& 0 \\[.7em]
+			  1
+			&     \tfrac{1}{4}\sqrt{2}
+			&     \tfrac{1}{4}\sqrt{2}
+			& 1 - \tfrac{1}{2}\sqrt{2} \\[.7em]\hline\\[-.5em]
+			&     \tfrac{1}{4}\sqrt{2}
+			&     \tfrac{1}{4}\sqrt{2}
+			& 1 - \tfrac{1}{2}\sqrt{2}
+		\end{array}.
+$$
+
+[IMEX TEST EQUATION HERE]
+
+
+
+-----
+-----
+-----
+-----
+**IGNORE BELOW**
+
+When the coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ in {eq:3.13d} are chosen equal to the corresponding coefficients $\tilde{a}_3^\mathrm{T} = [\tilde{a}_{31}, \tilde{a}_{32}, \tilde{a}_{33}]$ in {eq:3.13c}, we obtain a redundant reformulation of the original TR-BDF2 scheme with. The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
+
 
 We base our time integration scheme on the established TR-BDF2 scheme [references] with its explicit extension [Giraldo et al., 2013]. The TR-BDF2 scheme consists of a fractional trapezoidal (TR) step as a first stage, which is then completed with a second-order Backward Difference Formula (BDF2) stage. For an ODE $\partial y/\partial t = f(t, y)$ the scheme can be expressed as
 
