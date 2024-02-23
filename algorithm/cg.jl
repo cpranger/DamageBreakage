@@ -56,7 +56,7 @@ function cg_pc_jacobi!(A::AA, x::X, b::B; h::H, rtol, maxit, minit, quiet = fals
 	assign!(p, 0*p) # temporary loan of p
 	assign!(j, abs <| 1/diag(p, A(p)))
 	(M, m) = 1 ./ minmax(j)
-	Meta.@show (M, m)
+	# Meta.@show (M, m)
 	
 	M⁻¹ = x -> pc_jacobi_apply(x, j)
 	

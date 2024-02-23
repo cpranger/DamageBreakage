@@ -51,19 +51,19 @@ function newtonit!(f, u, r, h; maxit, rtol, quiet = false)
 	assign!(r, f(u))
 	norm0 = norm = l2(r)
 	norm > 10*eps(norm) || return
-	println("Newton i = 0, ||r|| = $norm")
+	quiet || println("Newton i = 0, ||r|| = $norm")
 	
     for i in 1:maxit
 		A = linearize(f, u)
 		
-		(_, _, ε) = cg_pc_jacobi!(A, v, -r; h = h[2:end], rtol = 1e-1, minit = 20, maxit = 100)
+		(_, _, ε) = cg_pc_jacobi!(A, v, -r; h = h[2:end], rtol = 1e-1, minit = 20, maxit = 100, quiet = quiet)
 		
 		newton_update!(u, v, f)
 
 		assign!(r, f(u))
 		rnorm = l2(r) / norm0
 		xnorm = l2(v) / l2(u)
-		println("Newton log10‖r_$(i)‖/‖r_0‖ = $(log10(rnorm)), log10‖Δx_$(i)‖/‖x_$(i+1)‖ = $(log10(xnorm))")
+		quiet || println("Newton log10‖r_$(i)‖/‖r_0‖ = $(log10(rnorm)), log10‖Δx_$(i)‖/‖x_$(i+1)‖ = $(log10(xnorm))")
 		
 		rnorm < rtol && xnorm < rtol && break
 	end

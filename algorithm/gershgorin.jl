@@ -18,7 +18,7 @@ function gershgorin!(A, h) # two vectors needed
 			assign!(d[self],  d[self] - abs(A(x)[self]))
 			assign!(x[other], 0)
 		end
-		Λ[1] = min(Λ[1], min(min.(d)...))
+		Λ[1] = min(Λ[1], min(d[self]))
 
 		assign!(x[self], 1)
 		assign!(d[self], A(x)[self])
@@ -28,7 +28,7 @@ function gershgorin!(A, h) # two vectors needed
 			assign!(d[self],  d[self] + abs(A(x)[self]))
 			assign!(x[other], 0)
 		end
-		Λ[2] = max(Λ[2], max(max.(d)...))
+		Λ[2] = max(Λ[2], max(d[self]))
 	end
 	return Λ
 end

@@ -185,10 +185,11 @@ function damage_isotropic(p, ax; nsteps, duration, rtol, atol = 0)
         f_α_im(      α)
     )
 
-    evo = tr_bdf2_dr(f_ex, f_im, (v0, e0, α0), dt = Ref(.001))
+    evo = tr_bdf2(Intg_DR, (v = v0, e = e0, α = α0), f_ex = f_ex, f_im = f_im)
     
     for k in 1:nsteps
-		(t[k], ε_ex[k], ε_im[k]) = step!(evo; atol = atol, rtol = rtol, newton_maxit = 30, newton_rtol = 1e-5, quiet = false)
+		(ε_ex[k], ε_im[k]) = step!(evo; atol = atol, rtol = rtol, newton_maxit = 30, newton_rtol = 1e-5, quiet = false)
+        t[k] = evo.t[]
         assign!(j1, J1(e0))
         assign!(j2, J2(e0))
         # assign!(j3, J3(e0))

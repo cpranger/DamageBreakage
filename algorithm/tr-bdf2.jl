@@ -15,9 +15,9 @@ struct tr_bdf2{T <: IntgType}
 	w_3
 	e_im
 	e_ex
+	rhs
 	h   #      helper vecs
 	g   # more helper vecs
-	rhs
 	lhs
 	stage_1_rhs
 	stage_2_rhs
@@ -32,8 +32,8 @@ end
 tr_bdf2_data(                  y                              ) = (; y = y, w_1 = deepcopy(y), w_2 = deepcopy(y), w_3 = deepcopy(y), e_im = deepcopy(y), e_ex = deepcopy(y), rhs = deepcopy(y))
 tr_bdf2_data(::Type{Intg_},    y                              ) = (; tr_bdf2_data(y)..., h = [deepcopy(y)    for _ in 1:7],                                                                            g = [])
 tr_bdf2_data(::Type{Intg_SCR}, y::Tuple                       ) = (; tr_bdf2_data(y)..., h = [deepcopy(y[1]) for _ in 1:7],                                                                            g = [deepcopy(y)           for _ in 1:2])
-tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:v, :e, :α)}    ) = (; tr_bdf2_data(y)..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
-tr_bdf2_data(::Type{Intg_DBR}, y::NamedTuple{(:v, :e, :α, :β)}) = (; tr_bdf2_data(y)..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7], β = [deepcopy(y.β) for _ in 1:7]), g = [deepcopy((; e = y.e)) for _ in 1:2])
+tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:v, :e, :α)}    ) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
+tr_bdf2_data(::Type{Intg_DBR}, y::NamedTuple{(:v, :e, :α, :β)}) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7], β = [deepcopy(y.β) for _ in 1:7]), g = [deepcopy((; e = y.e)) for _ in 1:2])
 
 tr_bdf2_funcs(f_im, f_ex, data, dt::FieldVal) = (
 	                             tr_bdf2_lhs(               f_im,                               dt),
@@ -103,7 +103,45 @@ function init!(i::tr_bdf2{Intg_}, func; newton_maxit, newton_rtol, quiet = false
 	newtonit!(func, i.y, i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 end
 
-function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false)
+
+function init_stepsize!(i::tr_bdf2; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = 0)
+	dt = min(1, sqrt(3) / ρ_ex)
+	t  = i.t[]
+	for _ in 1:10
+		i.dt[] = dt
+		(η_ex, η_im) = step!(i,
+			rtol = rtol,
+			atol = atol,
+			newton_maxit = newton_maxit,
+			newton_rtol = newton_rtol,
+			quiet = quiet,
+			ρ_ex = 0
+		)
+		i.t[]  = t
+		assign!(i.y, i.w_1)
+		quiet || println("dt = $dt: η = $((η_ex, η_im))")
+		max(max(η_ex...)-1) < rtol && max(max(η_im...)-1) < rtol && break
+		dt *= min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)))
+	end
+
+	i.dt[] = dt
+	return dt
+end
+
+
+function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = 0, growth = 1.15)
+	
+	i.dt[] == 0. && init_stepsize!(i;
+		rtol = rtol,
+		atol = atol,
+		newton_maxit = newton_maxit,
+		newton_rtol = newton_rtol,
+		quiet = quiet,
+		ρ_ex = ρ_ex
+	)
+
+	i.dt[] = min(i.dt[], sqrt(3) / ρ_ex)
+
 	assign!(i.w_1, i.y)
 
 	quiet || println("TR-BDF2 stage 1:")
@@ -144,7 +182,13 @@ function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, qui
 	η_ex = l2(i.e_ex) / (rtol * l2(i.y) + atol)
 	η_im = l2(i.e_im) / (rtol * l2(i.y) + atol)
 
-	return (i.t[], η_ex, η_im)
+	quiet || println("t = $(i.t[]), dt = $(i.dt[]), η_ex = $η_ex, η_im = $η_im")
+	
+	i.t[] += i.dt[]
+
+    i.dt[] = min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)), growth) * i.dt[]
+
+	return (η_ex, η_im)
 end
 
 
@@ -155,7 +199,19 @@ function init!(i::tr_bdf2{Intg_SCR}, func; newton_maxit, newton_rtol, quiet = fa
 	newtonit!(sc, i.y[1], i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 end
 
-function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false)
+function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = 0, growth = 1.15)
+	
+	i.dt[] == 0. && init_stepsize!(i;
+		rtol = rtol,
+		atol = atol,
+		newton_maxit = newton_maxit,
+		newton_rtol = newton_rtol,
+		quiet = quiet,
+		ρ_ex = ρ_ex
+	)
+
+	i.dt[] = min(i.dt[], sqrt(3) / ρ_ex)
+
 	assign!(i.w_1, i.y)
 
 	quiet || println("TR-BDF2 Schur stage 1:")
@@ -165,14 +221,14 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 		sc = SchurComplement(w -> i.rhs - i.lhs(w), i.w_2[2])
 		newtonit!(sc, i.w_2[1],  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	else
-		assign!(i.w_2, stage_1_rhs)
+		assign!(i.w_2, i.stage_1_rhs)
 	end
 
     quiet || println("TR-BDF2 Schur stage 2:")
     if i.imex.im
 		assign!(i.rhs, i.stage_2_rhs)
 		assign!(i.w_3, i.rhs)
-		sc = SchurComplement(w -> i.rhs - lhs(w), i.w_3[2])
+		sc = SchurComplement(w -> i.rhs - i.lhs(w), i.w_3[2])
 		newtonit!(sc, i.w_3[1],  i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	else
 		assign!(i.w_3, i.stage_2_rhs)
@@ -185,7 +241,7 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 	if i.imex.im
 		assign!(i.rhs,  i.impl_err_rhs)
 		assign!(i.e_im, i.rhs)
-    	sc = SchurComplement(w -> i.rhs - lhs(w), i.e_im[2])
+    	sc = SchurComplement(w -> i.rhs - i.lhs(w), i.e_im[2])
 		newtonit!(sc, i.e_im[1], i.h[1], i.h[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	else
 		assign!(i.e_im, i.impl_err_rhs)
@@ -199,13 +255,27 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
     η_ex = l2(i.e_ex) / (rtol * l2(i.y) + atol)
 	η_im = l2(i.e_im) / (rtol * l2(i.y) + atol)
 
+	quiet || println("t = $(i.t[]), dt = $(i.dt[]), η_ex = $η_ex, η_im = $η_im")
+	
+	i.dt[] = min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)), growth) * i.dt[]
+
 	return (η_ex, η_im)
 end
 
-function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = 0, safety = .95, growth = 1.15)
-	assign!(i.w_1, i.y)
+function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = 0, growth = 1.15)
+	
+	i.dt[] == 0. && init_stepsize!(i;
+		rtol = rtol,
+		atol = atol,
+		newton_maxit = newton_maxit,
+		newton_rtol = newton_rtol,
+		quiet = quiet,
+		ρ_ex = ρ_ex
+	)
 
-	i.dt[] = min(i.dt[], safety * sqrt(3) / ρ_ex)
+	i.dt[] = min(i.dt[], sqrt(3) / ρ_ex)
+
+	assign!(i.w_1, i.y)
 
 	quiet || println("TR-BDF2 DR stage 1:")
 	if i.imex.im
@@ -213,12 +283,12 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 		assign!(i.w_2, i.rhs)
 		
 		quiet || println("elasticity:")
-		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.lhs((v, e, i.y.α),)[1:2], i.w_2.e)
-		newtonit!(elastic, i.w_2.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.lhs((v, e, i.y[3]),)[1:2], i.w_2[2])
+		newtonit!(elastic, i.w_2[1], i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 		
 		quiet || println("damage:")
-		damage  = α -> i.rhs[3] - i.lhs((i.y.v, i.y.e, α),)[3]
-		newtonit!(damage, i.w_2.α, i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+		damage  = α -> i.rhs[3] - i.lhs((i.y[1], i.y[2], α),)[3]
+		newtonit!(damage, i.w_2[3], i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	else
 		assign!(i.w_2, i.stage_1_rhs)
 	end
@@ -229,12 +299,12 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 		assign!(i.w_3, i.rhs)
 		
 		quiet || println("elasticity:")
-		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.lhs((v, e, i.y.α),)[1:2], i.w_3.e)
-		newtonit!(elastic, i.w_3.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.lhs((v, e, i.y[3]),)[1:2], i.w_3[2])
+		newtonit!(elastic, i.w_3[1], i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 		
 		quiet || println("damage:")
-		damage  = α -> i.rhs[3] - i.lhs((i.y.v, i.y.e, α),)[3]
-		newtonit!(damage,  i.w_3.α, i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+		damage  = α -> i.rhs[3] - i.lhs((i.y[1], i.y[2], α),)[3]
+		newtonit!(damage,  i.w_3[3], i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	else
 		assign!(i.w_3, i.stage_2_rhs)
 	end
@@ -248,12 +318,12 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
     	assign!(i.e_im, i.rhs)
     	
 		quiet || println("elasticity:")
-		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.lhs((v, e, i.y.α),)[1:2], i.e_im.e)
-		newtonit!(elastic, i.e_im.v, i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.lhs((v, e, i.y[3]),)[1:2], i.e_im[2])
+		newtonit!(elastic, i.e_im[1], i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 		
 		quiet || println("damage:")
-		damage  = α -> i.rhs[3] - i.lhs((i.y.v, i.y.e, α),)[3]
-		newtonit!(damage,  i.e_im.α, i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
+		damage  = α -> i.rhs[3] - i.lhs((i.y[1], i.y[2], α),)[3]
+		newtonit!(damage,  i.e_im[3], i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	else
 		assign!(i.e_im, i.impl_err_rhs)
 	end
@@ -264,20 +334,30 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 	η_ex = map((e, y) -> l2(e) / (rtol * l2(y) + atol), i.e_ex, i.y)
 	η_im = map((e, y) -> l2(e) / (rtol * l2(y) + atol), i.e_im, i.y)
 	
-	quiet || println("t = $(i.t[]), dt = $(i.dt[]), η_ex = $η_ex, η_im = $η_im")
-	
 	i.t[] += i.dt[]
 
-    i.dt[] = min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)), growth) * i.dt[]
+    quiet || println("t = $(i.t[]), dt = $(i.dt[]), η_ex = $η_ex, η_im = $η_im")
+	
+	i.dt[] = min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)), growth) * i.dt[]
 
-	return (i.t[], η_ex, η_im)
+	return (η_ex, η_im)
 end
 
 
-function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = 0, safety = .95, growth = 1.15)
-	assign!(i.w_1, i.y)
+function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = 0, growth = 1.15)
+	
+	i.dt[] == 0. && init_stepsize!(i;
+		rtol = rtol,
+		atol = atol,
+		newton_maxit = newton_maxit,
+		newton_rtol = newton_rtol,
+		quiet = quiet,
+		ρ_ex = ρ_ex
+	)
 
-	i.dt[] = min(i.dt[], safety * sqrt(3) / ρ_ex)
+	i.dt[] = min(i.dt[], sqrt(3) / ρ_ex)
+
+	assign!(i.w_1, i.y)
 
 	quiet || println("TR-BDF2 DBR stage 1:")
 	if i.imex.im
@@ -348,12 +428,12 @@ function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 	η_ex = map((e, y) -> l2(e) / (rtol * l2(y) + atol), i.e_ex, i.y)
 	η_im = map((e, y) -> l2(e) / (rtol * l2(y) + atol), i.e_im, i.y)
 	
-	quiet || println("t = $(i.t[]), dt = $(i.dt[]), η_ex = $η_ex, η_im = $η_im")
-	
 	i.t[] += i.dt[]
 
-    i.dt[] = min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)), growth) * i.dt[]
+    quiet || println("t = $(i.t[]), dt = $(i.dt[]), η_ex = $η_ex, η_im = $η_im")
+	
+	i.dt[] = min(1/sqrt(max(η_ex...)), 1/cbrt(max(η_im...)), growth) * i.dt[]
 
-	return (i.t[], η_ex, η_im)
+	return (η_ex, η_im)
 end
 
