@@ -8,11 +8,31 @@ Abstract
 We present a numerical scheme for efficiently modeling the rheological evolution of rocks in response to changes in temperature, damage degree, and grain size. The intended range of application includes evolution towards rheological instability and subsequent recovery in lab- or crustal scale domains of up to three spatial dimensions. To this end, elastodynamic effects are modeled as required by the rheological time scale. We achieve these aims at reasonable computational cost through the use of an additive implicit-explicit (IMEX) split Runge-Kutta scheme with error estimation and step size control, in which individual PDE terms are solved implicitly, and coupling terms are solved explicitly. This results in a method in which numerical stability is not limited by spatial resolution.
 
 
+# Table of contents
+- 1: Introduction
+- 2: Problem statement [Merge into 1?]
+- 3: Numerical methods
+	- 3.1: Considerations for time discretization
+	- 3.2: An additive Runge-Kutta method
+	- 3.3: Error estimation and time step control
+	- 3.4: Decomposition of the governing equations
+	- 3.5: Iterative non-linear solution methods
+	- 3.6: Spatial discretization
+- 4: Modeling results
+	- 1D Thermo-elasticity
+	- 1D Nonlinear wave propagation (cf. Zihua)
+	- 2D Thermal runaway + grain size (cf. Thielmann)
+	- 2D Damage + breakage (cf. Ben-Zion)
+- 5: Discussion
+- 6: Conclusion
 
-1:  Introduction
+-----------------------
+
+
+1: Introduction
 ---------------
 
-2: Problem statement (old text; to be revised)
+2: Problem statement
 -----------------
 
 <!-- Let $t \in \mathrm{T}$ denote a coordinate in a half-open interval $\mathrm{T} = [0,l_0) \subset \mathbb{R}$ of time with boundary $\partial \mathrm{T} = \{0\}$, and
@@ -137,9 +157,9 @@ with $U$ a the vector of unknowns $U = [v, e, \alpha, \beta]^T$ and $F$ a (parti
 
 We use the method of lines to separate time and space discretization of these equations. For the sake of simplicity of implementation we favor second-order accurate methods in both cases, which has the advantage that the combined accuracy of space and time discretization is also close to second-order [citation needed].
 
-When discretizing a system of ODEs like {eq:3.2} in time, we typically have a choice between so-called explicit and implicit methods. Explicit methods are algorithmically simple and have a low, constant computational cost per time step, but the step size is limited to some fraction of the characteristic time scale of the fastest-growing perturbations admitted by the ODE. Typically, perturbations grow much faster than the actual solution of the initial value problem, a phenomenon called stiffness [citation needed]. This problem is further exacerbated by PDE components in the right-hand-side of {eq:3.2}. After spatial discretization [Section 3.5], these admit perturbations whose characteristic time scale grows with the grid distance; linearly for hyperbolic PDE components and even quadratically for parabolic PDE components [citation needed].
+When discretizing a system of ODEs like {eq:3.2} in time, we typically have a choice between so-called explicit and implicit methods. Explicit methods are algorithmically simple and have a low, constant computational cost per time step, but the step size is limited to some fraction of the characteristic time scale of the fastest-growing perturbations admitted by the ODE. Typically, perturbations grow much faster than the actual solution of the initial value problem, a phenomenon called stiffness [citation needed]. This problem is further exacerbated by PDE components in the right-hand-side of {eq:3.2}. After spatial discretization [Section 3.6], these admit perturbations whose characteristic time scale grows with the grid distance; linearly for hyperbolic PDE components and even quadratically for parabolic PDE components [citation needed].
 
-Implicit methods on the other hand, do not suffer from time step restrictions when they are A-stable [Section 3.3], but require the solution of a (large) system of simultaneous algebraic equations, which incurs a considerable, non-constant cost per time step [citation needed]. Given a solution method whose algorithmic complexity scales sub-linearly with time step size, implicit schemes can easily outperform explicit schemes whenever the solution is 'slow'[^1] [citation needed]. However, as will become clear by [Section 3.5], our favored class of iterative, matrix-free solvers places various constraints on the properties of the operator $f$ summarized in {eq:3.xyzz}, such as positive (negitive) definiteness or symmetry. The physical processes modeled in {eq:3.1a}--{eq:3.1d} unfortunately do not result in such properties, except in limit cases.
+Implicit methods on the other hand, do not suffer from time step restrictions when they are A-stable [Section 3.3], but require the solution of a (large) system of simultaneous algebraic equations, which incurs a considerable, non-constant cost per time step [citation needed]. Given a solution method whose algorithmic complexity scales sub-linearly with time step size, implicit schemes can easily outperform explicit schemes whenever the solution is 'slow'[^1] [citation needed]. However, as will become clear by [Section 3.6], our favored class of iterative, matrix-free solvers places various constraints on the properties of the operator $f$ summarized in {eq:3.xyzz}, such as positive (negitive) definiteness or symmetry. The physical processes modeled in {eq:3.1a}--{eq:3.1d} unfortunately do not result in such properties, except in limit cases.
 
 One of the major aims of this paper is the resolution of this problem. We propose an additive decomposition of the governing equations {eq:3.1a}--{eq:3.1d}, in which some of the PDE terms can be decoupled and solved with an implicit method in a routine way, and the remainder with an explicit method using an additive Runge-Kutta (ARK) scheme. We derive subsequently the properties of this time integration scheme, and show that the resulting time step constraints are independent of the spatial resolution, despite the fact that not all of the PDE components are treated implicitly. Finally, we embed into this scheme an error estimator and propose time step controls to keep the discretization error bounded.
 
@@ -148,249 +168,198 @@ One of the major aims of this paper is the resolution of this problem. We propos
 
 **3.2: An additive Runge-Kutta method**
 
-We first consider the additive decomposition and time integration of the generic system {eq:3.2}, and subsequently propose in [Section 3.3] a suitable decomposition of the governing equations {eq:3.1a}--{eq:3.1d}. In this section we follow the work of [Giraldo et al., 2013], who applied the method to atmospheric flow. We symbolically write the additive decomposition of {eq:3.2} into explicitly and implicitly solved terms as
+We first consider the additive decomposition and time integration of the generic system {eq:3.2}, and subsequently propose in [Section 3.4] a suitable decomposition of the governing equations {eq:3.1a}--{eq:3.1d}. In this section we follow the work of [Giraldo et al., 2013], who applied the method to atmospheric flow. We symbolically write the additive decomposition of {eq:3.2} into explicitly and implicitly solved terms as
 
 $$\tag{eq:3.3}
-	\partial_t U = F(U; t) = I(U; t) + E(U; t),
+	\partial_t U = F(U; t) = F^\mathrm{im}(U; t) + F^\mathrm{ex}(U; t),
 $$
 
-in which $I(U; t)$ contains the terms to be integrated implicitly, and $E(U; t)$ the terms to be integrated explicitly.
+in which $F^\mathrm{im}(U; t)$ contains the terms to be integrated implicitly, and $F^\mathrm{ex}(U; t)$ the terms to be integrated explicitly.
 
-In line with [Giraldo et al., 2013], we adopt the additive Runge-Kutta scheme
+We adopt the additive Runge-Kutta scheme
 
 <!-- $$\tag{eq:3.tta}
-	w_i  =    u^n + h_t \sum\limits_{j=1}^{i-1} a_{ij} g(w_j) \\
-	\hspace{11em} + h_t \sum\limits_{j=1}^{i} \tilde{a}_{ij} \tilde{g}(w_j), \qquad i = 1, \ldots, 3
+	w_i  =    u^n + \tau \sum\limits_{j=1}^{i-1} a_{ij} g(w_j) \\
+	\hspace{11em} + \tau \sum\limits_{j=1}^{i} \tilde{a}_{ij} \tilde{g}(w_j), \qquad i = 1, \ldots, 3
 $$ -->
 
 $$\tag{eq:3.4a}
-	\bar{T} = t^n \bar{\mathrm{1}} + h_t \bar{C},
+	\bar{T} = t^n \bar{\mathrm{1}} + \tau\, \bar{C},
 $$
 
 $$\tag{eq:3.4b}
-	\bar{W} = U^n \bar{\mathrm{1}} + h_t \left[\bar{A}^\mathrm{im} \bar{I}(\bar{W}; \bar{T}) + \bar{A}^\mathrm{ex} \bar{E}(\bar{W}; \bar{T})\right],
+	\bar{W} = U^n \bar{\mathrm{1}} + \tau \left[\bar{\mathbf{A}}^\mathrm{im} \bar{F}^\mathrm{im}(\bar{W}; \bar{T}) + \bar{\mathbf{A}}^\mathrm{ex} \bar{F}^\mathrm{ex}(\bar{W}; \bar{T})\right],
 $$
 
 $$\tag{eq:3.4c}
-	U^{n+1} = U^n + h_t\, \bar{B} \cdot \left[\bar{I}(\bar{W}; \bar{T}) + \bar{E}(\bar{W}; \bar{T}) \right],
+	U^{n+1} = U^n + \tau\, \bar{B}^\mathrm{T} \left[\bar{F}^\mathrm{im}(\bar{W}; \bar{T}) + \bar{F}^\mathrm{ex}(\bar{W}; \bar{T}) \right],
 $$
 
+in which $n$ denotes the step index, $\tau$ the step size, $t^n = t$, $t^{n+1} = t + \tau$, and $U^n = U(t)$, $U^{n+1} = U(t + \tau)$. The barred symbols denote vectors and square matrices of size $m$, the number of stages in the Runge-Kutta scheme. We use $m = 3$ stages to generate a method that is of second-order accuracy. The intermediate stage values of the solution $U$ are stored in $\bar{W}$, the intermediate stage values of time are stored in $\bar{T}$. The symbol $\bar{1}$ denotes a vector of ones, so that e.g. $t^n \bar{1} = [t^n, t^n, t^n]^\mathrm{T}$. $\bar{\mathbf{A}}^\mathrm{im,ex}$, $\bar{B}$ and $\bar{C}$ denotes coefficient matrices and vectors, subject to the condition that
 
+$$\tag{eq:3.5}
+	\bar{C} = \bar{\mathbf{A}}^\mathrm{im}\bar{1} = \bar{\mathbf{A}}^\mathrm{ex} \bar{1}.
+$$
 
+Finally, the notation $\bar{F}^\mathrm{im,ex}(\bar{W}; \bar{T})$ must be understood to mean
 
+$$
+	\bar{F}^\mathrm{im,ex}(\bar{W}; \bar{T}) = \left[F^\mathrm{im,ex}(W_1; T_1),\; F^\mathrm{im,ex}(W_2; T_2),\; F^\mathrm{im,ex}(W_3; T_3)\right]^\mathrm{T}.
+$$
 
+Equation {eq:3.4b} defines a system of equations in $m$ unknowns, which can be solved sequentially if the coefficient matrices $\bar{\mathbf{A}}^\mathrm{im,ex}$ are lower diagonal. In this case the scheme is said to be _diagonally implicit_. The function $F^\mathrm{ex}$ is only treated explicitly when the coefficient matrix $\bar{\mathbf{A}}^\mathrm{ex}$ is _strictly_ lower diagonal.
 
-Which can be sumarized in the two Butcher tableaus
+We populate $\bar{\mathbf{A}}^\mathrm{im}$ and $\bar{B}$ with coefficients from the TR-BDF2 time integration scheme [CITE, Giraldo 2013], which can be written as an explicit first stage $W_1 = U^{n}$ at $T_1 = t^n$, a second stage at $T_2 = t^n + c_2 \tau$ that is generated by the trapezoidal rule $W_2 = U^{n} + (c_2/2) F^\mathrm{im}(W_1; T_1) + (c_2/2) F^\mathrm{im}(W_2; T_2))$, and a final stage at $T_3 = t^n + \tau$ given by the second-order backwards difference formula (BDF2). The TR-BDF2 scheme would be finished at $U^{n+1} = W_3$, but we re-use the last stage to adhere to the Runge-Kutta template by setting $\bar{B}$ equal to the last row of $\bar{\mathbf{A}}^\mathrm{im}$, i.e. $\bar{B} = \bar{\mathbf{A}}^\mathrm{im} [0, 0, 1]^\mathrm{T}$.
 
-$$\tag{eq:3.ttt}
+[TODO: Laudable properties of TR-BDF2].
+
+The resulting in the Butcher tableau [CITE] is given by
+
+$$\tag{eq:3.6a}
     \begin{array}{c|ccc}
-			  c_1
-			&  
-			&  
-			&   \\[.7em]
-			  c_2
-			& a_{21}
-			&  
-			&   \\[.7em]
-			  c_3
-			& a_{31}
-			& a_{32}
-			&   \\[.7em]\hline\\[-.5em]
-			   
-			& b_1
-			& b_2
-			& b_3
-		\end{array} \qquad \qquad \begin{array}{c|ccc}
-			  c_1
-			& \tilde{a}_{11}
-			&  
-			&   \\[.7em]
-			  c_2
-			& \tilde{a}_{21}
-			& \tilde{a}_{22}
-			&   \\[.7em]
-			  c_3
-			& \tilde{a}_{31}
-			& \tilde{a}_{32}
-			& \tilde{a}_{33} \\[.7em]\hline\\[-.5em]
-			   
-			& b_1
-			& b_2
-			& b_3
-		\end{array}.
-$$
-
-in which the fractional steps $c^T h_t = [c_1 h_t, c_2 h_t, c_3 h_t]$ are not explicitly used in the formulation {eq:3.tta}--{eq:3.ttb}, but are implicitly given by
-
-$$\tag{eq:3.tttt}
-    c_i = \sum_{j=1}^{i-1} a_{ij} = \sum_{j=1}^{i} \tilde{a}_{ij}
-$$
-
-Remaining in line with [Giraldo, 2013] we fill the coefficients of the implicit part of the scheme with values from the TR-BDF2 scheme[references], which generates an intermediate stage value at time $t_n + \gamma h_t$ using the trapezoidal scheme, and finishes with an application of the second-order backwards difference formula over the stage values. For $\gamma = 2-\sqrt{2} \approx 0.58...$, a singly diagonally implicit Runge-Kutta (SDIRK) scheme is obtained for the implicit integrator, meaning that any assembled implicit operator can be reused for both stages. We use matrix-free solvers (Section [TODO]), so we merely gain an aesthetic benefit. The resulting Butcher tableau reads
-
-$$\tag{eq:3.uu}
-    \begin{array}{c|ccc}
-			  0
-			& 
-			& 
-			&   \\[.7em]
-			  2-\sqrt{2}
-			& 2-\sqrt{2}
-			&  
-			&   \\[.7em]
-			  1
-			& 1 - a_{32}
-			& a_{32}
-			&   \\[.7em]\hline\\[-.5em]
-			   
-			&     \tfrac{1}{4}\sqrt{2}
-			&     \tfrac{1}{4}\sqrt{2}
-			& 1 - \tfrac{1}{2}\sqrt{2}
-		\end{array} \qquad \begin{array}{c|ccc}
+			  \bar{C}
+			& \bar{\mathbf{A}}^\mathrm{im} \\[.7em] \hline\\[-.5em]
+			& \bar{B}^\mathrm{T}
+		\end{array} \quad = \quad \begin{array}{c|ccc}
 			  0
 			&  
 			&  
 			&   \\[.7em]
-			  2 -             \sqrt{2}
-			& 1 - \tfrac{1}{2}\sqrt{2}
-			& 1 - \tfrac{1}{2}\sqrt{2}
+			  c_2
+			& \frac{1}{2}c_2
+			& \frac{1}{2}c_2
 			&   \\[.7em]
 			  1
-			&     \tfrac{1}{4}\sqrt{2}
-			&     \tfrac{1}{4}\sqrt{2}
-			& 1 - \tfrac{1}{2}\sqrt{2} \\[.7em]\hline\\[-.5em]
-			&     \tfrac{1}{4}\sqrt{2}
-			&     \tfrac{1}{4}\sqrt{2}
-			& 1 - \tfrac{1}{2}\sqrt{2}
+			& \frac{1}{2}(2-c_2)^{-1}
+			& \frac{1}{2}(2-c_2)^{-1}
+			& (1-c_2)(2-c_2)^{-1} \\[.7em]\hline\\[-.5em]
+			& \frac{1}{2}(2-c_2)^{-1}
+			& \frac{1}{2}(2-c_2)^{-1}
+			& (1-c_2)(2-c_2)^{-1}
 		\end{array}.
 $$
 
-[IMEX TEST EQUATION HERE]
+Constrained by {eq:3.5} and the condition that $\bar{\mathbf{A}}^\mathrm{ex}$ must be strictly lower triangular, the Butcher tableau for the explicit Runge-Kutta scheme reads
 
-
-
------
------
------
------
-**IGNORE BELOW**
-
-When the coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ in {eq:3.13d} are chosen equal to the corresponding coefficients $\tilde{a}_3^\mathrm{T} = [\tilde{a}_{31}, \tilde{a}_{32}, \tilde{a}_{33}]$ in {eq:3.13c}, we obtain a redundant reformulation of the original TR-BDF2 scheme with. The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
-
-
-We base our time integration scheme on the established TR-BDF2 scheme [references] with its explicit extension [Giraldo et al., 2013]. The TR-BDF2 scheme consists of a fractional trapezoidal (TR) step as a first stage, which is then completed with a second-order Backward Difference Formula (BDF2) stage. For an ODE $\partial y/\partial t = f(t, y)$ the scheme can be expressed as
-
-$$\tag{eq:3.9a}
-	y_{n+\gamma} - \left(\frac{\gamma}{2}\right) h_t f(t_n + \gamma h_t, y_{n+\gamma}) = y_n + \left(\frac{\gamma}{2}\right) h_t f(t_n, y_n),
+$$\tag{eq:3.6b}
+    \begin{array}{c|ccc}
+			  \bar{C}
+			& \bar{\mathbf{A}}^\mathrm{ex} \\[.7em] \hline\\[-.5em]
+			& \bar{B}^\mathrm{T}
+		\end{array} \quad = \quad \begin{array}{c|ccc}
+			  0
+			&  
+			&  
+			&   \\[.7em]
+			  c_2
+			& c_2
+			& 
+			&   \\[.7em]
+			  1
+			& 1-a^{ex}_{32}
+			& a^{ex}_{32}
+			& \\[.7em]\hline\\[-.5em]
+			& \frac{1}{2}(2-c_2)^{-1}
+			& \frac{1}{2}(2-c_2)^{-1}
+			& (1-c_2)(2-c_2)^{-1}
+		\end{array}.
 $$
 
-$$\tag{eq:3.9b}
-	y_{n+1} - \left(\frac{1-\gamma}{2-\gamma}\right) h_t f(t_n + h_t, y_{n+1}) = \left(\frac{1}{\gamma(2-\gamma)}\right) y_{n+\gamma} + \left(1 - \frac{1}{\gamma(2-\gamma)}\right) y_n.
+We thus have two parameters, $c_2$ and $a^{ex}_{32}$, that can be tuned to some advantage.
+
+We analyze the behavior of the scheme {eq:3.4a--c}, {eq:3.6a}, {eq:3.6b} using Dahlquist's problem [Dahlquist, 1963], which we adapt to our additive IMEX problem as follows:
+
+$$\tag{eq:3.7}
+	\tau\, \partial_t U = \zeta U = \zeta^\mathrm{im} U + \zeta^\mathrm{ex} U.
 $$
 
-Here, $h_t$ is the time step size, and $\gamma \in (0,1]$ is the fraction of the time step over which the first trapezoidal stage is computed, with a choice of $\gamma = 1$ representing a purely trapezoidal end member.
-For a test equation $\partial y/\partial t = \lambda y$, $\lambda \in \mathbb{C}$, the TR-BDF2 scheme has the direct form
+Here, $\zeta^\mathrm{im}/\tau$ and $\zeta^\mathrm{ex}/tau$ can be interpreted as eigenvalues of the linearization of $F^\mathrm{im}(U; t)$ and $F^\mathrm{ex}(U; t)$ with respect to $U$. We substitute {eq:3.7} into {eq:3.4a--c} to obtain
 
-$$\tag{eq:3.10a} %\label{eq:trbdf2poly0}
-	P_\mathrm{im}(h_t \lambda) y_{n+1} = P_\mathrm{im,2}(h_t \lambda) P_\mathrm{im,1}(h_t \lambda) y_{n+1} = P_\mathrm{ex}(h_t \lambda) y_n,
+$$\tag{eq:3.8a}
+	\bar{W} = U^n \bar{\mathrm{1}} + \left[\zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} + \zeta^\mathrm{ex}\bar{\mathbf{A}}^\mathrm{ex} \right] \bar{W},
 $$
 
-<!--$$
-	\left(1 - \left(\frac{\gamma}{2}\right) h_t \lambda \right) \left(1 - \left(\frac{1-\gamma}{2-\gamma}\right) h_t \lambda \right) y_{n+1} &= \left(\frac{1}{\gamma(2-\gamma)}\right) \left(1 + \left(\frac{\gamma}{2}\right) h_t \lambda \right) y_n + \left(1 - \frac{1}{\gamma(2-\gamma)} \right) \left(1 - \left(\frac{\gamma}{2}\right) h_t \lambda \right) y_n.
-$$-->
+$$\tag{eq:3.8b}
+	U^{n+1} = U^n + \zeta\, \bar{B}^\mathrm{T} \bar{W},
+$$
+
+Next, we invert {eq:3.8a} for $\bar{W}$ and substitute the result into {eq:3.8b};
+
+$$\tag{eq:3.9}
+	U^{n+1} = \left(1 + \zeta\, \bar{B}^\mathrm{T} \left[ \bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right]^{-1} \bar{\mathrm{1}} \right)U^n.
+$$
+
+By using $\mathrm{det}\left(\mathbf{M}\right) \mathbf{M}^{-1} = \mathrm{adj}\left(\mathbf{M}\right)$ for any invertible matrix $\mathbf{M}$, {eq:3.9} is concisely stated as
+
+$$\tag{eq:3.10a}
+	P^\mathrm{im}(\zeta^\mathrm{im}) U^{n+1} = P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n,
+$$
+
+in which the (bivariate) polynomials $P^\mathrm{im}(\zeta^\mathrm{im})$ and $P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ can be expressed as
 
 $$\tag{eq:3.10b}
-	P_\mathrm{im,1}(z) = \left(1 - \left(\frac{\gamma}{2}\right) z \right),
+	P^\mathrm{im}(\zeta^\mathrm{im}) = \mathrm{det}\; \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right] = \prod \left[\bar{1} - \zeta^\mathrm{im} \mathrm{diag}( \bar{\mathbf{A}}^\mathrm{im})\right],
 $$
 
 $$\tag{eq:3.10c}
-	P_\mathrm{im,2}(z) = \left(1 - \left(\frac{1-\gamma}{2-\gamma}\right) z \right),
+	P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = P^\mathrm{im}(\zeta^\mathrm{im}) + \zeta\, \bar{B}^\mathrm{T} \left(\mathrm{adj}\; \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right] \right) \bar{\mathrm{1}}.
 $$
 
-$$\tag{eq:3.10d}
-	P_\mathrm{im}(z) = P_\mathrm{im,2}(z) P_\mathrm{im,1}(z) = 1 + \left( \frac{\gamma^2-2}{4-2\gamma} \right) z + \left( \frac{\gamma-\gamma^2}{4-2\gamma} \right) z^2,
+The second equality in {eq:3.10b} is due to the determinant of any lower-triangular matrix being equal to the product of its diagonal.
+$P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ is a bivariate polynomial in $\zeta^\mathrm{im}$ and $\zeta^\mathrm{ex}$ in part because an adjugate is ultimately an entry-wise polynomial in its argument.
+
+Suppose the 'true' solution $\tilde{U}$ to test problem {eq:3.7} evolves as $\tilde{U}^{n+1} = \tilde{U}^{n} \exp{\zeta}$. This can be expanded using a Taylor series around the origin, giving
+
+$$\tag{eq:3.11a}
+	\tilde{U}^{n+1} = Q(\zeta) \tilde{U}^{n},
 $$
 
-$$\tag{eq:3.10e}
-	P_\mathrm{ex}(z) = 1 + \left( \frac{1}{2-\gamma}-\frac{\gamma}{2}\right) z.
+with
+
+$$\tag{eq:3.11b}
+	Q(\zeta) = \left( 1 + \zeta + \tfrac{1}{2} \zeta^2 + \tfrac{1}{6} \zeta^3 + \mathcal{O}(\zeta^4) \right).
 $$
 
-We can see that the scheme is L-stable as long as $\gamma \neq 1$, since then the polynomial order of $P_\mathrm{im} > P_\mathrm{ex}$ and thus $\lim\limits_{h_t \lambda \to\pm\infty} P_\mathrm{ex}(h_t \lambda)/P_\mathrm{im}(h_t \lambda) = 0$ (i.e. for negative $\lambda$, the solution $y$ has a steady state on which it converges as the step size increases).
+We can now combine {eq:3.11a,b} and {eq:3.10c} and write for the integration error $\tilde{\varepsilon}^{n+1} = U^{n+1} - \tilde{U}^{n+1}$:
 
-Plugging in the analytical solution $y_n = 1$, $y_{n+1} = \exp{h_t \lambda}$ and substituting the latter with its Taylor series approximation around $h_t \lambda = 0$, we obtain
-
-$$\tag{eq:3.11}
-	P_\mathrm{im}(h_t \lambda) \left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \mathcal{O}(h_t^3) \right) - P_\mathrm{ex}(h_t \lambda) = \mathcal{O}(h_t^3),
+$$\tag{eq:3.12}
+	P^\mathrm{im}(\zeta^\mathrm{im}) \tilde{\varepsilon}^{n+1} = \left[P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta) \right] U^{n} + P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta)\tilde{\varepsilon}^{n}.
 $$
 
-which proves the second-order consistency of the combined scheme.
+The polynomial $P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta)$ evaluates to
 
-The free parameter $\gamma$ is chosen such that for the system of ODEs $\partial y / \partial t = J y$, the operators $P_\mathrm{im,2}(h_t J)$ and $P_\mathrm{im,1}(h_t J)$ are the same and are assembled only once per time step[^1]. Thus,
+$$\tag{eq:3.13}
+	P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta) = (3 c_2^2 - 4 c_2 + 2) \mathcal{O}\left(\zeta_\mathrm{im}^3\right) \\[.8em]
+	+ \left(2 a^\mathrm{ex}_{32}-1\right) \mathcal{O}\left(\zeta_{\text{ex}} \zeta_\mathrm{im}^2\right) \\[.8em]
+	+ \left((8 a^\mathrm{ex}_{32} - 1) c_2^2 - 8 a^\mathrm{ex}_{32} c_2 + 2 \right)\mathcal{O}\left(\zeta_\mathrm{ex}^2 \zeta_\mathrm{im}\right) \\[.8em]
+	+ \left(6a^\mathrm{ex}_{32}c_2^2 - (1 + 6a^\mathrm{ex}_{32})c_2 + 2\right) \mathcal{O}\left(\zeta_\mathrm{ex}^3\right)
+$$
+
+We can now use the free coefficients $c_2$ and $a^{ex}_{32}$ to eliminate lower-order contributions to the integration error $\tilde{\varepsilon}^{n+1}$. We find that all four terms are eliminated by the complex solution $c_2 = \frac{1}{3} (2 \pm i \sqrt{2})$, $a^\mathrm{ex}_{32} = \frac{1}{2}$.
+
+[COOL!]
+
+[TODO: Finish!]
+
+<!--
+- three-stage Butcher-Chen method [Butcher and Chen, 2000]
+- In line with [Giraldo et al., 2013], w
+- For $\gamma = 2-\sqrt{2} \approx 0.58...$, a singly diagonally implicit Runge-Kutta (SDIRK) scheme is obtained for the implicit integrator, meaning that any assembled implicit operator can be reused for both stages. We use matrix-free solvers (Section [TODO]), so we merely gain an aesthetic benefit.
+- When the coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ in {eq:3.13d} are chosen equal to the corresponding coefficients $\tilde{a}_3^\mathrm{T} = [\tilde{a}_{31}, \tilde{a}_{32}, \tilde{a}_{33}]$ in {eq:3.13c}, we obtain a redundant reformulation of the original TR-BDF2 scheme with. The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
+- We can see that the scheme is L-stable as long as $\gamma \neq 1$, since then the polynomial order of $P_\mathrm{im} > P_\mathrm{ex}$ and thus $\lim\limits_{h_t \lambda \to\pm\infty} P_\mathrm{ex}(h_t \lambda)/P_\mathrm{im}(h_t \lambda) = 0$ (i.e. for negative $\lambda$, the solution $y$ has a steady state on which it converges as the step size increases).
+- The free parameter $\gamma$ is chosen such that for the system of ODEs $\partial y / \partial t = J y$, the operators $P_\mathrm{im,2}(h_t J)$ and $P_\mathrm{im,1}(h_t J)$ are the same and are assembled only once per time step[^1]. Thus,
 $$\tag{eq:3.12}
 	\frac{\gamma}{2} = \frac{1-\gamma}{2-\gamma} \implies \gamma = 2 \pm \sqrt{2}.
 $$
 The solution with minus sign, $2 - \sqrt{2} \approx 0.586$ not only lies in the desired interval $(0,1]$, but also yields a much lower coefficient of the $\mathcal{O}(h_t^3)$ truncation error ($\sim 0.04$ vs. $\sim 1.4$) and is therefore selected.
+- We implement matrix-free algorithms and so the assembly cost is no issue for us.
+-->
 
-[^1]: We implement matrix-free algorithms and so the assembly cost is no issue for us.
+**3.3: Error estimation and time step control**
 
-We continue the analysis of the TR-BDF2 scheme in the framework of a three-stage diagonally implicit Runge-Kutta method, which is written for the autonomous ODE $\partial y/\partial t = f(y)$ as
+[IGNORE BELOW, TO BE REORGANIZED!]
+The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
 
-$$\tag{eq:3.13a}
-	w_1 = y_n + h_t \left[ \tilde{a}_{11} f(w_1) \right], \phantom{+ \tilde{a}_{12} f(w_2) + \tilde{a}_{13} f(w_3)}
-$$
-$$\tag{eq:3.13b}
-	w_2 = y_n + h_t \left[ \tilde{a}_{21} f(w_1) + \tilde{a}_{22} f(w_2) \right], \phantom{+ \tilde{a}_{23} f(w_3)}
-$$
-$$\tag{eq:3.13c}
-	w_3 = y_n + h_t \left[ \tilde{a}_{31} f(w_1) + \tilde{a}_{32} f(w_2) + \tilde{a}_{33} f(w_3) \right],
-$$
-$$\tag{eq:3.13d}
-	y^\ast_{n+1} = y_n + h_t \left[ b_1 f(w_1) + b_2 f(w_2) + b_3 f(w_3) \right],
-$$
-
-and which is summarized by its Butcher tableau
-
-$$
-    \begin{array}{c|ccc}
-			  c_1
-			& \tilde{a}_{11}
-			& 0
-			& 0 \\[.7em]
-			  c_2
-			& \tilde{a}_{21}
-			& \tilde{a}_{22}
-			& 0 \\[.7em]
-			  c_3
-			& \tilde{a}_{31}
-			& \tilde{a}_{32}
-			& \tilde{a}_{33} \\[.7em]\hline\\[-.5em]
-			   
-			& b_1
-			& b_2
-			& b_3
-		\end{array}
-$$
-
-with coefficients $\tilde{a}$ given by
-
-When the coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ in {eq:3.13d} are chosen equal to the corresponding coefficients $\tilde{a}_3^\mathrm{T} = [\tilde{a}_{31}, \tilde{a}_{32}, \tilde{a}_{33}]$ in {eq:3.13c}, we obtain a redundant reformulation of the original TR-BDF2 scheme with. The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
-
-<!-- The first and last assignments are redundant, and the corresponding fields $w_1$ and $w_3$ do not need to be stored. We can however make use of the structure of {eq:3.13} to create the derived method
-
-$$\tag{eq:3.14a}
-	w_1 = y_n,
-$$
-$$\tag{eq:3.14b}
-	w_2 = y_n + h_t\left[ \left(1-\frac{1}{\sqrt{2}}\right) f(w_1) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_2) \right],
-$$
-$$\tag{eq:3.14c}
-	w_3 = y_n + h_t \left[ \left(\frac{1}{2\sqrt{2}}\right) f(w_1) + \left(\frac{1}{2\sqrt{2}}\right) f(w_2) + \left(1-\frac{1}{\sqrt{2}}\right) f(w_3) \right],
-$$
-$$\tag{eq:3.14d}
-	y^\ast_{n+1} = y_n + h_t \left[ b_1 f(w_1) + b_2 f(w_2) + b_3 f(w_3) \right],
-$$
-
-with coefficients $b^\mathrm{T} = [b_1, b_2, b_3]$, $\lVert b \rVert_1 = b_1 + b_2 + b_3 = 1$ that are to be chosen to yield a method that eliminates  -->
 
 $$\tag{eq:3.15}
 	P^\ast_\mathrm{im}(h_t \lambda) \left(1 + h_t \lambda + \frac{1}{2}(h_t \lambda)^2 + \frac{1}{6}(h_t \lambda)^3 + \mathcal{O}(h_t^4) \right) - P^\ast_\mathrm{ex}(h_t \lambda) = \\[1em]
@@ -450,58 +419,6 @@ $$
 
 Since the circular region intersects the imaginary axis at critical stability and passes close by the three complex zeroes of the stability polynomial, this choice gives both excellent conservation properties of the purely hyperbolic components, and excellent damping properties of the stiff dissipative components. We will refine the issue of time step selection in Section 3.4.
 
-**3.3: TR-BDF2 in an Additive Runge-Kutta IMEX Scheme**
-
-An idea first developed in [Giraldo, 2013], the additive IMEX split system {eq:3.4a}--{eq:3.4d} can be solved by a second-order Additive Runge-Kutta (ARK) discretization [references -- Giraldo2013 and references 1, 21, 26 therein], in which the third-order explicit scheme {eq:3.18} is used for the explicit terms, the second-order, L-stable implicit scheme \ref{eq:3.13} is used for the implicit terms, the third-order truncation error of the implicitly solved terms is estimated using {eq:3.18}, {eq:3.16}, and {eq:3.17}, and the second-order truncation error of the explicitly solved terms estimated using {[TODO]}.
-
-The resulting Additive Runge-Kutta method is written as
-
-$$\tag{eq:3.21a} %\label{eq:imexark}
-	w_i = y^n + h_t \sum\limits_{j=1}^{i-1} a_{ij} \left[ F(w_j) - \tilde{F}(w_j) \right] \\
-	          + h_t \sum\limits_{j=1}^{i} \tilde{a}_{ij} \tilde{F}(w_j), \qquad i = 1, \ldots, s
-$$
-
-$$\tag{eq:3.21b}
-	y^{n+1} = y^n + h_t \sum\limits_{j=1}^{s} b_{j} F(w_j)
-$$
-
-$$\tag{eq:3.21c} %\label{eq:imexarkc}
-	(\mathbf{I} - \tilde{b}_{s} h_t \mathbf{J}_\mathrm{im}) \epsilon^{n+1} = h_t \sum\limits_{j=1}^{s} (b^\ast_{j} - b_{j}) \tilde{F}(w_j),
-$$
-
-with $y^n = [ \vec{v}(t_n), \mathbf{e}(t_n), \alpha(t_n), \beta(t_n) ]^\mathrm{T}$, $F = [ F_\mathrm{v}, F_\mathrm{e}, F_\mathrm{a}, F_\mathrm{b} ]^\mathrm{T}$, $\tilde{F} = [ \tilde{F}_\mathrm{v}, \tilde{F}_\mathrm{e}, \tilde{F}_\mathrm{a}, \tilde{F}_\mathrm{b} ]^\mathrm{T}$, and coefficients $a$, $\tilde{a}$, $b$, $b^\ast$ given, based on the values derived in Section 3.2, by
-
-$$\tag{eq:3.22a} %\label{eq:coeff}
-	a = \begin{bmatrix}
-		0                   & 0                & 0              \\[.7em]
-		2-\sqrt{2}          & 0                & 0              \\[.7em]
-		\frac{1}{2} - \frac{1}{3}\sqrt{2}  & \tfrac{1}{2} + \frac{1}{3}\sqrt{2} & 0              
-	\end{bmatrix}
-$$
-
-$$\tag{eq:3.22a}
-	\tilde{a} = \begin{bmatrix}
-		0                   & 0                & 0              \\[.7em]
-		1 - \frac{1}{2}\sqrt{2}      & 1 - \frac{1}{2}\sqrt{2}   & 0              \\[.7em]
-		\frac{1}{4}\sqrt{2}          & \frac{1}{4}\sqrt{2}       & 1 - \frac{1}{2}\sqrt{2} 
-	\end{bmatrix}
-$$
-
-$$\tag{eq:3.22c}
-	b = \left[
-		\tfrac{1}{4}\sqrt{2},\;\; \tfrac{1}{4}\sqrt{2},\;\; 1 - \tfrac{1}{2}\sqrt{2}
-	\right]^\mathrm{T}
-$$
-
-$$\tag{eq:3.22d}
-	b^\ast = \left[
-		\tfrac{1}{3} - \tfrac{1}{12}\sqrt{2},\;\; \tfrac{1}{3} + \tfrac{1}{4} \sqrt{2},\;\; \tfrac{1}{3} - \tfrac{1}{6} \sqrt{2}
-	\right]^\mathrm{T}
-$$
-
-The overall truncation error of this ARK scheme is $\mathcal{O}(h_t^3)$ (it is thus accurate/consistent to second order), but the error measure $\epsilon_{n+1}$ only estimates the truncation error associated with the implicit components, since the explicit scheme already has the maximal third-order accuracy that can be expected of an explicit three-stage RK method. We do not however see this as a major drawback since the explicitly solved subsystem can be expected to be highly stiff, with the time step chosen by {eq:3.20} sufficiently affected by the unphysical peripheral components of the spectrum that it causes the physical components to be exceedingly accurately solved. Since the implicitly solved PDE components are not subject to a stability barrier, the same argument does not extend to them and their error must be monitored, and the time step further reduced if necessary.
-
-**3.4: Error Control**
 
 Inspired by the multi-rate extension of TR-BDF2 of [Bonaventura et al., 2018], we design the following much simplified mechanism for controlling the error on the implicitly solved components of {eq:3.4}. We estimate the implicit error using {eq:3.21c}. Then, given the absolute and relative tolerances $\tau_\mathrm{a}$ and $\tau_\mathrm{r}$, we compute the dimensionless error measure
 
@@ -531,9 +448,21 @@ At each stage of time step refinement the initial guess of the new solution may 
 
 [It might actually be possible to save some refinements by solving a constraint optimization problem using the cubic Hermite interpolation of the solution over the time step, optimizing the non-dimensional error measure $\eta$ subject to the constraint $\eta \geq \nu$.]
 
+<!--
+$$\tag{eq:3.21c} %\label{eq:imexarkc}
+	(\mathbf{I} - \tilde{b}_{s} h_t \mathbf{J}_\mathrm{im}) \epsilon^{n+1} = h_t \sum\limits_{j=1}^{s} (b^\ast_{j} - b_{j}) \tilde{F}(w_j),
+$$
 
 
-**3.4: Decomposition of the governing equations**
+$$\tag{eq:3.22d}
+	b^\ast = \left[
+		\tfrac{1}{3} - \tfrac{1}{12}\sqrt{2},\;\; \tfrac{1}{3} + \tfrac{1}{4} \sqrt{2},\;\; \tfrac{1}{3} - \tfrac{1}{6} \sqrt{2}
+	\right]^\mathrm{T}
+$$
+ -->
+
+
+**3.5: Decomposition of the governing equations**
 
 We also consider an approximation to this system:
 
