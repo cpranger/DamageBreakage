@@ -14,10 +14,11 @@ We present a numerical scheme for efficiently modeling the rheological evolution
 - 3: Numerical methods
 	- 3.1: Considerations for time discretization
 	- 3.2: An additive Runge-Kutta method
-	- 3.3: Error estimation and time step control
-	- 3.4: Decomposition of the governing equations
-	- 3.5: Iterative non-linear solution methods
-	- 3.6: Spatial discretization
+	- 3.3 Stability and Accuracy
+	- 3.4: Error estimation and time step control
+	- 3.5: Decomposition of the governing equations
+	- 3.6: Iterative non-linear solution methods
+	- 3.7: Spatial discretization
 - 4: Modeling results
 	- 1D Thermo-elasticity
 	- 1D Nonlinear wave propagation (cf. Zihua)
@@ -84,7 +85,7 @@ $$\tag{eq:2.5}
 	s(e, \alpha) = \lambda(x,\alpha, \jmath e) \,\delta \;\mathrm{tr}\; e + 2 \mu(x,\alpha, \jmath e) e - \vartheta(x) (\nabla \alpha) \otimes (\nabla \alpha).
 $$
 
-Here $\lambda$ and $\mu$ are the so-called Lam\'e parameters of an isotropic elastic solid, and $\vartheta$ an additional elastic modulus associated with the structural stresses incurred by the damage field $\alpha = \alpha(t,x)$. The notation $\jmath e$ refers to the three scalar invariants $(J_1, J_2, J_3)$ of the elastic strain tensor, indicating that {eq:2.5} is isotropic. The symbol $\delta$ denotes the three-dimensional identity tensor. We note that the functional forms of $\lambda$ and $\mu$ in {eq:2.5} can not be arbitrarily chosen; they must derive from an energy functional that is convex in $e$. The damage parameter $\alpha$ is assumed to be governed by an evolution equation of the reaction-diffusion type
+Here $\lambda$ and $\mu$ are the so-called Lam\'e parameters of an isotropic elastic solid, and $\vartheta$ an additional modulus associated with the structural stresses incurred by the damage field $\alpha = \alpha(t,x)$. The notation $\jmath e$ refers to the three scalar invariants $(J_1, J_2, J_3)$ of the elastic strain tensor, indicating that {eq:2.5} is isotropic. The symbol $\delta$ denotes the three-dimensional identity tensor. We note that the functional forms of $\lambda$ and $\mu$ in {eq:2.5} can not be arbitrarily chosen; they must derive from an energy functional that is convex in $e$. The damage parameter $\alpha$ is assumed to be governed by an evolution equation of the reaction-diffusion type
 
 $$\tag{eq:2.6}
 	\partial_t \alpha = \nabla \cdot \left[ D_\mathrm{a}(\alpha)\nabla \alpha \right] + R_\mathrm{a}(\jmath e, \alpha),
@@ -109,7 +110,7 @@ $$
 in which the function $G$ takes the role of a so-called _plastic potential_, and the scalar coefficient $\gamma = \gamma(\beta)$ is called the _plastic multiplier_. In traditional plasticity models, $\gamma$ is used as a Lagrange multiplier that optimizes [TODO: finish], but here we assume that it is a direct function of a further damage field $\beta = \beta(t,x)$, which itself smoothly evolves according to the reaction-diffusion equation
 
 $$\tag{eq:2.9}
-	\partial_t \beta = \nabla \cdot \left[ D_\mathrm{b} \nabla \beta \right] + R_\mathrm{b}(\jmath e, \alpha, \beta),
+	\partial_t \beta = \nabla \cdot \left[ D_\mathrm{b}(\beta) \nabla \beta \right] + R_\mathrm{b}(\jmath e, \alpha, \beta),
 $$
 
 with nonlinear diffusivity $D_\mathrm{b} = D_\mathrm{b}(\beta)$ and the reaction (or source) terms collected in $R_\mathrm{b}$.
@@ -197,8 +198,12 @@ $$
 
 in which $n$ denotes the step index, $\tau$ the step size, $t^n = t$, $t^{n+1} = t + \tau$, and $U^n = U(t)$, $U^{n+1} = U(t + \tau)$. The barred symbols denote vectors and square matrices of size $m$, the number of stages in the Runge-Kutta scheme. We use $m = 3$ stages to generate a method that is of second-order accuracy. The intermediate stage values of the solution $U$ are stored in $\bar{W}$, the intermediate stage values of time are stored in $\bar{T}$. The symbol $\bar{1}$ denotes a vector of ones, so that e.g. $t^n \bar{1} = [t^n, t^n, t^n]^\mathrm{T}$. $\bar{\mathbf{A}}^\mathrm{im,ex}$, $\bar{B}$ and $\bar{C}$ denotes coefficient matrices and vectors, subject to the condition that
 
-$$\tag{eq:3.5}
+$$\tag{eq:3.5a}
 	\bar{C} = \bar{\mathbf{A}}^\mathrm{im}\bar{1} = \bar{\mathbf{A}}^\mathrm{ex} \bar{1}.
+$$
+
+$$\tag{eq:3.5b}
+	\bar{B} \cdot \bar{1} = 1.
 $$
 
 Finally, the notation $\bar{F}^\mathrm{im,ex}(\bar{W}; \bar{T})$ must be understood to mean
@@ -209,13 +214,19 @@ $$
 
 Equation {eq:3.4b} defines a system of equations in $m$ unknowns, which can be solved sequentially if the coefficient matrices $\bar{\mathbf{A}}^\mathrm{im,ex}$ are lower diagonal. In this case the scheme is said to be _diagonally implicit_. The function $F^\mathrm{ex}$ is only treated explicitly when the coefficient matrix $\bar{\mathbf{A}}^\mathrm{ex}$ is _strictly_ lower diagonal.
 
-We populate $\bar{\mathbf{A}}^\mathrm{im}$ and $\bar{B}$ with coefficients from the TR-BDF2 time integration scheme [CITE, Giraldo 2013], which can be written as an explicit first stage $W_1 = U^{n}$ at $T_1 = t^n$, a second stage at $T_2 = t^n + c_2 \tau$ that is generated by the trapezoidal rule $W_2 = U^{n} + (c_2/2) F^\mathrm{im}(W_1; T_1) + (c_2/2) F^\mathrm{im}(W_2; T_2))$, and a final stage at $T_3 = t^n + \tau$ given by the second-order backwards difference formula (BDF2). The TR-BDF2 scheme would be finished at $U^{n+1} = W_3$, but we re-use the last stage to adhere to the Runge-Kutta template by setting $\bar{B}$ equal to the last row of $\bar{\mathbf{A}}^\mathrm{im}$, i.e. $\bar{B} = \bar{\mathbf{A}}^\mathrm{im} [0, 0, 1]^\mathrm{T}$.
+We populate $\bar{\mathbf{A}}^\mathrm{im}$ with coefficients from the TR-BDF2 time integration scheme [CITE, Giraldo 2013], which can be written as an explicit first stage $W_1 = U^{n}$ at $T_1 = t^n$, a second stage at $T_2 = t^n + c_2 \tau$ that is generated by the trapezoidal rule $W_2 = U^{n} + (c_2/2) F^\mathrm{im}(W_1; T_1) + (c_2/2) F^\mathrm{im}(W_2; T_2))$, and a final stage at $T_3 = t^n + \tau$ given by the second-order backwards difference formula (BDF2). The TR-BDF2 scheme would be finished at $U^{n+1} = W_3$, which can be extended into the Runge-Kutta framework by letting $\bar{B}$ be equal to the last row of $\bar{\mathbf{A}}^\mathrm{im}$, i.e.
+
+$$\tag{eq:3.6}
+	\bar{B} = \bar{\mathbf{A}}^\mathrm{im} [0, 0, 1]^\mathrm{T}.
+$$
+
+However, by keeping the values of $\bar{B}$ open for the moment (subject to {eq:3.5b}), we will be able to generate schemes with different properties at the expense of only one explicit finishing stage compared to the TR-BDF2 scheme (see Section 3.3).
 
 [TODO: Laudable properties of TR-BDF2].
 
 The resulting in the Butcher tableau [CITE] is given by
 
-$$\tag{eq:3.6a}
+$$\tag{eq:3.7a}
     \begin{array}{c|ccc}
 			  \bar{C}
 			& \bar{\mathbf{A}}^\mathrm{im} \\[.7em] \hline\\[-.5em]
@@ -233,15 +244,15 @@ $$\tag{eq:3.6a}
 			& \frac{1}{2}(2-c_2)^{-1}
 			& \frac{1}{2}(2-c_2)^{-1}
 			& (1-c_2)(2-c_2)^{-1} \\[.7em]\hline\\[-.5em]
-			& \frac{1}{2}(2-c_2)^{-1}
-			& \frac{1}{2}(2-c_2)^{-1}
-			& (1-c_2)(2-c_2)^{-1}
+			& b_1
+			& b_2
+			& 1 - b_1 - b_2
 		\end{array}.
 $$
 
-Constrained by {eq:3.5} and the condition that $\bar{\mathbf{A}}^\mathrm{ex}$ must be strictly lower triangular, the Butcher tableau for the explicit Runge-Kutta scheme reads
+Constrained by {eq:3.5a} and the condition that $\bar{\mathbf{A}}^\mathrm{ex}$ must be strictly lower triangular, the Butcher tableau for the explicit Runge-Kutta scheme reads
 
-$$\tag{eq:3.6b}
+$$\tag{eq:3.7b}
     \begin{array}{c|ccc}
 			  \bar{C}
 			& \bar{\mathbf{A}}^\mathrm{ex} \\[.7em] \hline\\[-.5em]
@@ -259,87 +270,153 @@ $$\tag{eq:3.6b}
 			& 1-a^{ex}_{32}
 			& a^{ex}_{32}
 			& \\[.7em]\hline\\[-.5em]
-			& \frac{1}{2}(2-c_2)^{-1}
-			& \frac{1}{2}(2-c_2)^{-1}
-			& (1-c_2)(2-c_2)^{-1}
+			& b_1
+			& b_2
+			& 1 - b_1 - b_2
 		\end{array}.
 $$
 
-We thus have two parameters, $c_2$ and $a^{ex}_{32}$, that can be tuned to some advantage.
+We thus have four parameters, $b_1$, $b_2$, $c_2$ and $a^{ex}_{32}$, that can be tuned to some advantage.
 
-We analyze the behavior of the scheme {eq:3.4a--c}, {eq:3.6a}, {eq:3.6b} using Dahlquist's problem [Dahlquist, 1963], which we adapt to our additive IMEX problem as follows:
+**3.3 Stability and Accuracy**
 
-$$\tag{eq:3.7}
+We analyze the numerical stability and accuracy of the scheme {eq:3.4a--c}, {eq:3.7a}, {eq:3.7b} using Dahlquist's problem [Dahlquist, 1963], which we adapt to our additive IMEX problem as follows:
+
+$$\tag{eq:3.8}
 	\tau\, \partial_t U = \zeta U = \zeta^\mathrm{im} U + \zeta^\mathrm{ex} U.
 $$
 
-Here, $\zeta^\mathrm{im}/\tau$ and $\zeta^\mathrm{ex}/tau$ can be interpreted as eigenvalues of the linearization of $F^\mathrm{im}(U; t)$ and $F^\mathrm{ex}(U; t)$ with respect to $U$. We substitute {eq:3.7} into {eq:3.4a--c} to obtain
+Here, $\zeta^\mathrm{im}/\tau$ and $\zeta^\mathrm{ex}/\tau$ can be interpreted as eigenvalues of the linearization of $F^\mathrm{im}(U; t)$ and $F^\mathrm{ex}(U; t)$ with respect to $U$. We substitute {eq:3.7} into {eq:3.4a--c} to obtain
 
-$$\tag{eq:3.8a}
+$$\tag{eq:3.9a}
 	\bar{W} = U^n \bar{\mathrm{1}} + \left[\zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} + \zeta^\mathrm{ex}\bar{\mathbf{A}}^\mathrm{ex} \right] \bar{W},
 $$
 
-$$\tag{eq:3.8b}
+$$\tag{eq:3.9b}
 	U^{n+1} = U^n + \zeta\, \bar{B}^\mathrm{T} \bar{W},
 $$
 
-Next, we invert {eq:3.8a} for $\bar{W}$ and substitute the result into {eq:3.8b};
-
-$$\tag{eq:3.9}
-	U^{n+1} = \left(1 + \zeta\, \bar{B}^\mathrm{T} \left[ \bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right]^{-1} \bar{\mathrm{1}} \right)U^n.
-$$
-
-By using $\mathrm{det}\left(\mathbf{M}\right) \mathbf{M}^{-1} = \mathrm{adj}\left(\mathbf{M}\right)$ for any invertible matrix $\mathbf{M}$, {eq:3.9} is concisely stated as
+Next, we invert {eq:3.9a} for $\bar{W}$ and substitute the result into {eq:3.9b};
 
 $$\tag{eq:3.10a}
+	U^{n+1} = P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n.
+$$
+
+with
+
+$$\tag{eq:3.10b}
+	P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = 1 + \zeta\, \bar{B}^\mathrm{T} \left[ \bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right]^{-1} \bar{\mathrm{1}}
+$$
+
+L-stability of the implicit end-member scheme ($\zeta^\mathrm{ex} = 0$) is demonstrated by the fact that $\lim\limits_{|\zeta^\mathrm{im}| \to \infty}P(\zeta^\mathrm{im}, 0) = 0$ [e.g. Hosea & Shampine, 1996]. This L-stable property means that the method arrives at $U^{n+1} = 0$ in one step in the limit of infinite time step. For $\zeta^\mathrm{im} \in \mathbb{R}^-$ this equates to the analytical solution 
+
+$$\tag{eq:3.11}
+	\tilde{U}^{n+1} = U^{n} \exp{\zeta}
+$$
+
+to test problem {eq:3.8}.
+
+<!-- By using $\mathrm{det}\left(\mathbf{M}\right) \mathbf{M}^{-1} = \mathrm{adj}\left(\mathbf{M}\right)$ for any invertible matrix $\mathbf{M}$, {eq:3.10} is concisely stated as
+
+$$\tag{eq:3.11a}
 	P^\mathrm{im}(\zeta^\mathrm{im}) U^{n+1} = P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n,
 $$
 
 in which the (bivariate) polynomials $P^\mathrm{im}(\zeta^\mathrm{im})$ and $P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ can be expressed as
 
-$$\tag{eq:3.10b}
+$$\tag{eq:3.11b}
 	P^\mathrm{im}(\zeta^\mathrm{im}) = \mathrm{det}\; \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right] = \prod \left[\bar{1} - \zeta^\mathrm{im} \mathrm{diag}( \bar{\mathbf{A}}^\mathrm{im})\right],
 $$
 
-$$\tag{eq:3.10c}
+$$\tag{eq:3.11c}
 	P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = P^\mathrm{im}(\zeta^\mathrm{im}) + \zeta\, \bar{B}^\mathrm{T} \left(\mathrm{adj}\; \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right] \right) \bar{\mathrm{1}}.
 $$
 
-The second equality in {eq:3.10b} is due to the determinant of any lower-triangular matrix being equal to the product of its diagonal.
-$P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ is a bivariate polynomial in $\zeta^\mathrm{im}$ and $\zeta^\mathrm{ex}$ in part because an adjugate is ultimately an entry-wise polynomial in its argument.
+The second equality in {eq:3.11b} is due to the determinant of any lower-triangular matrix being equal to the product of its diagonal.
+$P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ is a bivariate polynomial in $\zeta^\mathrm{im}$ and $\zeta^\mathrm{ex}$ in part because an adjugate is ultimately an entry-wise polynomial in its argument. -->
 
-Suppose the 'true' solution $\tilde{U}$ to test problem {eq:3.7} evolves as $\tilde{U}^{n+1} = \tilde{U}^{n} \exp{\zeta}$. This can be expanded using a Taylor series around the origin, giving
+This can be expanded using a Taylor series around the origin, giving
 
-$$\tag{eq:3.11a}
-	\tilde{U}^{n+1} = Q(\zeta) \tilde{U}^{n},
+$$\tag{eq:3.12a}
+	\tilde{U}^{n+1} = Q(\zeta) U^{n},
 $$
 
 with
 
-$$\tag{eq:3.11b}
+$$\tag{eq:3.12b}
 	Q(\zeta) = \left( 1 + \zeta + \tfrac{1}{2} \zeta^2 + \tfrac{1}{6} \zeta^3 + \mathcal{O}(\zeta^4) \right).
 $$
 
-We can now combine {eq:3.11a,b} and {eq:3.10c} and write for the integration error $\tilde{\varepsilon}^{n+1} = U^{n+1} - \tilde{U}^{n+1}$:
+We can now combine {eq:3.12a,b} and {eq:3.11c} and write for the integration error $\tilde{\varepsilon}^{n+1} = U^{n+1} - \tilde{U}^{n+1}$:
 
-$$\tag{eq:3.12}
-	P^\mathrm{im}(\zeta^\mathrm{im}) \tilde{\varepsilon}^{n+1} = \left[P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta) \right] U^{n} + P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta)\tilde{\varepsilon}^{n}.
-$$
-
-The polynomial $P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta)$ evaluates to
 
 $$\tag{eq:3.13}
-	P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - P^\mathrm{im}(\zeta^\mathrm{im}) Q(\zeta) = (3 c_2^2 - 4 c_2 + 2) \mathcal{O}\left(\zeta_\mathrm{im}^3\right) \\[.8em]
-	+ \left(2 a^\mathrm{ex}_{32}-1\right) \mathcal{O}\left(\zeta_{\text{ex}} \zeta_\mathrm{im}^2\right) \\[.8em]
-	+ \left((8 a^\mathrm{ex}_{32} - 1) c_2^2 - 8 a^\mathrm{ex}_{32} c_2 + 2 \right)\mathcal{O}\left(\zeta_\mathrm{ex}^2 \zeta_\mathrm{im}\right) \\[.8em]
-	+ \left(6a^\mathrm{ex}_{32}c_2^2 - (1 + 6a^\mathrm{ex}_{32})c_2 + 2\right) \mathcal{O}\left(\zeta_\mathrm{ex}^3\right)
+	\tilde{\varepsilon}^{n+1} = \left[P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - Q(\zeta)\right] U^{n},
 $$
 
-We can now use the free coefficients $c_2$ and $a^{ex}_{32}$ to eliminate lower-order contributions to the integration error $\tilde{\varepsilon}^{n+1}$. We find that all four terms are eliminated by the complex solution $c_2 = \frac{1}{3} (2 \pm i \sqrt{2})$, $a^\mathrm{ex}_{32} = \frac{1}{2}$.
+The polynomial $R(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ evaluates to
 
-[COOL!]
+$$\tag{eq:3.14}
+	R(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) =
+	  (b_1 + b_2 - b_2 c_2 - \tfrac{1}{2}) \mathcal{O}(\zeta^2),
+$$
 
-[TODO: Finish!]
+which means the second-order error can be eliminated by choosing
+
+$$\tag{eq:3.15}
+	b_1 = \tfrac{1}{2} + b_2 (c_2 - 1).
+$$
+
+At this point the second-order accuracy of the TR-BDF2 scheme can be verified, since condition {eq:3.15} is consistent with {eq:3.6}. The remainder after elimination of $b_1$ using {eq:3.15} is
+
+$$\tag{eq:3.16}
+	R(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = (1 + 6 b_2 c_2 (c_2 - 1)) \mathcal{O}(\zeta^3_\mathrm{im}) \\[.8em]
+	  + (2(a_{32}^\mathrm{ex}-1) b_2 c_2 - a_{32}^\mathrm{ex} + 2 b_2) \mathcal{O}(\zeta^2_\mathrm{im}\zeta_\mathrm{ex}) \\[.8em]
+	  + (2 c_2 ((4 a_{32}^\mathrm{ex}-1) b_2 c_2-2 a_{32}+b_2)+1) \mathcal{O}(\zeta_\mathrm{im}\zeta^2_\mathrm{ex}) \\[.8em]
+	  + (3 a_{32}^\mathrm{ex} c_2 \left(2 b_2 c_2-1\right)+1) \mathcal{O}(\zeta^3_\mathrm{ex})
+$$
+
+These leading error terms can be eliminated by choosing
+
+$$\tag{eq:3.17}
+	a_{32}^\mathrm{ex} = (c_2 - 1)(3 c_2^2 - 2 c_2)^{-1}, \qquad  b_2 = \tfrac{1}{6}(c_2-c_2^2)^{-1}
+$$
+
+Finally, the coefficients of the remaining error terms are minimized by choosing $c_2 = 2 - \sqrt{2}$, which coincidentally yields a _singly diagonally implicit_ Runge-Kutta (SDIRK) scheme [CITE], i.e. $a^\mathrm{im}_{22} = a^\mathrm{im}_{33}$. For linear problems solved using assembled Jacobians this property would be advantageous, but this does not apply here. Summarizing, we have the schemes
+
+$$
+	\bar{\mathbf{A}}^\mathrm{im} = \left(\begin{array}{ccc}
+		0 & 0 & 0 \\[.7em]
+		1-\frac{1}{2}\sqrt{2} & 1-\frac{1}{2}\sqrt{2} & 0 \\[.7em]
+		\frac{1}{4}\sqrt{2} & \frac{1}{4}\sqrt{2} & 1-\frac{1}{2}\sqrt{2}
+	\end{array}\right)
+$$
+
+$$
+	\bar{\mathbf{A}}^\mathrm{ex} = \left(\begin{array}{ccc}
+		0 & 0 & 0 \\[.7em]
+		2-\sqrt{2} & 0 & 0 \\[.7em]
+		-\frac{1}{2}-\sqrt{2} & \frac{3}{2}+\sqrt{2} & 0
+	\end{array}\right)
+$$
+
+$$
+	\bar{B}_\mathrm{2} = \left(\begin{array}{c}
+		\frac{1}{4}\sqrt{2} \\[.7em]
+		\frac{1}{4}\sqrt{2} \\[.7em]
+		1-\frac{1}{2}\sqrt{2}
+	\end{array}\right)
+$$
+
+$$
+	\bar{B}_\mathrm{3} = \left(\begin{array}{c}
+		\frac{1}{12} \left(4 -   \sqrt{2} \right) \\[.7em]
+		\frac{1}{12} \left(4 + 3 \sqrt{2} \right) \\[.7em]
+		\frac{1}{6 } \left(2 -   \sqrt{2} \right)
+	\end{array}\right)
+$$
+
+
 
 <!--
 - three-stage Butcher-Chen method [Butcher and Chen, 2000]
@@ -355,7 +432,7 @@ The solution with minus sign, $2 - \sqrt{2} \approx 0.586$ not only lies in the 
 - We implement matrix-free algorithms and so the assembly cost is no issue for us.
 -->
 
-**3.3: Error estimation and time step control**
+**3.4: Error estimation and time step control**
 
 [IGNORE BELOW, TO BE REORGANIZED!]
 The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
