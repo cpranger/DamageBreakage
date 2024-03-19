@@ -38,7 +38,7 @@ _Casper Pranger, Dave May, Alice Gabriel_
 
 ---
 # Damage-Breakage rheology (DBR)
-[TODO: References here]
+Lyakhovksy, Ben-Zion, _et al_.
 
 - Cauchy's linear momentum balance law:
 $$
@@ -136,8 +136,8 @@ $$
 ---
 # Damage-Brakage rheology (DBR)
 
-- The subsystem $\partial_t [v, e]^\mathrm{T}$ describes an inhomogeneous, non-linear elastic wave equation in coupled first-order form
-- The subsystems $\partial_t \alpha$ and $\partial_t \beta$ describe non-linear reaction-diffusion equations
+- The subsystem $\partial_t [v, e]^\mathrm{T}$ is an inhomogeneous, non-linear elastic wave equation in coupled first-order form
+- The subsystems $\partial_t \alpha$ and $\partial_t \beta$ are non-linear reaction-diffusion equations
 - "Stick-Slip" episodes of seismogenesis:
     - **Stick**: interaction terms $R_{v,e,\alpha,\beta} \ll 1$; $\quad\partial_t v = \nabla \cdot s_\mathrm{e}(e, \alpha) \approx 0$
     - **Slip**: interaction terms $R_{v,e,\alpha,\beta} \gg 0$.
@@ -321,11 +321,54 @@ $$
 # Additive IMEX Runge-Kutta methods
 
 - _Stability_ region $S = \{ \zeta^\mathrm{im}, \zeta^\mathrm{ex} \in \mathbb{C} : \lvert P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) \rvert < 1 \}$
-- **A**-stable at $\zeta^\mathrm{ex} = 0$ when $\lim\limits_{|\zeta^\mathrm{im}| \to \infty} \lvert P(\zeta^\mathrm{im}, 0) \rvert  < 1$
+
+$\qquad\qquad\qquad$ ![h:380px](https://media.githubusercontent.com/media/cpranger/DamageBreakage/main/paper/figures/stability.png)
+
 - **L**-stable at $\zeta^\mathrm{ex} = 0$ when $\lim\limits_{|\zeta^\mathrm{im}| \to \infty} \lvert P(\zeta^\mathrm{im}, 0) \rvert  = 0$ (TR-BDF2 is L-stable)
 
 
-<!-- ---
-# figuur
+---
+# Example: Damage-Breakage rheology (DBR)
 
-![bg h:600px](https://media.githubusercontent.com/media/cpranger/DamageBreakage/main/paper/figures/stability.png) -->
+- Return to 'CFL' conditions: $\Delta t$ constrained by the 'spectral radius' $\rho$ of $J^\mathrm{ex}$
+
+$$
+    \begin{align*}
+	    J_\mathrm{PDE} &= \left[\begin{array}{cc|c|c}
+            0 & \nabla \cdot s_\mathrm{e}(\bullet, \alpha) & 0 & 0 \\
+            \nabla^\mathrm{s} (r\, \bullet) & 0 & 0 & 0 \\[.3em] \hline\\[-.8em]
+            0 & 0 & \nabla \cdot \left[ D_\alpha(\bullet)\nabla \bullet \right] & 0 \\[.3em] \hline\\[-.8em]
+            0 & 0 & 0 & \nabla \cdot \left[ D_\beta(\bullet)\nabla \bullet \right]
+        \end{array}\right] \\[3em]
+
+        J_\mathrm{interact} &=  \left[\begin{array}{c|ccc}
+            0 & 0 & \nabla \cdot s_\mathrm{e}(e, \bullet) + R_v(\bullet) & 0 \\[.3em] \hline\\[-.8em]
+            0 & R_e(\jmath\, \bullet, \alpha, \beta) & R_e(\jmath e, \bullet, \beta) & R_e(\jmath e, \alpha, \bullet) \\
+            0 & R_\alpha(\jmath\, \bullet, \alpha, \beta) & R_\alpha(\jmath e, \bullet, \beta) & R_\alpha(\jmath e, \alpha, \bullet) \\
+            0 & R_\beta(\jmath\, \bullet, \alpha, \beta) & R_\beta(\jmath e, \bullet, \beta) & R_\beta(\jmath e, \alpha, \bullet)
+        \end{array}\right]
+    \end{align*}
+$$
+
+
+---
+# Example: Damage-Breakage rheology (DBR)
+
+- Return to 'CFL' conditions: $\Delta t$ constrained by the 'spectral radius' $\rho$ of $J^\mathrm{ex}$
+
+$$
+    \begin{align*}
+	    J_\mathrm{interact} &=  \left[\begin{array}{c|ccc}
+            0 & 0 & \nabla \cdot s_\mathrm{e}(e, \bullet) + R_v(\bullet) & 0 \\[.3em] \hline\\[-.8em]
+            0 & R_e(\jmath\, \bullet, \alpha, \beta) & R_e(\jmath e, \bullet, \beta) & R_e(\jmath e, \alpha, \bullet) \\
+            0 & R_\alpha(\jmath\, \bullet, \alpha, \beta) & R_\alpha(\jmath e, \bullet, \beta) & R_\alpha(\jmath e, \alpha, \bullet) \\
+            0 & R_\beta(\jmath\, \bullet, \alpha, \beta) & R_\beta(\jmath e, \bullet, \beta) & R_\beta(\jmath e, \alpha, \bullet)
+        \end{array}\right]
+    \end{align*}
+$$
+
+- By the Schur determinant theorem, $\rho(J_\mathrm{interact})$ is independent of the entry $\nabla \cdot s_\mathrm{e}(e, \bullet) + R_v(\bullet)$!
+
+- Integrate PDE terms implicitly (L-stable, independent of grid)
+- Integrate interaction terms explicitly!
+- THE END :-)
