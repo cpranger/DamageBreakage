@@ -351,71 +351,84 @@ We can now combine {eq:3.12a,b} and {eq:3.11c} and write for the integration err
 
 
 $$\tag{eq:3.13}
-	\tilde{\varepsilon}^{n+1} = \left[P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - Q(\zeta)\right] U^{n},
+	\tilde{\varepsilon}^{n+1} = \left[P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - Q(\zeta)\right] U^{n} =: R(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n,
 $$
 
-The polynomial $R(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ evaluates to
+The Taylor series expansion of $R$ around the origin [Appedix?] contains error terms of order $\mathcal{O}(\zeta^2)$, $\mathcal{O}(\zeta^3)$, and so on. The error corresponding to terms is eliminated by virtue of the TR-BDF2 condition {eq:3.6}, confirming the second-order accuracy of the scheme. Departing from condition {eq:3.6}, the third-order terms $\mathcal{O}(\zeta_\mathrm{im}^3)$, $\mathcal{O}(\zeta_\mathrm{im}^2 \zeta_\mathrm{ex})$, $\mathcal{O}(\zeta_\mathrm{im} \zeta_\mathrm{ex}^2)$, and $\mathcal{O}(\zeta_\mathrm{ex}^3)$ are eliminated by choosing
 
 $$\tag{eq:3.14}
-	R(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) =
-	  (b_1 + b_2 - b_2 c_2 - \tfrac{1}{2}) \mathcal{O}(\zeta^2),
-$$
-
-which means the second-order error can be eliminated by choosing
-
-$$\tag{eq:3.15}
-	b_1 = \tfrac{1}{2} + b_2 (c_2 - 1).
-$$
-
-At this point the second-order accuracy of the TR-BDF2 scheme can be verified, since condition {eq:3.15} is consistent with {eq:3.6}. The remainder after elimination of $b_1$ using {eq:3.15} is
-
-$$\tag{eq:3.16}
-	R(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = (1 + 6 b_2 c_2 (c_2 - 1)) \mathcal{O}(\zeta^3_\mathrm{im}) \\[.8em]
-	  + (2(a_{32}^\mathrm{ex}-1) b_2 c_2 - a_{32}^\mathrm{ex} + 2 b_2) \mathcal{O}(\zeta^2_\mathrm{im}\zeta_\mathrm{ex}) \\[.8em]
-	  + (2 c_2 ((4 a_{32}^\mathrm{ex}-1) b_2 c_2-2 a_{32}+b_2)+1) \mathcal{O}(\zeta_\mathrm{im}\zeta^2_\mathrm{ex}) \\[.8em]
-	  + (3 a_{32}^\mathrm{ex} c_2 \left(2 b_2 c_2-1\right)+1) \mathcal{O}(\zeta^3_\mathrm{ex})
-$$
-
-These leading error terms can be eliminated by choosing
-
-$$\tag{eq:3.17}
 	a_{32}^\mathrm{ex} = (c_2 - 1)(3 c_2^2 - 2 c_2)^{-1}, \qquad  b_2 = \tfrac{1}{6}(c_2-c_2^2)^{-1}
 $$
 
-Finally, the coefficients of the remaining error terms are minimized by choosing $c_2 = 2 - \sqrt{2}$, which coincidentally yields a _singly diagonally implicit_ Runge-Kutta (SDIRK) scheme [CITE], i.e. $a^\mathrm{im}_{22} = a^\mathrm{im}_{33}$. For linear problems solved using assembled Jacobians this property would be advantageous, but this does not apply here. Summarizing, we have the schemes
+An ARK scheme with these coefficients loses the the important property of being L-stable or A-stable, as the limit $\lim\limits_{|\zeta^\mathrm{im}| \to \infty}P(\zeta^\mathrm{im}, 0)$ is no longer bounded. Therefore the result {eq:3.14} suggests the creation of an _embedded_ method that achieves higher accuracy with the same stage values $\bar{W}$, but which is used only for error estimation and step size control [Section 3.4]
+
+The remaining coefficient, $c_2$, is set to a value of $1-3^{-\tfrac{1}{2}} \approx 0.423$ based on the following properties of the stability region $S = \{\zeta^\mathrm{im}, \zeta^\mathrm{ex} \in \mathbb{C} : \lvert P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) \rvert \leq 1 \}$:
+- As $\zeta^\mathrm{im} \to -\infty$, $S$ forms a disk around the origin $\zeta^\mathrm{ex} = 0$ with a radius that is maximized by this choice of value for $c_2$ [TODO: FIGURES!],
+- At $\zeta^\mathrm{im} = 0$, $S$ has a decent extent along both the negative real axis and the imaginary axis if $c_2 < \frac{2}{3}$, ideally $c_2 < \tfrac{1}{2}$ [TODO: Figures!]
+
+Summarizing, we have the schemes
 
 $$
 	\bar{\mathbf{A}}^\mathrm{im} = \left(\begin{array}{ccc}
-		0 & 0 & 0 \\[.7em]
-		1-\frac{1}{2}\sqrt{2} & 1-\frac{1}{2}\sqrt{2} & 0 \\[.7em]
-		\frac{1}{4}\sqrt{2} & \frac{1}{4}\sqrt{2} & 1-\frac{1}{2}\sqrt{2}
-	\end{array}\right)
+		0 & 0 & 0 \\[.3em]
+		\frac{1}{6} \left(3-\sqrt{3}\right) & \frac{1}{6} \left(3-\sqrt{3}\right) & 0 \\[.3em]
+		\frac{1}{4} \left(3-\sqrt{3}\right) & \frac{1}{4} \left(3-\sqrt{3}\right) & \frac{1}{2} \left(\sqrt{3}-1\right)
+	\end{array}\right) \approx \left(\begin{array}{lll}
+		0. & 0. & 0. \\[.3em]
+		0.211325 & 0.211325 & 0. \\[.3em]
+		0.316987 & 0.316987 & 0.366025
+	\end{array}\right),
 $$
 
 $$
 	\bar{\mathbf{A}}^\mathrm{ex} = \left(\begin{array}{ccc}
-		0 & 0 & 0 \\[.7em]
-		2-\sqrt{2} & 0 & 0 \\[.7em]
-		-\frac{1}{2}-\sqrt{2} & \frac{3}{2}+\sqrt{2} & 0
-	\end{array}\right)
+		0 & 0 & 0 \\[.3em]
+		1-\frac{1}{3}\sqrt{3} & 0 & 0 \\[.3em]
+		\phantom{0}-\frac{1}{2}\sqrt{3} & 1+\frac{1}{2}\sqrt{3} & 0
+	\end{array}\right) \approx \left(\begin{array}{lll}
+		\phantom{-}0. & 0. & 0. \\[.3em]
+		\phantom{-}0.42265 & 0. & 0. \\[.3em]
+		-0.866025 & 1.86603 & 0.
+	\end{array}\right),
 $$
 
 $$
-	\bar{B}_\mathrm{2} = \left(\begin{array}{c}
-		\frac{1}{4}\sqrt{2} \\[.7em]
-		\frac{1}{4}\sqrt{2} \\[.7em]
-		1-\frac{1}{2}\sqrt{2}
-	\end{array}\right)
+	\bar{B}_\mathrm{2}^\mathrm{T} = \left(\begin{array}{r}
+		\frac{1}{4} \left(3-\sqrt{3}\right) \\[.3em]
+		\frac{1}{4} \left(3-\sqrt{3}\right) \\[.3em]
+		\frac{1}{2} \left(\sqrt{3}-1\right)
+	\end{array}\right) \approx \left(\begin{array}{l}
+		0.316987 \\[.3em]
+		0.316987 \\[.3em]
+		0.366025
+	\end{array}\right),
 $$
 
 $$
-	\bar{B}_\mathrm{3} = \left(\begin{array}{c}
-		\frac{1}{12} \left(4 -   \sqrt{2} \right) \\[.7em]
-		\frac{1}{12} \left(4 + 3 \sqrt{2} \right) \\[.7em]
-		\frac{1}{6 } \left(2 -   \sqrt{2} \right)
-	\end{array}\right)
+	\bar{B}_\mathrm{3}^\mathrm{T} = \left(\begin{array}{r}
+		\frac{1}{12} \left(3-\sqrt{3}\right) \\[.3em]
+		\frac{1}{4} \left(\sqrt{3}+1\right) \\[.3em]
+		\frac{1}{6} \left(3-\sqrt{3}\right)
+	\end{array}\right) \approx \left(\begin{array}{l}
+		0.105662 \\[.3em]
+		0.683013 \\[.3em]
+		0.211325
+	\end{array}\right),
 $$
 
+$$
+	\bar{C} = \left(\begin{array}{l}
+		0 \\[.3em]
+		1-\frac{1}{3}\sqrt{3} \\[.3em]
+		1
+	\end{array}\right) \approx \left(\begin{array}{l}
+		0. \\[.3em]
+		0.42265 \\[.3em]
+		1.
+	\end{array}\right),
+$$
+
+where the notation $\bar{B}_\mathrm{2}$ and $\bar{B}_\mathrm{3}$ is used to distinguish the second-order and third-order accurate schemes.
 
 
 <!--

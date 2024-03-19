@@ -204,11 +204,11 @@ $$
 ---
 # Additive IMEX Runge-Kutta methods
 
-- Populate $\bar{\mathbf{A}}^\mathrm{im}$ with coefficients from the TR-BDF2 time integration scheme [TODO: CITE, Giraldo 2013]
+- Populate $\bar{\mathbf{A}}^\mathrm{im}$ with coefficients from the TR-BDF2 time integration scheme [e.g. Giraldo 2013]
     1) an explicit first stage $W_1 = U^{n}$ at $T_1 = t^n$,
     2) a trapezoidal second stage at $t_2 = t^n + c_2 \Delta t$ given by </br> $W_2 = U^{n} + (c_2/2) F^\mathrm{im}(W_1; T_1) + (c_2/2) F^\mathrm{im}(W_2; T_2))$,
     3) a third stage at $T_3 = t^n + \Delta t$ given by the 2nd-order backwards difference formula (BDF2)
-    4) a finishing rule compatible with the implicit third stage; i.e.</br> $U^{n+1} = W_3 \iff \bar{B}^\ast = \bar{\mathbf{A}}^\mathrm{im} [0, 0, 1]^\mathrm{T}$.
+    4) a finishing rule compatible with the implicit third stage; i.e.</br> $U^{n+1} = W_3 \iff \bar{B}_2 = \bar{\mathbf{A}}^\mathrm{im} [0, 0, 1]^\mathrm{T}$.
 - Keep open the values of $\bar{B}$ in the hope of generating different schemes that re-use $\bar{W}$.
 
 <!--[TODO: Laudable properties of TR-BDF2].-->
@@ -225,7 +225,7 @@ $$
             \frac{1}{2}c_2 & \frac{1}{2}c_2 & 0  \\
             \frac{1}{2}(2-c_2)^{-1} & \frac{1}{2}(2-c_2)^{-1} & (1-c_2)(2-c_2)^{-1}
         \end{bmatrix} \\[2em]
-        \bar{B}^\ast &= \left[\begin{matrix}
+        \bar{B}_2 &= \left[\begin{matrix}
             \frac{1}{2}(2-c_2)^{-1} & \frac{1}{2}(2-c_2)^{-1} & (1-c_2)(2-c_2)^{-1}
         \end{matrix}\right] \\[.5em]
         \bar{\mathbf{A}}^\mathrm{ex} &= \begin{bmatrix}
@@ -237,7 +237,7 @@ $$
             c_2  \\
             1
         \end{bmatrix} \\[2em]
-        \bar{B} &= [b_1, b_2, 1 - b_1 - b_2]
+        \bar{B}_3 &= [b_1, b_2, 1 - b_1 - b_2]
     \end{align*}
 $$
 
@@ -248,26 +248,84 @@ $$
 # Additive IMEX Runge-Kutta methods
 
 - IMEX version of Dahlquist's problem [Dahlquist, 1963]: $\quad\Delta t\, \partial_t U = \zeta^\mathrm{im} U + \zeta^\mathrm{ex} U$
-- Interpret $\zeta^\mathrm{im}/\Delta t$ and $\zeta^\mathrm{ex}/\Delta t$ as 'eigenvalues' of $F^\mathrm{im}(\bullet; t)$ and $F^\mathrm{ex}(\bullet; t)$.
+- Analytical solution over one step: $\tilde{U}^{n+1} = \mathrm{exp}(\zeta^\mathrm{im} + \zeta^\mathrm{ex}) U^n$
+- Interpret $\zeta^\mathrm{im}$ and $\zeta^\mathrm{ex}$ as 'eigenvalues' of $\Delta t\, F^\mathrm{im}(\bullet; t)$ and $\Delta t\, F^\mathrm{ex}(\bullet; t)$.
 - The Additive Runge-Kutta scheme becomes:
 $$
-	P^\mathrm{im}(\zeta^\mathrm{im}) U^{n+1} = P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n,
-$$
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; in which the (bivariate) polynomials $P^\mathrm{im}(\zeta^\mathrm{im})$ and $P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ can be expressed as
-
-$$
-	P^\mathrm{im}(\zeta^\mathrm{im}) = \prod \left[\bar{1} - \zeta^\mathrm{im} \mathrm{diag}( \bar{\mathbf{A}}^\mathrm{im})\right],
+	U^{n+1} = P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n,
 $$
 
 $$
-	P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = P^\mathrm{im}(\zeta^\mathrm{im}) + (\zeta^\mathrm{im} + \zeta^\mathrm{ex})\, \bar{B}^\mathrm{T} \left(\mathrm{adj}\; \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right] \right) \bar{\mathrm{1}}.
+	P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = 1 + (\zeta^\mathrm{im} + \zeta^\mathrm{ex})\, \bar{B} \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right]^{-1} \bar{\mathrm{1}}.
+$$
+- The consistency of the method is determined by the error
+$$
+    \tilde{\epsilon}^{n+1} = \tilde{U}^{n+1} - U^{n+1} = \left[\mathrm{exp}(\zeta^\mathrm{im} + \zeta^\mathrm{ex}) - P(\zeta^\mathrm{im}, \zeta^\mathrm{ex})\right] U^n
 $$
 
-
+- Coefficients $b_1$, $b_2$, $c_2$ and/or $a^{ex}_{32}$ are obtained by Taylor series expansion at $\zeta^\mathrm{im}, \zeta^\mathrm{ex} = 0$ 
 
 
 ---
+# Additive IMEX Runge-Kutta methods
+
+- The Taylor series expansion looks like this:
+$$
+    \begin{align*}
+        \mathrm{exp}(\zeta^\mathrm{im} + \zeta^\mathrm{ex}) - P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) &= \mathcal{O}(\zeta_\mathrm{im} + \zeta_\mathrm{ex})^3\\
+            &= \mathcal{O}(\zeta_\mathrm{im}^3) + \mathcal{O}(\zeta_\mathrm{im}^2) + \mathcal{O}(\zeta_\mathrm{im} \zeta_\mathrm{ex}^2) + \mathcal{O}(\zeta_\mathrm{ex}^3)
+    \end{align*}
+$$
+
+- Second-order consistency (accuracy) is given by the TR-BDF2 scheme with $\bar{B} = \bar{B}_2$
+
+- Big-O notation implies proportionality; coefficients expressed in terms of tunable ARK parameters; eliminated by
+    - $b_1 = \frac{1}{2} + b_2 (c_2 - 1)$
+    - $b_2 = \frac{1}{6}(c_2 - c_2^2)^{-1}$
+    - $a_{32}^\mathrm{ex} = (c_2 - 1)(3 c_2^2 - 2 c_2)^{-1}$
+    - $\Rightarrow \mathrm{exp}(\zeta^\mathrm{im} + \zeta^\mathrm{ex}) - P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = \mathcal{O}(\zeta_\mathrm{im} + \zeta_\mathrm{ex})^4$
+
+
+---
+# Additive IMEX Runge-Kutta methods
+
+- Choice: $c_2 = 1 - \frac{1}{3}\sqrt{3} \approx 0.42265$
+$$
+    \begin{align*}
+        \bar{B}_2 &= \left[\begin{matrix}
+            \frac{1}{2}(2-c_2)^{-1} &
+            \frac{1}{2}(2-c_2)^{-1} &
+            (1-c_2)(2-c_2)^{-1}
+        \end{matrix}\right] \\[.5em]
+        \bar{B}_3 &= \left[\begin{matrix}
+            \frac{1}{2}-\frac{1}{6}c_2^{-1} &
+            \frac{1}{6}(c_2 - c_2^2)^{-1} &
+            \frac{1}{2} + \frac{1}{6}(c_2-1)^{-1}
+        \end{matrix}\right]
+    \end{align*}
+$$
+
+- _Embedded_ ARK method:
+$$
+    \begin{align*}
+	    \bar{T} = t^n \bar{\mathrm{1}} + &\Delta t\, \bar{C}, \\
+        \bar{W} = U^n \bar{\mathrm{1}} + &\Delta t \left[\bar{\mathbf{A}}^\mathrm{im} \bar{F}^\mathrm{im}(\bar{W}; \bar{T}) + \bar{\mathbf{A}}^\mathrm{ex} \bar{F}^\mathrm{ex}(\bar{W}; \bar{T})\right] \\
+        U^{n+1} = U^n + &\Delta t\, \bar{B}_2 \left[\bar{F}^\mathrm{im}(\bar{W}; \bar{T}) + \bar{F}^\mathrm{ex}(\bar{W}; \bar{T}) \right] \\
+        E^{n+1} = &\Delta t\, (\bar{B}_3 - \bar{B}_2) \left[\bar{F}^\mathrm{im}(\bar{W}; \bar{T}) + \bar{F}^\mathrm{ex}(\bar{W}; \bar{T}) \right]
+    \end{align*}
+$$
+
+- Dimensionless error: $\epsilon_{n+1} = \lVert E^{n+1}\rVert_2 \left(\tau_r \lVert U^{n+1} \rVert_2 + \tau_a\right)^{-1}$, $\quad \Delta t^{n+1} = \Delta t^n \epsilon_{n+1}^{-1/3}$
+
+---
+# Additive IMEX Runge-Kutta methods
+
+- _Stability_ region $S = \{ \zeta^\mathrm{im}, \zeta^\mathrm{ex} \in \mathbb{C} : \lvert P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) \rvert < 1 \}$
+- **A**-stable at $\zeta^\mathrm{ex} = 0$ when $\lim\limits_{|\zeta^\mathrm{im}| \to \infty} \lvert P(\zeta^\mathrm{im}, 0) \rvert  < 1$
+- **L**-stable at $\zeta^\mathrm{ex} = 0$ when $\lim\limits_{|\zeta^\mathrm{im}| \to \infty} \lvert P(\zeta^\mathrm{im}, 0) \rvert  = 0$ (TR-BDF2 is L-stable)
+
+
+<!-- ---
 # figuur
 
-![bg h:600px](https://media.githubusercontent.com/media/cpranger/DamageBreakage/main/paper/figures/stability.png)
+![bg h:600px](https://media.githubusercontent.com/media/cpranger/DamageBreakage/main/paper/figures/stability.png) -->
