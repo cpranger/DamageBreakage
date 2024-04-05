@@ -103,7 +103,7 @@ function damage_isotropic(p, ax; nsteps, duration, rtol, atol = 0)
 	ε_ex = OffsetArray(fill((v = 0., e = 0., α = 0.), nsteps), 1:nsteps)
     ε_im = OffsetArray(fill((v = 0., e = 0., α = 0.), nsteps), 1:nsteps)
 	
-	v0 = Vector(p.n, motion_stags)
+	v0 = Tensor(p.n, motion_stags)
 	e0 = Tensor(p.n, Symmetric, strain_stags)
 	α0 =  Field(p.n, state_stags)
 

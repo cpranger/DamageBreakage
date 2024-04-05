@@ -37,7 +37,7 @@ function test_poisson(p, ax)
 end
 
 function test_elastic(p, ax)
-	u   = Vector(p.n, motion_stags)
+	u   = Tensor(p.n, motion_stags)
 	b   = deepcopy(u)
 	h   = Tuple([deepcopy(u) for _ in 1:5])
 	

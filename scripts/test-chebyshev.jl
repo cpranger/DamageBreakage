@@ -107,8 +107,8 @@ function test_elasticity(p)
 	A    = x -> divergence(symgrad(x))
 
 	# A f = b
-	f   = Vector(p.n, motion_stags)
-	b   = Vector(p.n, motion_stags)
+	f   = Tensor(p.n, motion_stags)
+	b   = Tensor(p.n, motion_stags)
 	
 	bc_expl_mode = (
 		x = (
@@ -140,12 +140,12 @@ function test_elasticity(p)
 	)
 
 	# helpers
-	h   = Vector(p.n, motion_stags)
-	r   = Vector(p.n, motion_stags)
+	h   = Tensor(p.n, motion_stags)
+	r   = Tensor(p.n, motion_stags)
 	
 	# modes
-	m_1 = Vector(p.n, motion_stags)
-	m_n = Vector(p.n, motion_stags)
+	m_1 = Tensor(p.n, motion_stags)
+	m_n = Tensor(p.n, motion_stags)
 	
 	(λ_1, λ_n) = extremal_eigenmodes!(A, (m_1, m_n, bc_expl_mode), (r, bc_impl_mode), (h, f))
 	

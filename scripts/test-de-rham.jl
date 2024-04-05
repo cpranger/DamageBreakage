@@ -6,7 +6,7 @@ using StaggeredKernels.Plane
 
 function test_curl_grad(x, y, p, bc)
 	f =  Field(p.n,  div_stags, bc)
-	r = Vector(p.n, curl_stags, (z = Natural(),))
+	r = Tensor(p.n, curl_stags, (z = Natural(),))
 	
 	assign!(f, Mode(f)[p.j...].gen)
 	
@@ -24,7 +24,7 @@ function test_curl_grad(x, y, p, bc)
 end
 
 function test_div_curl(x, y, p, bc)
-	f = Vector(p.n, curl_stags, (z = bc,))
+	f = Tensor(p.n, curl_stags, (z = bc,))
 	r =  Field(p.n,  div_stags, Natural())
 	
 	assign!(f.z, Mode(f.z)[p.j...].gen)
@@ -44,8 +44,8 @@ end
 
 function test_laplacians(x, y, p, bc)
 	# div(grad(v)) - grad(div(v)) + curl(curl(v)) = 0
-	v = Vector(p.n, motion_stags, bc.v)
-	r = Vector(p.n, motion_stags, bc.v)
+	v = Tensor(p.n, motion_stags, bc.v)
+	r = Tensor(p.n, motion_stags, bc.v)
 	
 	assign!(v, pMode(v)[p.j...].gen + sMode(v)[p.j...].gen)
 	

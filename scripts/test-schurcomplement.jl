@@ -9,7 +9,7 @@ using StaggeredKernels.Plane
 function test_poisson(p, ax)
 	# A(u) v = b
 	u =  Field(p.n, div_stags)
-	v = Vector(p.n, motion_stags)
+	v = Tensor(p.n, motion_stags)
 	
 	bc(u) = (
 		BC(-2, FD(u, :y)),
@@ -44,7 +44,7 @@ function test_elastic(p, ax)
 	s(e) = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * e
 	
 	# A(u) v = b
-	u = Vector(p.n, motion_stags)
+	u = Tensor(p.n, motion_stags)
 	v = Tensor(p.n, Symmetric, strain_stags)
 	
 	bc = u -> (;

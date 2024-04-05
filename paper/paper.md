@@ -22,12 +22,11 @@ We present a numerical scheme for efficiently modeling the rheological evolution
 - 4: Modeling results
 	- 1D Thermo-elasticity
 	- 1D Nonlinear wave propagation (cf. Zihua)
-	- 2D Thermal runaway + grain size (cf. Thielmann)
-	- 2D Damage + breakage (cf. Ben-Zion)
+	- 2D Thermal runaway + grain size cycles (cf. Thielmann)
+	- 2D Damage + breakage cycles (cf. Ben-Zion)
 - 5: Discussion
 - 6: Conclusion
 
------------------------
 
 
 1: Introduction

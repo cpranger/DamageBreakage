@@ -43,7 +43,7 @@ function test_poisson(p, ax)
 end
 
 function test_elastic(p, ax)
-	u    = Vector(p.n, motion_stags)
+	u    = Tensor(p.n, motion_stags)
 	s(e) = (p.λ_0 * Tensor(MajorIdentity) + p.μ_0 * Tensor(MinorIdentity)) * e
 	f    = u -> divergence(s(symgrad(u)))
 	bc   = u -> (;

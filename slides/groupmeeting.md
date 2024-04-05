@@ -77,7 +77,7 @@ $$
 $$
 -   - $\bar{e} = \bar{e}(t,x)$: _anelastic_ strain field
     - $r v = rv(t,x)$: material velocity (density $r$ $\times$ mass flux $v$)
-    - $\gamma(\beta)$: breakage rheology, with $\beta = \beta(t, x)$ the breakage field [TODO: explain]
+    - $\gamma(\beta)$: breakage rheology, with $\beta = \beta(t, x)$ the breakage field
     - $\partial_s G(\jmath s(e,\alpha))$: 'Schmidt tensor', with plastic potential $G$; $\jmath s(e,\alpha)$ the  scalar invariants of $s$
 
 ---
@@ -211,8 +211,6 @@ $$
     4) a finishing rule compatible with the implicit third stage; i.e.</br> $U^{n+1} = W_3 \iff \bar{B}_2 = \bar{\mathbf{A}}^\mathrm{im} [0, 0, 1]^\mathrm{T}$.
 - Keep open the values of $\bar{B}$ in the hope of generating different schemes that re-use $\bar{W}$.
 
-<!--[TODO: Laudable properties of TR-BDF2].-->
-
 ---
 # Additive IMEX Runge-Kutta methods
 
@@ -273,7 +271,7 @@ $$
 $$
     \begin{align*}
         \mathrm{exp}(\zeta^\mathrm{im} + \zeta^\mathrm{ex}) - P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) &= \mathcal{O}(\zeta_\mathrm{im} + \zeta_\mathrm{ex})^3\\
-            &= \mathcal{O}(\zeta_\mathrm{im}^3) + \mathcal{O}(\zeta_\mathrm{im}^2) + \mathcal{O}(\zeta_\mathrm{im} \zeta_\mathrm{ex}^2) + \mathcal{O}(\zeta_\mathrm{ex}^3)
+            &= \mathcal{O}(\zeta_\mathrm{im}^3) + \mathcal{O}(\zeta_\mathrm{im}^2 \zeta_\mathrm{ex}) + \mathcal{O}(\zeta_\mathrm{im} \zeta_\mathrm{ex}^2) + \mathcal{O}(\zeta_\mathrm{ex}^3)
     \end{align*}
 $$
 

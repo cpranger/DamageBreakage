@@ -39,14 +39,14 @@ using Traceur
 function lid_driven(rank, bolicity, imex, p, ax; duration = 1., rtol = 1e-4, atol = 1e-4)
 	if     rank == :scalar
 		u =  Field(p.n, div_stags)
-		v = Vector(p.n, motion_stags)
+		v = Tensor(p.n, motion_stags)
 		
 		bc = (u; static = false) -> lid_bc(static, 1/p.h)(u)
 		
 		w = v -> v
 		_grad = grad
 	elseif rank == :vector
-		u = Vector(p.n, motion_stags)
+		u = Tensor(p.n, motion_stags)
 		v = Tensor(p.n, Symmetric, strain_stags)
 		
 		bc = (u; static = false) -> (;

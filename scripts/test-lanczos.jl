@@ -46,9 +46,9 @@ function test_mode(x, y, p)
 end
 
 function test_s_mode(x, y, p, bc)
-	v0 = Vector(p.n, motion_stags)
-	v1 = Vector(p.n, motion_stags)
-	w  = Vector(p.n, motion_stags)
+	v0 = Tensor(p.n, motion_stags)
+	v1 = Tensor(p.n, motion_stags)
+	w  = Tensor(p.n, motion_stags)
 	
 	assign!((v0, bc.v), (
 		x = fieldgen((_...) -> rand()),
@@ -66,9 +66,9 @@ function test_s_mode(x, y, p, bc)
 end
 
 function test_p_mode(x, y, p, bc)
-	v0 = Vector(p.n, motion_stags)
-	v1 = Vector(p.n, motion_stags)
-	w  = Vector(p.n, motion_stags)
+	v0 = Tensor(p.n, motion_stags)
+	v1 = Tensor(p.n, motion_stags)
+	w  = Tensor(p.n, motion_stags)
 	
 	assign!((v0, bc.v), (
 		x = fieldgen((_...) -> rand()),
