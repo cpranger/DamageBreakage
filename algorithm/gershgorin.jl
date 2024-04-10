@@ -1,34 +1,29 @@
 # assumes block matrix in which each block is diagonal
 # used for computing the eigenvalues of the explicit submatrix
-function gershgorin!(A, h) # two vectors needed
-	(x, d) = h
+function gershgorin!(A, h) # three vectors needed
+	(x, o, r) = h
 	
 	assign!(x, 0*x)
 	
-	Λ = [Inf, -Inf]
+	result = []
+
 	indices = eachindex(x)
 	for self in indices
 		others = filter(p -> p != self, indices)
 
 		assign!(x[self], 1)
-		assign!(d[self], A(x)[self])
+		assign!(o[self], A(x)[self])
 		assign!(x[self], 0)
+		
 		for other in others
 			assign!(x[other], 1)
-			assign!(d[self],  d[self] - abs(A(x)[self]))
+			assign!(r[self], abs(A(x)[self]))
 			assign!(x[other], 0)
 		end
-		Λ[1] = min(Λ[1], min(d[self]))
+		l = min(o[self] - r[self])
+		u = max(o[self] + r[self])
 
-		assign!(x[self], 1)
-		assign!(d[self], A(x)[self])
-		assign!(x[self], 0)
-		for other in others
-			assign!(x[other], 1)
-			assign!(d[self],  d[self] + abs(A(x)[self]))
-			assign!(x[other], 0)
-		end
-		Λ[2] = max(Λ[2], max(d[self]))
+		push!(result, (; o = (u + l)/2, r = (u - l)/2))
 	end
-	return Λ
+	return result
 end

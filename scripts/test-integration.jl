@@ -5,18 +5,16 @@ include("./header.jl")
 using StaggeredKernels.Plane
 
 function display_2d(ax, intg::tr_bdf2{Intg_})
-	plt1 = heatmap(ax..., intg.y,    "y",    c = :davos)
-	plt2 = heatmap(ax..., intg.e_ex, "e_ex", c = :davos)
-	plt3 = heatmap(ax..., intg.e_im, "e_im", c = :davos)
-	plt  = plot(plt1, plt2, plt3; layout = (3,1))
+	plt1 = heatmap(ax..., intg.y, "y", c = :davos)
+	plt2 = heatmap(ax..., intg.e, "e", c = :davos)
+	plt  = plot(plt1, plt2; layout = (2,1))
 	display(plt)
 end
 
 function display_2d(ax, intg::tr_bdf2{Intg_SCR})
 	plt1 = heatmap(ax..., intg.y[1], "y", c = :davos)
-	plt2 = heatmap(ax..., intg.e_ex[1], "e_ex", c = :davos)
-	plt3 = heatmap(ax..., intg.e_im[1], "e_im", c = :davos)
-	plt  = plot(plt1, plt2, plt3; layout = (3,1))
+	plt2 = heatmap(ax..., intg.e[1], "e", c = :davos)
+	plt  = plot(plt1, plt2; layout = (2,1))
 	display(plt)
 end
 
@@ -111,9 +109,9 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 1., rtol = 1e-4, ato
 	
 	k = 1
 	while intg.t[] < duration
-		(ε_ex, ε_im) = step!(intg; rtol = rtol, atol = atol, newton_maxit = 3, newton_rtol = 1e-6, quiet = true, ρ_ex = ρ_ex)
+		ε = step!(intg; rtol = rtol, atol = atol, newton_maxit = 3, newton_rtol = 1e-6, quiet = false, ρ_ex = ρ_ex)
 		
-		println("STEP $k, t = $(intg.t[]), dt = $(intg.dt[]), ε_ex,im = $((ε_ex, ε_im))")
+		println("STEP $k, t = $(intg.t[]), dt = $(intg.dt[]), ε = $ε")
 		
 		mod(k, 20) == 0 && display_2d(ax, intg); k += 1
 	end
@@ -122,11 +120,10 @@ end
 using OffsetArrays
 
 function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 0., atol = 0.)
-	t       = OffsetArray(zeros(nsteps+1), 0:nsteps)
-	x       = OffsetArray(zeros(nsteps+1), 0:nsteps)
-	y       = OffsetArray(zeros(nsteps+1), 0:nsteps)
-	ε_expl  = OffsetArray(zeros(nsteps  ), 1:nsteps)
-	ε_impl  = OffsetArray(zeros(nsteps  ), 1:nsteps)
+	t = OffsetArray(zeros(nsteps+1), 0:nsteps)
+	x = OffsetArray(zeros(nsteps+1), 0:nsteps)
+	y = OffsetArray(zeros(nsteps+1), 0:nsteps)
+	ε = OffsetArray(zeros(nsteps  ), 1:nsteps)
 	
 	X = Field((1,), ((1,),))
 	Y = Field((1,), ((1,),))
@@ -151,8 +148,6 @@ function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 0., atol =
 
 	intg = tr_bdf2(Intg_SCR, (X, Y), f_ex = f_ex, f_im = f_im)
 
-	ρ_ex = abs <| gershgorin!(linearize(f_ex, (X, Y)), intg.g)[1]
-	
 	k    = 0
 	t[k] = 0.
 	x[k] = X.data[1]
@@ -162,28 +157,25 @@ function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 0., atol =
 	while k < nsteps && t[k] < duration
 		k += 1
 		
-		ρ_ex = abs <| gershgorin!(linearize(f_ex, (X, Y)), intg.g)[1]
-		
 		# step computes dimensionless error
-		(ε_expl[k], ε_impl[k]) = step!(intg; rtol = rtol, atol = atol, newton_maxit = 30, newton_rtol = 1e-6, quiet = true, ρ_ex = ρ_ex)
+		ε[k] = step!(intg; rtol = rtol, atol = atol, newton_maxit = 30, newton_rtol = 1e-6, quiet = true)
 		t[k] = intg.t[]
 		x[k] = X.data[1]
 		y[k] = Y.data[1]
 		
-		println("t = $(t[k]), dt = $(t[k]-t[k-1]), ε = ($(ε_expl[k]), $(ε_impl[k]))")
+		println("t = $(t[k]), dt = $(t[k]-t[k-1]), ε = $(ε[k])")
 
 		mod(k, 20) == 0 && display <| plot(
-			plot(t[0:k], [x[0:k]  y[0:k]] ; label=["x (-)" "y (-)"]),
-			plot(t[1:k], [log10.(diff(t[0:k])) log10.(ε_expl[1:k]) log10.(ε_impl[1:k])]; label=["log₁₀ dt (-)" "log₁₀ ε_ex (-)" "log₁₀ ε_im (-)"]),
+			plot(t[0:k], [y[0:k] x[0:k]] ; label=["y (-)" "x (-)"]),
+			plot(t[1:k], [log10.(diff(t[0:k])) log10.(ε[1:k])]; label=["log₁₀ dt (-)" "log₁₀ ε (-)"]),
 			; layout = (2,1)
 		)
 	end
 end
 
 function brusselator_diffusion(p, ax; a, b, x_0, y_0, Dx, Dy, nsteps, duration, rtol = 0., atol = 0.)
-	t       = OffsetArray(zeros(nsteps+1), 0:nsteps)
-	ε_expl  = OffsetArray(zeros(nsteps  ), 1:nsteps)
-	ε_impl  = OffsetArray(zeros(nsteps  ), 1:nsteps)
+	t = OffsetArray(zeros(nsteps+1), 0:nsteps)
+	ε = OffsetArray(zeros(nsteps  ), 1:nsteps)
 	
 	x = Field(p.n, div_stags)
 	y = Field(p.n, div_stags)
@@ -212,18 +204,16 @@ function brusselator_diffusion(p, ax; a, b, x_0, y_0, Dx, Dy, nsteps, duration, 
 	while k < nsteps && t[k] < duration
 		k += 1
 
-		ρ_ex = abs <| gershgorin!(linearize(f_ex, (x, y)), intg.h[1:2])[1]
-		
 		# step, computes dimensionless error measure
-		(ε_expl[k], ε_impl[k]) = step!(intg; rtol = rtol, atol = atol, newton_maxit = 30, newton_rtol = 1e-5, quiet = true, ρ_ex = ρ_ex)
+		ε[k] = step!(intg; rtol = rtol, atol = atol, newton_maxit = 30, newton_rtol = 1e-5, quiet = true)
 		t[k] = intg.t[]
 		
-		println("t = $(t[k]), dt = $(t[k]-t[k-1]), ε = ($(ε_expl[k]), $(ε_impl[k]))")
+		println("t = $(t[k]), dt = $(t[k]-t[k-1]), ε = $(ε[k])")
 
 		mod(k, 20) == 0 && display <| plot(
-			plot(heatmap(ax..., intg.y[1],      "x", c = :davos), heatmap(ax..., intg.y[2],      "y", c = :davos); layout = (1,2)),
-			plot(heatmap(ax..., intg.e_ex[1], "e_x", c = :davos), heatmap(ax..., intg.e_ex[2], "e_y", c = :davos); layout = (1,2)),
-			plot(t[1:k], [log10.(diff(t[0:k])) log10.(ε_expl[1:k]) log10.(ε_impl[1:k])]; label=["log₁₀ dt (-)" "log₁₀ ε_ex (-)" "log₁₀ ε_im (-)"]),
+			plot(heatmap(ax..., intg.y[2],   "y", c = :davos), heatmap(ax..., intg.y[1],   "x", c = :davos); layout = (1,2)),
+			plot(heatmap(ax..., intg.e[2], "e_y", c = :davos), heatmap(ax..., intg.e[1], "e_x", c = :davos); layout = (1,2)),
+			plot(t[1:k], [log10.(diff(t[0:k])) log10.(ε[1:k])]; label=["log₁₀ dt (-)" "log₁₀ ε (-)"]),
 			; layout = (3,1)
 		)
 	end
@@ -270,9 +260,16 @@ function main()
 	assign!(ax[1], fieldgen(i -> i*p.h - 0.5))
 	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
+	lid_driven(:scalar, :hyperbolic, :explicit, p, ax)
 	# lid_driven(:scalar, :hyperbolic, :implicit, p, ax)
-	brusselator_diffusion(p, ax; a = 1, b = 3, x_0 = 1, y_0 = 1, Dx = 0.2, Dy = 0.02, nsteps = 30000, duration = Inf, rtol = 1e-3)
-	# brusselator(; imex = :explicit, a = 1, b = 3, x_0 = 1.5, y_0 = 1.5, nsteps = 30000, duration = 30, rtol = 1e-5)
+	# lid_driven(:scalar, :parabolic,  :explicit, p, ax)
+	# lid_driven(:scalar, :parabolic,  :implicit, p, ax)
+	# lid_driven(:vector, :hyperbolic, :explicit, p, ax)
+	# lid_driven(:vector, :hyperbolic, :implicit, p, ax)
+	# lid_driven(:vector, :parabolic,  :explicit, p, ax)
+	# lid_driven(:vector, :parabolic,  :implicit, p, ax)
+	# brusselator_diffusion(p, ax; a = 1, b = 3, x_0 = 1, y_0 = 1, Dx = 0.2, Dy = 0.02, nsteps = 30000, duration = Inf, rtol = 1e-3)
+	# brusselator(; imex = :explicit, a = 1, b = 3, x_0 = 1.5, y_0 = 1.5, nsteps = 30000, duration = 30, rtol = 1e-6)
 	
 	"finished!"
 end
