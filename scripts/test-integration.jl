@@ -7,14 +7,14 @@ using StaggeredKernels.Plane
 function display_2d(ax, intg::tr_bdf2{Intg_})
 	plt1 = heatmap(ax..., intg.y, "y", c = :davos)
 	plt2 = heatmap(ax..., intg.e, "e", c = :davos)
-	plt  = plot(plt1, plt2; layout = (2,1))
+	plt  = plot(plt1, plt2; layout = (1,2))
 	display(plt)
 end
 
 function display_2d(ax, intg::tr_bdf2{Intg_SCR})
 	plt1 = heatmap(ax..., intg.y[1], "y", c = :davos)
 	plt2 = heatmap(ax..., intg.e[1], "e", c = :davos)
-	plt  = plot(plt1, plt2; layout = (2,1))
+	plt  = plot(plt1, plt2; layout = (1,2))
 	display(plt)
 end
 
@@ -34,7 +34,7 @@ zero_bc(s #=true for static=#) = u -> (
 
 using Traceur
 
-function lid_driven(rank, bolicity, imex, p, ax; duration = 1., rtol = 1e-4, atol = 1e-4)
+function lid_driven(rank, bolicity, imex, p, ax; duration = 1., rtol = 1e-2, atol = 1e-4)
 	if     rank == :scalar
 		u =  Field(p.n, div_stags)
 		v = Tensor(p.n, motion_stags)
@@ -109,7 +109,7 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 1., rtol = 1e-4, ato
 	
 	k = 1
 	while intg.t[] < duration
-		ε = step!(intg; rtol = rtol, atol = atol, newton_maxit = 3, newton_rtol = 1e-6, quiet = false, ρ_ex = ρ_ex)
+		ε = step!(intg; rtol = rtol, atol = atol, newton_maxit = 3, newton_rtol = 1e-6, quiet = true, ρ_ex = ρ_ex)
 		
 		println("STEP $k, t = $(intg.t[]), dt = $(intg.dt[]), ε = $ε")
 		
@@ -260,7 +260,7 @@ function main()
 	assign!(ax[1], fieldgen(i -> i*p.h - 0.5))
 	assign!(ax[2], fieldgen(i -> i*p.h - 0.5))
 	
-	lid_driven(:scalar, :hyperbolic, :explicit, p, ax)
+	# lid_driven(:scalar, :hyperbolic, :explicit, p, ax)
 	# lid_driven(:scalar, :hyperbolic, :implicit, p, ax)
 	# lid_driven(:scalar, :parabolic,  :explicit, p, ax)
 	# lid_driven(:scalar, :parabolic,  :implicit, p, ax)
@@ -269,9 +269,7 @@ function main()
 	# lid_driven(:vector, :parabolic,  :explicit, p, ax)
 	# lid_driven(:vector, :parabolic,  :implicit, p, ax)
 	# brusselator_diffusion(p, ax; a = 1, b = 3, x_0 = 1, y_0 = 1, Dx = 0.2, Dy = 0.02, nsteps = 30000, duration = Inf, rtol = 1e-3)
-	# brusselator(; imex = :explicit, a = 1, b = 3, x_0 = 1.5, y_0 = 1.5, nsteps = 30000, duration = 30, rtol = 1e-6)
-	
-	"finished!"
+	brusselator(; imex = :explicit, a = 1, b = 3, x_0 = 1.5, y_0 = 1.5, nsteps = 30000, duration = 30, rtol = 1e-3)
 end
 
 # see https://stackoverflow.com/a/63385854

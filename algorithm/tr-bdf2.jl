@@ -37,6 +37,7 @@ tr_bdf2_data(                  y                              ) = (; y = y, e = 
 tr_bdf2_data(::Type{Intg_},    y                              ) = (; tr_bdf2_data(y)..., h = [deepcopy(y)    for _ in 1:7],                                                                            g = [])
 tr_bdf2_data(::Type{Intg_SCR}, y::Tuple                       ) = (; tr_bdf2_data(y)..., h = [deepcopy(y[1]) for _ in 1:7],                                                                            g = [deepcopy(y)           for _ in 1:2])
 tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:v, :e, :α)}    ) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
+tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:v, :e, :α)}    ) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
 tr_bdf2_data(::Type{Intg_DBR}, y::NamedTuple{(:v, :e, :α, :β)}) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7], β = [deepcopy(y.β) for _ in 1:7]), g = [deepcopy((; e = y.e)) for _ in 1:2])
 
 tr_bdf2_funcs(f_im, f_ex, data, dt::FieldVal) = (
@@ -111,39 +112,6 @@ tr_bdf2_error(f_ex, f_im, w_1, w_4, y, dt) = (12 + 8sqrt2) * (y - w_1 - dt * (
 ))
 
 
-# err_lhs(f_im, dt) = w -> w - dt * .5 * f_im(w)
-
-# err_rhs(f_ex, f_im, w_1, w_2, w_3, dt) = w_1 + dt * (
-# 	(5/6 - sqrt2/12) * f_ex(w_1) + .5 * f_im(w_1) +
-# 	(1/6 + sqrt2/12) * f_ex(w_2) - w_3
-# )
-
-
-# tr_bdf2_lhs(f_im, dt) = w -> w - dt * (1/1-sqrt(2)/2) * f_im(w)
-
-# tr_bdf2_stage_2_rhs(f_ex, f_im, y, w_1, w_2, dt) = y + dt * (
-# 	(1/2-sqrt(2)/3) * f_ex(w_1) + (sqrt(2)/4) * f_im(w_1)
-#   + (1/2+sqrt(2)/3) * f_ex(w_2) + (sqrt(2)/4) * f_im(w_2)
-# )
-
-# tr_bdf2_impl_err_rhs(f_im, w_1, w_2, w_3, dt) = dt * (
-# 	( 1/3-sqrt(2)/3) * f_im(w_1)
-#   + ( 1/3          ) * f_im(w_2)
-#   + (-2/3+sqrt(2)/3) * f_im(w_3)
-# )
-
-# tr_bdf2_expl_err(f_ex, w_1, w_2, w_3, dt) = dt * (
-# 	( 1/2-sqrt(2)/2) * f_ex(w_1)
-#   + ( 1/2          ) * f_ex(w_2)
-#   + (-1/1+sqrt(2)/2) * f_ex(w_3)
-# )
-
-# tr_bdf2_update(f_ex, f_im, w_1, w_2, w_3, dt) = w_1 + dt * (
-# 	(    sqrt(2)/4)*(f_im(w_1) + f_ex(w_1))
-#   + (    sqrt(2)/4)*(f_im(w_2) + f_ex(w_2))
-#   + (1/1-sqrt(2)/2)*(f_im(w_3) + f_ex(w_3))
-# )
-
 function init!(i::tr_bdf2{Intg_}, func; newton_maxit, newton_rtol, quiet = false)
 	null = 0 * i.y
 	assign!(i.y, func(null))
@@ -151,9 +119,14 @@ function init!(i::tr_bdf2{Intg_}, func; newton_maxit, newton_rtol, quiet = false
 end
 
 function init_stepsize!(i::tr_bdf2; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, ρ_ex = Inf)
+	
+	println("Calibrating step size...")
+	
+	i.dt[] == Inf && (i.dt[] = 100) # a large number
+	
 	dt = i.dt[]
 	t  = i.t[]
-	for _ in 1:10
+	for _ in 1:20
 		i.dt[] = dt
 		η = step!(i,
 			rtol = rtol,
@@ -165,10 +138,12 @@ function init_stepsize!(i::tr_bdf2; rtol, atol = 0, newton_maxit, newton_rtol, q
 		)
 		i.t[]  = t
 		assign!(i.y, i.w_1)
-		#=quiet ||=# println("dt = $dt: η = $η")
+		quiet || println("dt = $dt: η = $η")
 		abs(max(η...) - 1) < .1 && break
 		dt /= sqrt(max(η...))
 	end
+
+	println("Finished calibrating step size; dt = $dt")
 
 	i.dt[] = dt
 	return dt
@@ -236,7 +211,6 @@ function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, qui
 
 	return η
 end
-
 
 function init!(i::tr_bdf2{Intg_SCR}, func; newton_maxit, newton_rtol, quiet = false)
 	null = 0 .* i.y
@@ -309,6 +283,7 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 	return η
 end
 
+# Can also be used for breakage only
 function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, quiet = false, growth = 1.15, ρ_ex = Inf)
 	
 	do_init = (i.dt[] == Inf)
@@ -319,7 +294,7 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 		ρ_ex = max(map(c -> abs(c.o .- c.r), circles)...)
 	end
 
-	i.dt[] = min(i.dt[], 3/sqrt2/ρ_ex)
+	i.dt[] = min(i.dt[], 0.2 * 3/sqrt2/ρ_ex)
 	
 	do_init && init_stepsize!(i;
 		rtol = rtol,
@@ -341,7 +316,7 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.tr1_lhs((v, e, i.y[3]),)[1:2], i.w_2[2])
 		newtonit!(elastic, i.w_2[1], i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 		
-		quiet || println("damage:")
+		quiet || println("damage or breakage:")
 		damage  = α -> i.rhs[3] - i.tr1_lhs((i.y[1], i.y[2], α),)[3]
 		newtonit!(damage, i.w_2[3], i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	end
@@ -355,7 +330,7 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.bdf2_lhs((v, e, i.y[3]),)[1:2], i.w_3[2])
 		newtonit!(elastic, i.w_3[1], i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 		
-		quiet || println("damage:")
+		quiet || println("damage or breakage:")
 		damage  = α -> i.rhs[3] - i.bdf2_lhs((i.y[1], i.y[2], α),)[3]
 		newtonit!(damage,  i.w_3[3], i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	end
@@ -369,7 +344,7 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 		elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.tr2_lhs((v, e, i.y[3]),)[1:2], i.w_4[2])
 		newtonit!(elastic, i.w_4[1], i.h.v[1], i.h.v[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 		
-		quiet || println("damage:")
+		quiet || println("damage or breakage:")
 		damage  = α -> i.rhs[3] - i.tr2_lhs((i.y[1], i.y[2], α),)[3]
 		newtonit!(damage,  i.w_4[3], i.h.α[1], i.h.α[2:end]; maxit = newton_maxit, rtol = newton_rtol, quiet = quiet)
 	end
@@ -384,7 +359,7 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, q
 
 	η = l2(i.e) / (rtol * l2(i.y) + atol)
 
-	quiet || println("t = $(i.t[]), dt = $(i.dt[]), η = $η")
+	(quiet && false) || println("t = $(i.t[]), dt = $(i.dt[]), η = $η")
 	
 	i.dt[] = min(1/sqrt(max(η...)), growth) * i.dt[]
 
