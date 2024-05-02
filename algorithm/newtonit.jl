@@ -42,29 +42,41 @@ function newton_update!(x, dx, s::SchurComplement; h = eps(Float32))
 	assign!(s.y, s.y + dy)
 end
 
-function newtonit!(f, u, r, h; maxit, rtol, quiet = false)
+function newtonit!(f, u, r, h; maxit, rtol, cg_maxit, cg_rtol)
 	maxit > 0 || return
 	
 	v = h[1]
-	# newton_update!(u, 0*u, f)
+	newton_update!(u, 0*u, f)
 	
 	assign!(r, f(u))
 	norm0 = norm = l2(r)
 	norm > 10*eps(norm) || return
-	quiet || println("Newton i = 0, ||r|| = $norm")
+	@algo_step @verbo_println("Newton 0, log10‖r_0‖ = $(log10(norm))")
 	
-    for i in 1:maxit
+	rnorm = Inf
+	xnorm = Inf
+
+	i = 1
+    @algo_step for outer i in 1:maxit
 		A = linearize(f, u)
 		
-		(_, _, ε) = cg_pc_jacobi!(A, v, -r; h = h[2:end], rtol = 1e-1, minit = 20, maxit = 100, quiet = quiet)
+		(_, _, ε) = cg_pc_jacobi!(A, v, -r; h = h[2:end], rtol = cg_rtol, minit = 20, maxit = cg_maxit)
 		
 		newton_update!(u, v, f)
 
 		assign!(r, f(u))
 		rnorm = l2(r) / norm0
 		xnorm = l2(v) / l2(u)
-		quiet || println("Newton log10‖r_$(i)‖/‖r_0‖ = $(log10(rnorm)), log10‖Δx_$(i)‖/‖x_$(i+1)‖ = $(log10(xnorm))")
+		@verbo_println("Newton $i, log10‖r_$(i)‖/‖r_0‖ = $(log10(rnorm))") # , log10‖Δx_$(i)‖/‖x_$(i+1)‖ = $(log10(xnorm))
 		
-		rnorm < rtol && xnorm < rtol && break
+		if rnorm < rtol#= && xnorm < rtol=#
+			@verbo_println("Newton converged in $i its.")
+			flush(out)
+			break
+		end
+	end
+	
+	if i == maxit && (rnorm >= rtol#= || xnorm >= rtol=#)
+		@algo_step @verbo_println("Newton failed to converge in $i iterations.")
 	end
 end

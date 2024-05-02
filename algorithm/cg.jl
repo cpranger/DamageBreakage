@@ -1,6 +1,6 @@
 using OffsetArrays
 
-function lanczos!(A; h, maxit, minit = 10, quiet = false, λtol)
+function lanczos!(A; h, maxit, minit = 10, λtol)
 	(v_0, v_1, v_2, u) = h
 
 	γ = OffsetArray(zeros(maxit),    1:maxit)
@@ -47,7 +47,7 @@ pc_jacobi_apply(a::Tuple,  b) = a*b
 pc_jacobi_apply(a::Tensor, b) = StaggeredKernels.TensorOp(:*, a, b)
 pc_jacobi_apply(a::Field,  b) = StaggeredKernels.ScalarOp(:*, a, b)
 
-function cg_pc_jacobi!(A::AA, x::X, b::B; h::H, rtol, maxit, minit, quiet = false, λtol = rtol/10) where {AA, X, B, H}
+function cg_pc_jacobi!(A::AA, x::X, b::B; h::H, rtol, maxit, minit, λtol = rtol) where {AA, X, B, H}
 	# after http://www.math.iit.edu/~fass/477577_Chapter_16.pdf
 	# with embedded Lanczos process from TODO
 
@@ -85,7 +85,7 @@ function cg_pc_jacobi!(A::AA, x::X, b::B; h::H, rtol, maxit, minit, quiet = fals
 	λf  = maxit
 	
 	k = 1
-	for outer k in 1:maxit
+	@algo_step for outer k in 1:maxit
 		assign!(Ap, A(p))
 		pAp = dot(p, Ap)
 		abs(pAp) > 10*eps(pAp) || break
@@ -95,6 +95,7 @@ function cg_pc_jacobi!(A::AA, x::X, b::B; h::H, rtol, maxit, minit, quiet = fals
 		α[-1] = rz[ 0] / pAp
 		# update the approximate solution
 		assign!(x, x + α[-1] * p)
+		# typeof(x) <: Tensor{Unsymmetric{1}} && display <| plot(x.y.data[1,1:end])
 		# update the residual
 		assign!(r, r - α[-1] * Ap)
 		assign!(z, M⁻¹(r))
@@ -144,15 +145,21 @@ function cg_pc_jacobi!(A::AA, x::X, b::B; h::H, rtol, maxit, minit, quiet = fals
 		k == 1 && (ε[1] = ε[end])
 		
 		if  k <= λf || mod(k, 10) == 0
-			k <= λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[end])), λ = $(λ[0]*m), Λ = $(Λ[0]*M), λres = $Λres")
-			k >  λf && !quiet && println("cg: k = $k, log10(εr) = $(log10(ε[end]))")
+			k <= λf && @verbo_println("cg $k, log10(εr) = $(log10(ε[end])), λ = $(λ[0]*m), Λ = $(Λ[0]*M), log10(λres) = $(log10(Λres))")
+			k >  λf && @verbo_println("cg $k, log10(εr) = $(log10(ε[end]))")
 		end
 		
-		k > minit && ε[end] < rtol &&
-			(!quiet && println("cg: k = $k, log10(εr) = $(log10(ε[end]))"); break)
+		if k > minit && ε[end] < rtol
+			mod(k, 10) != 0 && @verbo_println("cg $k, log10(εr) = $(log10(ε[end]))")
+			break
+		end
 	end
 
-	k == maxit && ε[end] >= rtol && !quiet && println("cg failed to converge in $k iterations")
+	if k == maxit && ε[end] >= rtol
+		mod(k, 10) != 0 && @algo_step @verbo_println("cg $k, log10(εr) = $(log10(ε[end]))")
+		@algo_step @verbo_error("cg failed to converge in $k iterations")
+		# @algo_step @verbo_println("cg failed to converge in $k iterations")
+	end
 
 	return (λ[0]*m, Λ[0]*M, ε[end])
 end

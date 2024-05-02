@@ -27,3 +27,4 @@ algorithm/cg-petsc.jl
 paper/.ipynb_checkpoints/*
 *.key
 *.pdf
+out.txt

@@ -109,9 +109,17 @@ function lid_driven(rank, bolicity, imex, p, ax; duration = 1., rtol = 1e-2, ato
 	
 	k = 1
 	while intg.t[] < duration
-		ε = step!(intg; rtol = rtol, atol = atol, newton_maxit = 3, newton_rtol = 1e-6, quiet = true, ρ_ex = ρ_ex)
-		
-		println("STEP $k, t = $(intg.t[]), dt = $(intg.dt[]), ε = $ε")
+		ε = step!(intg;
+			rtol = rtol,
+			atol = atol,
+			newton_maxit = 3,
+			newton_rtol = 1e-6,
+			cg_maxit = Int(sqrt(sum(p.n.^2))),
+			cg_rtol = 1e-7,
+			growth = 1.2,
+			safety = 0.2,
+			ρ_ex = ρ_ex
+		)
 		
 		mod(k, 20) == 0 && display_2d(ax, intg); k += 1
 	end
@@ -158,12 +166,19 @@ function brusselator(; imex, a, b, x_0, y_0, nsteps, duration, rtol = 0., atol =
 		k += 1
 		
 		# step computes dimensionless error
-		ε[k] = step!(intg; rtol = rtol, atol = atol, newton_maxit = 30, newton_rtol = 1e-6, quiet = true)
+		ε[k] = step!(intg;
+			rtol = rtol,
+			atol = atol,
+			newton_maxit = 30,
+			newton_rtol = 1e-6,
+			growth = 1.2,
+			safety = 0.2
+		)
 		t[k] = intg.t[]
 		x[k] = X.data[1]
 		y[k] = Y.data[1]
 		
-		println("t = $(t[k]), dt = $(t[k]-t[k-1]), ε = $(ε[k])")
+		# println("t = $(t[k]), dt = $(t[k]-t[k-1]), ε = $(ε[k])")
 
 		mod(k, 20) == 0 && display <| plot(
 			plot(t[0:k], [y[0:k] x[0:k]] ; label=["y (-)" "x (-)"]),
@@ -240,6 +255,9 @@ function parameters(; nb)
 end
 
 function main()
+	global algo_depth = 0 # reset just in case
+    global verbosity = 3
+
 	s = ArgParseSettings()
 	
 	@add_arg_table s begin
@@ -265,11 +283,11 @@ function main()
 	# lid_driven(:scalar, :parabolic,  :explicit, p, ax)
 	# lid_driven(:scalar, :parabolic,  :implicit, p, ax)
 	# lid_driven(:vector, :hyperbolic, :explicit, p, ax)
-	# lid_driven(:vector, :hyperbolic, :implicit, p, ax)
+	lid_driven(:vector, :hyperbolic, :implicit, p, ax)
 	# lid_driven(:vector, :parabolic,  :explicit, p, ax)
 	# lid_driven(:vector, :parabolic,  :implicit, p, ax)
 	# brusselator_diffusion(p, ax; a = 1, b = 3, x_0 = 1, y_0 = 1, Dx = 0.2, Dy = 0.02, nsteps = 30000, duration = Inf, rtol = 1e-3)
-	brusselator(; imex = :explicit, a = 1, b = 3, x_0 = 1.5, y_0 = 1.5, nsteps = 30000, duration = 30, rtol = 1e-3)
+	# brusselator(; imex = :explicit, a = 1, b = 3, x_0 = 1.5, y_0 = 1.5, nsteps = 30000, duration = 30, rtol = 1e-3)
 end
 
 # see https://stackoverflow.com/a/63385854
