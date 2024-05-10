@@ -27,8 +27,8 @@ struct tr_bdf2{T <: IntgType}
 	tr2_lhs
 	tr2_rhs
 	update_y
-	update_e
-	update_e_ex
+	err_im
+	err_ex
 	imex
 	t::FieldVal
 	dt::FieldVal
@@ -39,20 +39,19 @@ end
 tr_bdf2_data(                  y                              ) = (; y = y, e = deepcopy(y), w_1 = deepcopy(y), w_2 = deepcopy(y), w_3 = deepcopy(y), w_4 = deepcopy(y), rhs = deepcopy(y))
 tr_bdf2_data(::Type{Intg_},    y                              ) = (; tr_bdf2_data(y)...,         h = [deepcopy(y)    for _ in 1:7],                                                                            g = [])
 tr_bdf2_data(::Type{Intg_SCR}, y::Tuple                       ) = (; tr_bdf2_data(y)...,         h = [deepcopy(y[1]) for _ in 1:7],                                                                            g = [deepcopy(y)           for _ in 1:2])
-tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:v, :e, :α)}    ) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
-tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:v, :e, :α)}    ) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
+tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:u, :v, :e, :α)}) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
 tr_bdf2_data(::Type{Intg_DBR}, y::NamedTuple{(:v, :e, :α, :β)}) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7], β = [deepcopy(y.β) for _ in 1:7]), g = [deepcopy((; e = y.e)) for _ in 1:2])
 
-tr_bdf2_funcs(f_im, f_ex, data, dt::FieldVal) = (
-	                                    tr1_lhs(      f_im,                                         dt),
-	prepare_assignment(data.w_1,        tr1_rhs(f_ex, f_im, data.w_1,                               dt)),
-	                                   bdf2_lhs(      f_im,                                         dt),
-	prepare_assignment(data.w_1,       bdf2_rhs(f_ex, f_im, data.w_1, data.w_2,                     dt)),
-	                                    tr2_lhs(      f_im,                                         dt),
-	prepare_assignment(data.w_1,        tr2_rhs(f_ex, f_im, data.w_1, data.w_2,                     dt)),
-	prepare_assignment(data.w_1, tr_bdf2_update(f_ex, f_im, data.w_1, data.w_2, data.w_3,           dt)),
-	prepare_assignment(data.w_1, tr_bdf2_error( f_ex, f_im, data.w_1, data.w_2, data.w_3, data.w_4, dt)),
-	prepare_assignment(data.w_1, tr_bdf2_err_ex(f_ex,       data.w_1, data.w_2, data.w_3, data.w_4, dt))
+tr_bdf2_funcs(f_im, f_ex, data, t::FieldVal, dt::FieldVal) = (
+	                                    tr1_lhs(      f_im,                                         t, dt),
+	prepare_assignment(data.w_1,        tr1_rhs(f_ex, f_im, data.w_1,                               t, dt)),
+	                                   bdf2_lhs(      f_im,                                         t, dt),
+	prepare_assignment(data.w_1,       bdf2_rhs(f_ex, f_im, data.w_1, data.w_2,                     t, dt)),
+	                                    tr2_lhs(      f_im,                                         t, dt),
+	prepare_assignment(data.w_1,        tr2_rhs(f_ex, f_im, data.w_1, data.w_2,                     t, dt)),
+	prepare_assignment(data.w_1, tr_bdf2_update(f_ex, f_im, data.w_1, data.w_2, data.w_3,           t, dt)),
+	prepare_assignment(data.w_1,  tr_bdf2_error(      f_im, data.w_1, data.w_2, data.w_3, data.w_4, t, dt)),
+	prepare_assignment(data.w_1,  tr_bdf2_error(f_ex,       data.w_1, data.w_2, data.w_3, data.w_4, t, dt))
 )
 
 imex(f_im, f_ex) = (;
@@ -60,7 +59,7 @@ imex(f_im, f_ex) = (;
 	ex = typeof(f_ex) != typeof(nullfunc)
 )
 
-tr_bdf2(type, y; f_ex = nullfunc, f_im = nullfunc, dt = Ref(Inf), dt_ = Ref(0.), t = Ref(0.), k = Ref(0)) = tr_bdf2_(;
+tr_bdf2(type, y; f_ex = nullfunc, f_im = nullfunc, dt = Ref(Inf), dt_ = Ref(0.), t = Ref(BigFloat(0.)), k = Ref(0)) = tr_bdf2_(;
 	type = type,
 	f_ex = f_ex,
 	f_im = f_im, 
@@ -75,7 +74,7 @@ tr_bdf2_(; type, f_ex, f_im, data, t, dt, dt_, k) = tr_bdf2__(;
 	f_ex  = f_ex,
 	f_im  = f_im, 
 	data  = data,
-	funcs = tr_bdf2_funcs(f_im, f_ex, data, FieldVal(dt)),
+	funcs = tr_bdf2_funcs(f_im, f_ex, data, FieldVal(t), FieldVal(dt)),
 	imex  = imex(f_im, f_ex),
 	k     = k,
 	dt    = dt,
@@ -86,45 +85,38 @@ tr_bdf2__(      ; type, f_im, f_ex, data, funcs, imex, t, dt, dt_, k) = tr_bdf2{
 
 global const sqrt2 = sqrt(2)
 
-tr1_lhs(f_im, dt) = w_2 -> w_2 - dt * (1 - sqrt2/2) * f_im(w_2)
+tr1_lhs(f_im, t, dt) = w_2 -> w_2 - dt * (1 - sqrt2/2) * f_im(t + (2 - sqrt2)*dt, w_2)
 
-tr1_rhs(f_ex, f_im, w_1, dt) = w_1 + dt * (
-	(2 - sqrt2  ) * f_ex(w_1)
-  + (1 - sqrt2/2) * f_im(w_1)
+tr1_rhs(f_ex, f_im, w_1, t, dt) = w_1 + dt * (
+	(2 - sqrt2  ) * f_ex(t, w_1)
+  + (1 - sqrt2/2) * f_im(t, w_1)
 )
 
-bdf2_lhs(f_im, dt) = w_3 -> w_3 - dt * (1 - sqrt2/2) * f_im(w_3)
+bdf2_lhs(f_im, t, dt) = w_3 -> w_3 - dt * (1 - sqrt2/2) * f_im(t + dt, w_3)
 
-bdf2_rhs(f_ex, f_im, w_1, w_2, dt) = w_1 + dt * (
-    (.5 - sqrt2/6) * f_ex(w_1) + sqrt2/4 * f_im(w_1)
-  + (.5 + sqrt2/6) * f_ex(w_2) + sqrt2/4 * f_im(w_2)
+bdf2_rhs(f_ex, f_im, w_1, w_2, t, dt) = w_1 + dt * (
+    (.5 - sqrt2/6) * f_ex(t                 , w_1) + sqrt2/4 * f_im(t                 , w_1)
+  + (.5 + sqrt2/6) * f_ex(t + (2 - sqrt2)*dt, w_2) + sqrt2/4 * f_im(t + (2 - sqrt2)*dt, w_2)
 )
 
-tr2_lhs(f_im, dt) = w_4 -> w_4 - dt * .5 * f_im(w_4)
+tr2_lhs(f_im, t, dt) = w_4 -> w_4 - dt * .5 * f_im(t + dt, w_4)
 
-tr2_rhs(f_ex, f_im, w_1, w_2, dt) = w_1 + dt * (
-    (5/6 - sqrt2/12) * f_ex(w_1) + .5 * f_im(w_1)
-  + (1/6 + sqrt2/12) * f_ex(w_2)
+tr2_rhs(f_ex, f_im, w_1, w_2, t, dt) = w_1 + dt * (
+    (5/6 - sqrt2/12) * f_ex(t                 , w_1) + .5 * f_im(t, w_1)
+  + (1/6 + sqrt2/12) * f_ex(t + (2 - sqrt2)*dt, w_2)
 )
 
-tr_bdf2_update(f_ex, f_im, w_1, w_2, w_3, dt) = w_1 + dt * (
-    (    sqrt2/4)*(f_im(w_1) + f_ex(w_1))
-  + (    sqrt2/4)*(f_im(w_2) + f_ex(w_2))
-  + (1 - sqrt2/2)*(f_im(w_3) + f_ex(w_3))
+tr_bdf2_update(f_ex, f_im, w_1, w_2, w_3, t, dt) = w_1 + dt * (
+    (    sqrt2/4) * (f_im(t                 , w_1) + f_ex(t                 , w_1))
+  + (    sqrt2/4) * (f_im(t + (2 - sqrt2)*dt, w_2) + f_ex(t + (2 - sqrt2)*dt, w_2))
+  + (1 - sqrt2/2) * (f_im(t +             dt, w_3) + f_ex(t +             dt, w_3))
 )
 
-tr_bdf2_error(f_ex, f_im, w_1, w_2, w_3, w_4, dt) = (12 + 8sqrt2) * dt * (
-    (-.5 + sqrt2/4)*(f_im(w_1) + f_ex(w_1))
-  + (      sqrt2/4)*(f_im(w_2) + f_ex(w_2))
-  + (  1 - sqrt2/2)*(f_im(w_3) + f_ex(w_3))
-  + (-.5          )*(f_im(w_4) + f_ex(w_4))
-)
-
-tr_bdf2_err_ex(f_ex, w_1, w_2, w_3, w_4, dt) = (12 + 8sqrt2) * dt * (
-    (-.5 + sqrt2/4)*(f_ex(w_1))
-  + (      sqrt2/4)*(f_ex(w_2))
-  + (  1 - sqrt2/2)*(f_ex(w_3))
-  + (-.5          )*(f_ex(w_4))
+tr_bdf2_error(f, w_1, w_2, w_3, w_4, t, dt) = (12 + 8sqrt2) * dt * (
+    (-.5 + sqrt2/4) * f(t                 , w_1)
+  + (      sqrt2/4) * f(t + (2 - sqrt2)*dt, w_2)
+  + (  1 - sqrt2/2) * f(t +             dt, w_3)
+  + (-.5          ) * f(t +             dt, w_4)
 )
 
 function init!(i::tr_bdf2{Intg_}, func; newton_maxit, newton_rtol)
@@ -147,7 +139,7 @@ function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, cg_
 
 	# TODO: improve stability criterion
 	if ρ_ex == Inf
-		circles = gershgorin!(linearize(i.f_ex, i.y), (i.w_1, i.w_2, i.w_3))
+		circles = gershgorin!(linearize(y -> i.f_ex(i.t[], y), i.y), (i.w_1, i.w_2, i.w_3))
 		ρ_ex = max(map(c -> abs(c.o .- c.r), circles)...)
 	end
 
@@ -201,15 +193,15 @@ function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, cg_
 		end
 	end
 
-	assign!(i.e, i.update_e)
+	assign!(i.e, i.err_ex + i.err_im)
 	
 	# note: relative to w_3 instead of new y
 	η = l2(i.e) / (rtol * l2(i.w_3) + atol)
 	
-	@algo_step @verbo_println("TR-BDF2 $(i.k[]), t = $(i.t[]), dt = $(i.dt[]), η = $η")
+	@verbo_println("TR-BDF2 $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[]), η = $(@sprintf "%.3e" η)")
 	
 	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(η - 1) > .1
-		i.dt[] /= sqrt(η)
+		i.dt[] *= 0.1 + 0.9/sqrt(η)
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,
@@ -254,7 +246,7 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 
 	# TODO: improve stability criterion
 	if ρ_ex == Inf
-		circles = gershgorin!(linearize(i.f_ex, i.y), (i.w_1, i.w_2, i.w_3))
+		circles = gershgorin!(linearize(y -> i.f_ex(i.t, y), i.y), (i.w_1, i.w_2, i.w_3))
 		ρ_ex = max(map(c -> abs(c.o .- c.r), circles)...)
 	end
 
@@ -311,14 +303,14 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 		end
 	end
 
-	assign!(i.e, i.update_e)
+	assign!(i.e, i.err_ex + i.err_im)
 	
 	η = l2.(i.e) / (rtol * l2.(i.y) + atol)
 
-	@verbo_println("TR-BDF2-SCR $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[])), η = $(@sprintf "%.3e" η)")
+	@verbo_println("TR-BDF2-SCR $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[]), η = $(@sprintf "(%.3e %.3e)" η...)")
 	
 	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(max(η...) - 1) > .1
-		i.dt[] /= sqrt(max(η...))
+		i.dt[] *= 0.1 + 0.9/sqrt(max(η...))
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,
@@ -361,7 +353,7 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 	end
 
 	if ρ_ex == Inf
-		circles = gershgorin!(linearize(((e, α),) -> i.f_ex((i.y[1], e, α),)[2:3], i.y[2:3]), (i.w_1[2:3], i.w_2[2:3], i.w_3[2:3]))
+		circles = gershgorin!(linearize(((e, α),) -> i.f_ex(i.t[], (i.y[1], i.y[2], e, α),)[3:4], i.y[3:4]), (i.w_1[3:4], i.w_2[3:4], i.w_3[3:4]))
 		ρ_ex = max(map(c -> abs(c.o .- c.r), circles)...)
 	end
 	
@@ -379,13 +371,13 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			
 			@algo_step begin
 				@verbo_println("elasticity:")
-				elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.tr1_lhs((v, e, i.y[3]),)[1:2], i.w_2[2])
+				elastic = SchurComplement(((v, e),) -> i.rhs[2:3] - i.tr1_lhs((i.y[1], v, e, i.y[4]),)[2:3], i.w_2[3])
 				
 				# visualize_op(linearize(elastic, i.w_2[1]), i.h.v)
 				# error("asdf")
 				
 				newtonit!(
-					elastic, i.w_2[1], i.h.v[1], i.h.v[2:end];
+					elastic, i.w_2[2], i.h.v[1], i.h.v[2:end];
 					maxit    = newton_maxit,
 					rtol     = newton_rtol,
 					cg_maxit = cg_maxit,
@@ -395,9 +387,9 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			
 			@algo_step begin
 				@verbo_println("damage or breakage:")
-				damage  = α -> i.rhs[3] - i.tr1_lhs((i.y[1], i.y[2], α),)[3]
+				damage  = α -> i.rhs[4] - i.tr1_lhs((i.y[1], i.y[2], i.y[3], α),)[4]
 				newtonit!(
-					damage, i.w_2[3], i.h.α[1], i.h.α[2:end];
+					damage, i.w_2[4], i.h.α[1], i.h.α[2:end];
 					maxit    = newton_maxit,
 					rtol     = newton_rtol,
 					cg_maxit = cg_maxit,
@@ -406,6 +398,8 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			end
 		end
 	end
+
+	i.t[] += (2 - sqrt2) * i.dt[]
 
 	@algo_step begin
 		@verbo_println("bdf2 stage:")
@@ -415,9 +409,9 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			
 			@algo_step begin
 				@verbo_println("elasticity:")
-				elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.bdf2_lhs((v, e, i.y[3]),)[1:2], i.w_3[2])
+				elastic = SchurComplement(((v, e),) -> i.rhs[2:3] - i.bdf2_lhs((i.y[1], v, e, i.y[4]),)[2:3], i.w_3[3])
 				newtonit!(
-					elastic, i.w_3[1], i.h.v[1], i.h.v[2:end];
+					elastic, i.w_3[2], i.h.v[1], i.h.v[2:end];
 					maxit    = newton_maxit,
 					rtol     = newton_rtol,
 					cg_maxit = cg_maxit,
@@ -427,9 +421,9 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			
 			@algo_step begin
 				@verbo_println("damage or breakage:")
-				damage  = α -> i.rhs[3] - i.bdf2_lhs((i.y[1], i.y[2], α),)[3]
+				damage  = α -> i.rhs[4] - i.bdf2_lhs((i.y[1], i.y[2], i.y[3], α),)[4]
 				newtonit!(
-					damage,  i.w_3[3], i.h.α[1], i.h.α[2:end];
+					damage,  i.w_3[4], i.h.α[1], i.h.α[2:end];
 					maxit    = newton_maxit,
 					rtol     = newton_rtol,
 					cg_maxit = cg_maxit,
@@ -438,6 +432,8 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			end
 		end
 	end
+
+	i.t[] -= (2 - sqrt2) * i.dt[]
 	
 	@algo_step begin
 		@verbo_println("second trapezoidal stage:")
@@ -447,9 +443,9 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			
 			@algo_step begin
 				@verbo_println("elasticity:")
-				elastic = SchurComplement(((v, e),) -> i.rhs[1:2] - i.tr2_lhs((v, e, i.y[3]),)[1:2], i.w_4[2])
+				elastic = SchurComplement(((v, e),) -> i.rhs[2:3] - i.tr2_lhs((i.y[1], v, e, i.y[4]),)[2:3], i.w_4[3])
 				newtonit!(
-					elastic, i.w_4[1], i.h.v[1], i.h.v[2:end];
+					elastic, i.w_4[2], i.h.v[1], i.h.v[2:end];
 					maxit    = newton_maxit,
 					rtol     = newton_rtol,
 					cg_maxit = cg_maxit,
@@ -459,9 +455,9 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 			
 			@algo_step begin
 				@verbo_println("damage or breakage:")
-				damage  = α -> i.rhs[3] - i.tr2_lhs((i.y[1], i.y[2], α),)[3]
+				damage  = α -> i.rhs[4] - i.tr2_lhs((i.y[1], i.y[2], i.y[3], α),)[4]
 				newtonit!(
-					damage,  i.w_4[3], i.h.α[1], i.h.α[2:end];
+					damage,  i.w_4[4], i.h.α[1], i.h.α[2:end];
 					maxit    = newton_maxit,
 					rtol     = newton_rtol,
 					cg_maxit = cg_maxit,
@@ -471,17 +467,18 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 		end
 	end
 
-	assign!(i.e[1], i.update_e_ex[1])
-	assign!(i.e[2], i.update_e_ex[2])
-	assign!(i.e[3], i.update_e[3])
+	assign!(i.e[1], i.err_im[1] + i.err_ex[1])
+	assign!(i.e[2], i.err_im[2] + i.err_ex[2])
+	assign!(i.e[3], i.err_im[3] + i.err_ex[3])
+	assign!(i.e[4], i.err_im[4] + i.err_ex[4])
 	
 	# note: relative to w_3 instead of new y
-	η = l2.(i.e) ./ (rtol .* l2.(i.w_3) .+ atol)
+	η = l2.(i.e) ./ (values(rtol) .* l2.(i.w_3) .+ values(atol))
 
-	@verbo_println("TR-BDF2-DR $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[]), η = $(@sprintf "(%.3e, %.3e)" η[2:3]...)")
+	@verbo_println("TR-BDF2-DR $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[]), η = $(@sprintf "(u = %.3e, v = %.3e, e = %.3e, α = %.3e)" η[1] η[2] η[3:4]...)")
 	
-	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(max(values(η)[2:3]...) - 1) > .1
-		i.dt[] *= 0.5 + 0.5/sqrt(max(values(η)[2:3]...))
+	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(max(values(η)...) - 1) > .1
+		i.dt[] *= 0.1 + 0.9/sqrt(max(values(η)...))
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,
@@ -500,9 +497,9 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 	i.t[] += i.dt[]
 	i.k[] += 1
 
-	i.dt[] = min(1/sqrt(max(η[2:3]...)), growth) * i.dt[]
+	i.dt[] = min(1/sqrt(max(η...)), growth) * i.dt[]
 
-	return (; zip((:v, :e, :α), η)...)
+	return (; zip((:u, :v, :e, :α), η)...)
 end
 
 
@@ -513,7 +510,7 @@ function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 	end
 
 	if ρ_ex == Inf
-		circles = gershgorin!(linearize(((e, α, β),) -> i.f_ex((i.y[1], e, α, β),)[2:4], i.y[2:4]), (i.w_1[2:4], i.w_2[2:4], i.w_3[2:4]))
+		circles = gershgorin!(linearize(((e, α, β),) -> i.f_ex(i.t[], (i.y[1], e, α, β),)[2:4], i.y[2:4]), (i.w_1[2:4], i.w_2[2:4], i.w_3[2:4]))
 		ρ_ex = max(map(c -> abs(c.o .- c.r), circles)...)
 	end
 
@@ -663,7 +660,7 @@ function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 	@verbo_println("TR-BDF2-DBR $(i.k[]), t = $(i.t[]), dt = $(i.dt[]), η = $η")
 	
 	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(max(values(η)[2:4]...) - 1) > .1
-		i.dt[] /= sqrt(max(values(η)[2:4]...))
+		i.dt[] *= 0.1 + 0.9/sqrt(max(values(η)[2:4]...))
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,

@@ -50,8 +50,11 @@ function newtonit!(f, u, r, h; maxit, rtol, cg_maxit, cg_rtol)
 	
 	assign!(r, f(u))
 	norm0 = norm = l2(r)
-	norm > 10*eps(norm) || return
 	@algo_step @verbo_println("Newton 0, log10‖r_0‖ = $(log10(norm))")
+	
+	# isnan(norm) && (@algo_step @verbo_error("Newton iteration encountered NaN"))
+	
+	norm > 10*eps(norm) || return
 	
 	rnorm = Inf
 	xnorm = Inf
@@ -69,6 +72,8 @@ function newtonit!(f, u, r, h; maxit, rtol, cg_maxit, cg_rtol)
 		xnorm = l2(v) / l2(u)
 		@verbo_println("Newton $i, log10‖r_$(i)‖/‖r_0‖ = $(log10(rnorm))") # , log10‖Δx_$(i)‖/‖x_$(i+1)‖ = $(log10(xnorm))
 		
+		# (isnan(rnorm) || isnan(xnorm)) && (@verbo_error("Newton iteration encountered NaN"))
+
 		if rnorm < rtol#= && xnorm < rtol=#
 			@verbo_println("Newton converged in $i its.")
 			flush(out)
