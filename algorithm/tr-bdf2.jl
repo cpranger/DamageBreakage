@@ -1,4 +1,3 @@
-
 const nullfunc = y -> 0*y
 
 abstract type IntgType end
@@ -30,10 +29,12 @@ struct tr_bdf2{T <: IntgType}
 	err_im
 	err_ex
 	imex
-	t::FieldVal
-	dt::FieldVal
-	dt_::FieldVal
-	k::Ref{Int}
+     k::Ref{Int}
+	 t::Ref{BigFloat}
+	dt::Ref{Float64}
+	tt::OffsetVector{BigFloat, Vector{BigFloat}}
+	ss::OffsetVector{BigFloat, Vector{BigFloat}} # time according to stable step
+	ee::Vector
 end
 
 tr_bdf2_data(                  y                              ) = (; y = y, e = deepcopy(y), w_1 = deepcopy(y), w_2 = deepcopy(y), w_3 = deepcopy(y), w_4 = deepcopy(y), rhs = deepcopy(y))
@@ -42,46 +43,55 @@ tr_bdf2_data(::Type{Intg_SCR}, y::Tuple                       ) = (; tr_bdf2_dat
 tr_bdf2_data(::Type{Intg_DR},  y::NamedTuple{(:u, :v, :e, :α)}) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7]),                                   g = [deepcopy((; e = y.e)) for _ in 1:2])
 tr_bdf2_data(::Type{Intg_DBR}, y::NamedTuple{(:v, :e, :α, :β)}) = (; tr_bdf2_data(values(y))..., h = (; v = [deepcopy(y.v) for _ in 1:7], α = [deepcopy(y.α) for _ in 1:7], β = [deepcopy(y.β) for _ in 1:7]), g = [deepcopy((; e = y.e)) for _ in 1:2])
 
-tr_bdf2_funcs(f_im, f_ex, data, t::FieldVal, dt::FieldVal) = (
-	                                    tr1_lhs(      f_im,                                         t, dt),
-	prepare_assignment(data.w_1,        tr1_rhs(f_ex, f_im, data.w_1,                               t, dt)),
-	                                   bdf2_lhs(      f_im,                                         t, dt),
-	prepare_assignment(data.w_1,       bdf2_rhs(f_ex, f_im, data.w_1, data.w_2,                     t, dt)),
-	                                    tr2_lhs(      f_im,                                         t, dt),
-	prepare_assignment(data.w_1,        tr2_rhs(f_ex, f_im, data.w_1, data.w_2,                     t, dt)),
-	prepare_assignment(data.w_1, tr_bdf2_update(f_ex, f_im, data.w_1, data.w_2, data.w_3,           t, dt)),
-	prepare_assignment(data.w_1,  tr_bdf2_error(      f_im, data.w_1, data.w_2, data.w_3, data.w_4, t, dt)),
-	prepare_assignment(data.w_1,  tr_bdf2_error(f_ex,       data.w_1, data.w_2, data.w_3, data.w_4, t, dt))
+tr_bdf2_funcs(f_im, f_ex, data, t, dt) = (
+	                                    tr1_lhs(      f_im,                                         FieldVal(t), FieldVal(dt)),
+	prepare_assignment(data.w_1,        tr1_rhs(f_ex, f_im, data.w_1,                               FieldVal(t), FieldVal(dt))),
+	                                   bdf2_lhs(      f_im,                                         FieldVal(t), FieldVal(dt)),
+	prepare_assignment(data.w_1,       bdf2_rhs(f_ex, f_im, data.w_1, data.w_2,                     FieldVal(t), FieldVal(dt))),
+	                                    tr2_lhs(      f_im,                                         FieldVal(t), FieldVal(dt)),
+	prepare_assignment(data.w_1,        tr2_rhs(f_ex, f_im, data.w_1, data.w_2,                     FieldVal(t), FieldVal(dt))),
+	prepare_assignment(data.w_1, tr_bdf2_update(f_ex, f_im, data.w_1, data.w_2, data.w_3,           FieldVal(t), FieldVal(dt))),
+	prepare_assignment(data.w_1,  tr_bdf2_error(      f_im, data.w_1, data.w_2, data.w_3, data.w_4, FieldVal(t), FieldVal(dt))),
+	prepare_assignment(data.w_1,  tr_bdf2_error(f_ex,       data.w_1, data.w_2, data.w_3, data.w_4, FieldVal(t), FieldVal(dt)))
 )
+
+errtype(::Type{Intg_}   ) = Float64
+errtype(::Type{Intg_SCR}) = NamedTuple{(:v, :e),         NTuple{2, Float64}}
+errtype(::Type{Intg_DR} ) = NamedTuple{(:u, :v, :e, :α), NTuple{4, Float64}}
+errtype(::Type{Intg_DBR}) = NamedTuple{(:v, :e, :α, :β), NTuple{4, Float64}}
 
 imex(f_im, f_ex) = (;
 	im = typeof(f_im) != typeof(nullfunc),
 	ex = typeof(f_ex) != typeof(nullfunc)
 )
 
-tr_bdf2(type, y; f_ex = nullfunc, f_im = nullfunc, dt = Ref(Inf), dt_ = Ref(0.), t = Ref(BigFloat(0.)), k = Ref(0)) = tr_bdf2_(;
+tr_bdf2(type, y; f_ex = nullfunc, f_im = nullfunc, k = Ref(0), t = Ref(BigFloat(0.)), dt = Ref(Inf), tt = OffsetArray(Vector{BigFloat}([0.]), 0:0), ss = OffsetArray(Vector{BigFloat}([0.]), 0:0), ee = Vector{errtype(type)}()) = tr_bdf2_(;
 	type = type,
 	f_ex = f_ex,
 	f_im = f_im, 
 	data = tr_bdf2_data(type, y),
 	k    = k,
+	t    = t,
 	dt   = dt,
-	dt_  = dt_,
-	t    = t
+	tt   = tt,
+	ss   = ss,
+	ee   = ee
 )
-tr_bdf2_(; type, f_ex, f_im, data, t, dt, dt_, k) = tr_bdf2__(; 
+tr_bdf2_(; type, f_ex, f_im, data, k, t, dt, tt, ss, ee) = tr_bdf2__(; 
 	type  = type,
 	f_ex  = f_ex,
 	f_im  = f_im, 
 	data  = data,
-	funcs = tr_bdf2_funcs(f_im, f_ex, data, FieldVal(t), FieldVal(dt)),
+	funcs = tr_bdf2_funcs(f_im, f_ex, data, t, dt),
 	imex  = imex(f_im, f_ex),
 	k     = k,
+	t     = t,
 	dt    = dt,
-	dt_   = dt_,
-	t     = t
+	tt    = tt,
+	ss    = ss,
+	ee    = ee
 )
-tr_bdf2__(      ; type, f_im, f_ex, data, funcs, imex, t, dt, dt_, k) = tr_bdf2{type}(f_im, f_ex, data..., funcs..., imex, FieldVal(t), FieldVal(dt), FieldVal(dt_), k)
+tr_bdf2__(; type, f_im, f_ex, data, funcs, imex, k, t, dt, tt, ss, ee) = tr_bdf2{type}(f_im, f_ex, data..., funcs..., imex, k, t, dt, tt, ss, ee)
 
 global const sqrt2 = sqrt(2)
 
@@ -131,7 +141,7 @@ function init!(i::tr_bdf2{Intg_}, func; newton_maxit, newton_rtol)
 	)
 end
 
-function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf)
+function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf, relax = 0.9)
 	
 	if ρ_ex == 0 && i.dt[] == Inf # fully implicit
 		i.dt[] = 1 # some value, to be calibrated
@@ -143,8 +153,8 @@ function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, cg_
 		ρ_ex = max(map(c -> abs(c.o .- c.r), circles)...)
 	end
 
-	i.dt_[] = safety * (3/sqrt2) / ρ_ex
-	i.dt[]  = min(i.dt[], i.dt_[])
+	ds     = safety * (3/sqrt2) / ρ_ex
+	i.dt[] = min(i.dt[], ds)
 	
 	assign!(i.w_1, i.y)
 
@@ -200,8 +210,8 @@ function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, cg_
 	
 	@verbo_println("TR-BDF2 $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[]), η = $(@sprintf "%.3e" η)")
 	
-	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(η - 1) > .1
-		i.dt[] *= 0.1 + 0.9/sqrt(η)
+	if i.k[] == 0 && i.dt[] < ds && abs(η - 1) > .1
+		i.dt[] *= (1-relax) + (relax)/sqrt(η)
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,
@@ -217,10 +227,14 @@ function step!(i::tr_bdf2{Intg_}; rtol, atol = 0, newton_maxit, newton_rtol, cg_
 
 	assign!(i.y, i.update_y)
 	
-	i.t[] += i.dt[]
 	i.k[] += 1
-
-	i.dt[] = min(1/sqrt(η), growth) * i.dt[]
+	i.t[] += i.dt[]
+	
+	push!(i.tt, i.t[])
+	push!(i.ss, last(i.ss) + ds)
+	push!(i.ee, η)
+	
+	i.dt[] *= min((1-relax) + (relax)/sqrt(η), growth)
 
 	return η
 end
@@ -238,7 +252,7 @@ function init!(i::tr_bdf2{Intg_SCR}, func; newton_maxit, newton_rtol, cg_maxit, 
 	)
 end
 
-function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf)
+function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf, relax = 0.9)
 	
 	if ρ_ex == 0 && i.dt[] == Inf # fully implicit
 		i.dt[] = 1 # some value, to be calibrated
@@ -250,8 +264,8 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 		ρ_ex = max(map(c -> abs(c.o .- c.r), circles)...)
 	end
 
-	i.dt_[] = safety * (3/sqrt2) / ρ_ex
-	i.dt[]  = min(i.dt[], i.dt_[])
+	ds     = safety * (3/sqrt2) / ρ_ex
+	i.dt[] = min(i.dt[], ds)
 	
 	assign!(i.w_1, i.y)
 
@@ -309,8 +323,8 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 
 	@verbo_println("TR-BDF2-SCR $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[]), η = $(@sprintf "(%.3e %.3e)" η...)")
 	
-	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(max(η...) - 1) > .1
-		i.dt[] *= 0.1 + 0.9/sqrt(max(η...))
+	if i.k[] == 0 && i.dt[] < ds && abs(max(η...) - 1) > .1
+		i.dt[] *= (1-relax) + (relax)/sqrt(max(η...))
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,
@@ -326,12 +340,16 @@ function step!(i::tr_bdf2{Intg_SCR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 
 	assign!(i.y, i.update_y)
 	
-	i.t[] += i.dt[]
 	i.k[] += 1
+	i.t[] += i.dt[]
+	
+	push!(i.tt, i.t[])
+	push!(i.ss, last(i.ss) + ds)
+	push!(i.ee, (; zip((:v, :e), η)...))
+	
+	i.dt[] *= min(1/sqrt(max(η...)), growth)
 
-	i.dt[] = min(1/sqrt(max(η...)), growth) * i.dt[]
-
-	return return (; zip((:v, :e), η)...)
+	return return last(i.ee)
 end
 
 function visualize_op(op, vecs)
@@ -346,7 +364,7 @@ function visualize_op(op, vecs)
 end
 
 # Can also be used for breakage only
-function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf)
+function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf, relax = 0.9)
 	
 	if ρ_ex == 0 && i.dt[] == Inf # fully implicit
 		i.dt[] = 1 # some value, to be calibrated
@@ -358,8 +376,8 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 	end
 	
 	# TODO: improve stability criterion
-	i.dt_[] = safety * (3/sqrt2)  / ρ_ex
-	i.dt[]  = min(i.dt[], i.dt_[])
+	ds     = safety * (3/sqrt2)  / ρ_ex
+	i.dt[] = min(i.dt[], ds)
 	
 	assign!(i.w_1, i.y)
 
@@ -399,8 +417,6 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 		end
 	end
 
-	i.t[] += (2 - sqrt2) * i.dt[]
-
 	@algo_step begin
 		@verbo_println("bdf2 stage:")
     	assign!(i.w_3, i.bdf2_rhs)
@@ -433,8 +449,6 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 		end
 	end
 
-	i.t[] -= (2 - sqrt2) * i.dt[]
-	
 	@algo_step begin
 		@verbo_println("second trapezoidal stage:")
 		assign!(i.w_4, i.tr2_rhs)
@@ -477,8 +491,8 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 
 	@verbo_println("TR-BDF2-DR $(i.k[]), t = $(@sprintf "%.3e" i.t[]), dt = $(@sprintf "%.3e" i.dt[]), η = $(@sprintf "(u = %.3e, v = %.3e, e = %.3e, α = %.3e)" η[1] η[2] η[3:4]...)")
 	
-	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(max(values(η)...) - 1) > .1
-		i.dt[] *= 0.1 + 0.9/sqrt(max(values(η)...))
+	if i.k[] == 0 && i.dt[] < ds && abs(max(η...) - 1) > .1
+		i.dt[] *= (1 - relax) + (relax)/sqrt(max(η...))
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,
@@ -494,16 +508,20 @@ function step!(i::tr_bdf2{Intg_DR}; rtol, atol = 0, newton_maxit, newton_rtol, c
 
 	assign!(i.y, i.update_y)
 	
-	i.t[] += i.dt[]
 	i.k[] += 1
+	i.t[] += i.dt[]
+	
+	push!(i.tt, i.t[])
+	push!(i.ss, last(i.ss) + ds)
+	push!(i.ee, (; zip((:u, :v, :e, :α), η)...))
+	
+	i.dt[] *= min((1 - relax) + (relax)/sqrt(max(η...)), growth)
 
-	i.dt[] = min(1/sqrt(max(η...)), growth) * i.dt[]
-
-	return (; zip((:u, :v, :e, :α), η)...)
+	return last(i.ee)
 end
 
 
-function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf)
+function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, cg_maxit, cg_rtol, growth, safety, ρ_ex = Inf, relax = 0.9)
 	
 	if ρ_ex == 0 && i.dt[] == Inf # fully implicit
 		i.dt[] = 1 # some value, to be calibrated
@@ -515,8 +533,8 @@ function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 	end
 
 	# TODO: improve stability criterion
-	i.dt_[] = safety * (3/sqrt2) / ρ_ex
-	i.dt[]  = min(i.dt[], i.dt_[])
+	ds     = safety * (3/sqrt2) / ρ_ex
+	i.dt[] = min(i.dt[], ds)
 	
 	assign!(i.w_1, i.y)
 
@@ -659,8 +677,8 @@ function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 
 	@verbo_println("TR-BDF2-DBR $(i.k[]), t = $(i.t[]), dt = $(i.dt[]), η = $η")
 	
-	if i.k[] == 0 && i.dt[] < i.dt_[] && abs(max(values(η)[2:4]...) - 1) > .1
-		i.dt[] *= 0.1 + 0.9/sqrt(max(values(η)[2:4]...))
+	if i.k[] == 0 && i.dt[] < ds && abs(max(values(η)[2:4]...) - 1) > .1
+		i.dt[] *= (1 - relax) + (relax)/sqrt(max(values(η)[2:4]...))
 		return step!(i;
 			rtol         = rtol,
 			atol         = atol,
@@ -676,11 +694,15 @@ function step!(i::tr_bdf2{Intg_DBR}; rtol, atol = 0, newton_maxit, newton_rtol, 
 
 	assign!(i.y, i.update_y)
 	
-	i.t[] += i.dt[]
 	i.k[] += 1
+	i.t[] += i.dt[]
+	
+	push!(i.tt, i.t[])
+	push!(i.ss, last(i.ss) + ds)
+	push!(i.ee, (; zip((:v, :e, :α, :β), η)...))
+	
+	i.dt[] *= min((1 - relax) + (relax)/sqrt(max(values(η)[2:4]...)), growth)
 
-	i.dt[] = min(1/sqrt(max(η...)), growth) * i.dt[]
-
-	return (; zip((:v, :e, :α, :β), η)...)
+	return last(i.ee)
 end
 
