@@ -10,20 +10,18 @@ We present a numerical scheme for efficiently modeling the rheological evolution
 
 # Table of contents
 - 1: Introduction
-- 2: Problem statement [Merge into 1?]
-- 3: Numerical methods
+- 2: Problem statement
+- 3: Proposed methodology
 	- 3.1: Considerations for time discretization
 	- 3.2: An additive Runge-Kutta method
-	- 3.3 Stability and Accuracy
+	- 3.3: Stability and accuracy
 	- 3.4: Error estimation and time step control
 	- 3.5: Decomposition of the governing equations
 	- 3.6: Iterative non-linear solution methods
 	- 3.7: Spatial discretization
 - 4: Modeling results
-	- 1D Thermo-elasticity
-	- 1D Nonlinear wave propagation (cf. Zihua)
+	- 1D Breakage (cf. Pranger et al., 2022)
 	- 2D Thermal runaway + grain size cycles (cf. Thielmann)
-	- 2D Damage + breakage cycles (cf. Ben-Zion)
 - 5: Discussion
 - 6: Conclusion
 
@@ -32,117 +30,102 @@ We present a numerical scheme for efficiently modeling the rheological evolution
 1: Introduction
 ---------------
 
+
+
+
+
 2: Problem statement
------------------
+---------------
 
-<!-- Let $t \in \mathrm{T}$ denote a coordinate in a half-open interval $\mathrm{T} = [0,l_0) \subset \mathbb{R}$ of time with boundary $\partial \mathrm{T} = \{0\}$, and
-let $x \in \Omega$ be a coordinate in a rectangular region $\Omega = [0,l_1] \otimes [0,l_2] \otimes [0,l_3] \subset \mathbb{R}^3$ of 3-space with boundary $\partial\Omega$. -->
-
-We wish to examine the behavior of an elastic solid occupying the region $\mathrm{T} \otimes \Omega$ with its initial configuration specified on $\partial \mathrm{T}$, that is steadily loaded by displacement boundary conditions on $\partial\Omega_u \subseteq \partial\Omega$, and occasionally rapidly unloaded by transient anelastic processes, by transient material degradation, or by combinations thereof. To this end we consider Cauchy's linear momentum balance law
+We wish to examine the behavior of an elastic solid occupying the region $\mathrm{T} \otimes \Omega$ with its initial configuration specified on $\partial \mathrm{T}$, that is steadily loaded by displacement boundary conditions on $\partial\Omega_u \subseteq \partial\Omega$, and occasionally rapidly unloaded by transient anelastic processes, by transient material degradation, or by combinations thereof. To this end we consider Cauchy's linear momentum balance law in the absence of body forces;
 
 $$\tag{eq:2.1}
-    d_t v = r^{-1} \nabla \cdot s + g,
+    d_t(r v) = \nabla \cdot s,
 $$
 
-together with the mass balance law
+in which $r v$ denotes the mass flux, with $r = r(t,x(t))$ the mass density and $v = v(t,x(t))$ the material velocity at time $t$ at material coordinate $x(t)$. Likewise $s = s(t,x(t))$ denotes Cauchy's stress tensor. At considerable loss of generality, but required for the sake of concise argument we ignore advection and distortion within the elastic body by setting $x(t) = x$, with $x$ the coordinate in the reference configuration. The total time derivative $d_t f(t, x^\ast(t))$ along the characteristic of flow $x(t)$ is consequently replaced by the partial time derivative $\partial_t f(t, x)$. The divergence $\nabla \cdot s$ of the Cauchy stress tensor $s$, which formally is to be evaluated in deformed coordinates $x(t)$, is instead evaluated in the reference coordinate system $x$.
 
-$$\tag{eq:2.2}
-    d_t r = -r \nabla \cdot v,
-$$
-
-in which $r = r(t,x(t))$ denotes the mass density at time $t$ at material coordinate $x(t)$, $v = v(t,x(t))$ likewise the material velocity, $s = s(t,x(t))$ Cauchy's stress tensor, and $g = g(t,x(t))$ represents the action of body forces, gravitational or otherwise. Body forces are ignored from here on ($g = 0$) at no loss of generality -- although the physical framework developed here ignores self-gravitation. At considerable loss of generality, but required for the sake of concise argument we ignore advection and distortion within the elastic body by setting $x(t) = x$, with $x$ the coordinate in the reference configuration. The total time derivative $d_t f(t, x^\ast(t))$ along the characteristic of flow $x(t)$ is consequently replaced by the partial time derivative $\partial_t f(t, x)$. The divergence $\nabla \cdot s$ of the Cauchy stress tensor $s$, which formally is to be evaluated in deformed coordinates $x(t)$, is instead evaluated in the reference coordinate system $x$. The density deviations due to volume change are assumed to have a negligible impact on the dynamic momentum balance, i.e. $d_t r = \partial_t r = 0$.
-
-<!-- The displacement field $u = u(t,x)$ is governed by
-
-$$\tag{eq:2.3}
-    \frac{\tilde{d}u}{dt} = v \approx \frac{\partial u}{\partial t}.
-$$ -->
-
-We will revisit the implications of these choices in the context of the present methodological work in the discussion in Section [Discussion].
-
-<!-- %Combining the mass balance law {eq:2.1} with {eq:2.3} and solving for $r = r(u)$ gives
-% \begin{align} \label{eq:density}
-	% r(u) = r_0 \exp \nabla \cdot (u - u_0) = r_0 \exp \nabla \cdot u,  \quad u(t = 0,x) &= u_0(x) = 0, \\
-	% r(t=0,x) &= r_0(x). \nonumber
-% \end{align}
-% This solution eliminates differential equation {eq:2.1} and unknown $r$ from the problem. -->
+<!-- We will revisit the implications of these choices in the context of the present methodological work in the discussion in Section [Discussion]. -->
 
 In line with our assumption of a sufficiently distortion-free elastic medium is the use of the (symmetric) infinitesimal strain tensor $\varepsilon = \varepsilon(t, x)$, which is additively decomposed into an elastic part $e = e(t,x)$ and an anelastic part $\bar{e} = \bar{e}(t,x)$ and relates to the displacement $u = u(t, x)$ as
 
-$$\tag{eq:2.4}
+$$\tag{eq:2.3}
 	\varepsilon = \nabla^\mathrm{s} u = \frac{1}{2} \left[ (\nabla u)^\mathrm{T} + (\nabla u) \right] = e + \bar{e}.
 $$
 
-<!-- % We choose to invert the relationship {eq:2.4} for the function
-% \begin{align} \label{eq:inftalstrain2}
-	% e_\mathrm{e} = e_\mathrm{e}(\nabla^\mathrm{s} u, \bar{e}) = \nabla^\mathrm{s} u - \bar{e}.
-% \end{align} -->
+An isotropic and isothermal, but otherwise quite general nonlinear elastic constitutive equation with elastic stresses $s_e$ and structural stresses $s_\alpha$ [e.g. Lyakhovksy et al., 2014b] is given by
 
-An isotropic but otherwise quite general nonlinear elastic constitutive equation with structural stresses [e.g. Lyakhovksy et al., 2014b] is given by
+$$\tag{eq:2.4}
+	s(e, \alpha, \vartheta) = \lambda(\jmath e, \alpha, \vartheta) \,\delta \;\mathrm{tr}\; e + 2 \mu(\jmath e, \alpha, \vartheta) e \\[.7em]
+	s(\nabla α) =  - \nu(...)\, (\nabla \alpha) \otimes (\nabla \alpha), \\[.7em]
+	s(e, \alpha, \nabla \alpha, \vartheta) = s_e(e, \alpha, \vartheta) + s_α(\nabla α)
+$$
+
+Here $\lambda$ and $\mu$ are the so-called Lam\'e parameters of an isotropic elastic solid, and $\nu$ an additional modulus associated with the structural stresses incurred by the damage field $\alpha = \alpha(t,x)$. The notation $\jmath e$ refers to the three scalar invariants $(J_1, J_2, J_3)$ of the elastic strain tensor, indicating that {eq:2.4} is isotropic. The symbol $\delta$ denotes the three-dimensional identity tensor. Finally, $\vartheta = \vartheta(t, x)$ is the temperature field, which may play a role in elastic moduli, but does not cause thermal expansion or contraction. This choice will be motivated further below. We note that the functional forms of $\lambda$ and $\mu$ in {eq:2.4} can not be arbitrarily chosen; they must derive from an energy functional that is convex in $e$. The damage parameter $\alpha$ is assumed to be governed by an evolution equation of the reaction-diffusion type
 
 $$\tag{eq:2.5}
-	s(e, \alpha) = \lambda(x,\alpha, \jmath e) \,\delta \;\mathrm{tr}\; e + 2 \mu(x,\alpha, \jmath e) e - \vartheta(x) (\nabla \alpha) \otimes (\nabla \alpha).
+	\partial_t \alpha = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha(\jmath e, \alpha, \vartheta),
 $$
 
-Here $\lambda$ and $\mu$ are the so-called Lam\'e parameters of an isotropic elastic solid, and $\vartheta$ an additional modulus associated with the structural stresses incurred by the damage field $\alpha = \alpha(t,x)$. The notation $\jmath e$ refers to the three scalar invariants $(J_1, J_2, J_3)$ of the elastic strain tensor, indicating that {eq:2.5} is isotropic. The symbol $\delta$ denotes the three-dimensional identity tensor. We note that the functional forms of $\lambda$ and $\mu$ in {eq:2.5} can not be arbitrarily chosen; they must derive from an energy functional that is convex in $e$. The damage parameter $\alpha$ is assumed to be governed by an evolution equation of the reaction-diffusion type
-
-$$\tag{eq:2.6}
-	\partial_t \alpha = \nabla \cdot \left[ D_\mathrm{a}(\alpha)\nabla \alpha \right] + R_\mathrm{a}(\jmath e, \alpha),
-$$
-
-with nonlinear diffusivity $D_\mathrm{a}(\alpha)$ and the reaction/coupling terms collected in $R_\mathrm{a}$.
-
-We revisit the Cauchy momentum balance equation {eq:2.1}, which we combine with {eq:2.5} to yield the concise representation
-
-$$\tag{eq:2.7}
-	\partial_t v = r^{-1}\nabla \cdot s(e,\alpha) + R_{\mathrm{v}}(\nabla \alpha, \nabla \nabla \alpha),
-$$
-
-with coupling term $R_{v}$. [TODO: density?]
+with nonlinear diffusivity $D_\alpha(\alpha)$ and the reaction/coupling terms collected in $R_\alpha$.
 
 The anelastic part $\bar{e}$ of the strain tensor $\varepsilon$ is governed by Koiter's rule for non-associated plasticity [Koiter, 1953]:
 
-$$\tag{eq:2.8}
-	\partial_t \bar{e} = \gamma(\beta) \partial_s G(\jmath s),
+$$\tag{eq:2.7}
+	\partial_t \bar{e} = \gamma(\beta, \vartheta) \partial_s G(\jmath s),
 $$
 
 in which the function $G$ takes the role of a so-called _plastic potential_, and the scalar coefficient $\gamma = \gamma(\beta)$ is called the _plastic multiplier_. In traditional plasticity models, $\gamma$ is used as a Lagrange multiplier that optimizes [TODO: finish], but here we assume that it is a direct function of a further damage field $\beta = \beta(t,x)$, which itself smoothly evolves according to the reaction-diffusion equation
 
-$$\tag{eq:2.9}
-	\partial_t \beta = \nabla \cdot \left[ D_\mathrm{b}(\beta) \nabla \beta \right] + R_\mathrm{b}(\jmath e, \alpha, \beta),
+$$\tag{eq:2.8}
+	\partial_t \beta = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e, \alpha, \beta, \vartheta),
 $$
 
-with nonlinear diffusivity $D_\mathrm{b} = D_\mathrm{b}(\beta)$ and the reaction (or source) terms collected in $R_\mathrm{b}$.
+with nonlinear diffusivity $D_\beta = D_\beta(\beta)$ and the reaction (or source) terms collected in $R_\beta$.
 
-Koiter's rule {eq:2.8} can also be directly stated in terms of unknowns $\alpha$, $\beta$, and the invariants of $e$. We make use of this fact, the relation {eq:2.4}, and the differential relation $v = \partial_t u$, to write an evolution equation for the elastic part of the strain rate,
+Koiter's rule {eq:2.7} can also be directly stated in terms of unknowns $\alpha$, $\beta$, and the invariants of $e$. We make use of this fact, the relation {eq:2.3}, and the differential relation $v = \partial_t u$, to write an evolution equation for the elastic part of the strain rate,
+
+$$\tag{eq:2.9}\begin{align}
+		\partial_t e = \nabla^\mathrm{s} v - \partial_t \bar{e} &= \nabla^\mathrm{s} v - \gamma(\beta, \vartheta) \partial_s G(\jmath s(e, \alpha, \nabla \alpha, \vartheta))\\[.7em] &=: \nabla^\mathrm{s} v + R_e(e, \alpha, \nabla \alpha, \beta, \vartheta),
+	\end{align}
+$$
+
+Finally, we write an evolution equation for the temperature field $\theta$ in the form of
 
 $$\tag{eq:2.10}
-	\partial_t e = \nabla^\mathrm{s} v - \partial_t \bar{e} = \nabla^\mathrm{s} v - \gamma(\beta) \partial_s G(\jmath s(e,\alpha)),
+	\partial_t \vartheta = \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right] + R_\vartheta(e, \alpha, \beta, \vartheta).
 $$
 
-Special cases of the rheology {eq:2.4}--{eq:2.7} include the damage-breakage rheology of [Lyakhovski, Ben-Zion, et al., 2011, 2014a, 2014b, etc.], the rate and state rheology of [Pranger et al., 2022], and the temperature and grain-size dependent rheology of [The Geodynamicists]. We will use [one or the other or both] to test our algorithm in [section X]. Ultimately, we seek to find a sufficiently accurate numerical approximation to {eq:2.1}--{eq:2.7} in terms of trajectories of the state fields $u$, $v$, $\bar{e}$, $\alpha$, and $\beta$ in the interior of the domain $\mathrm{T} \otimes \Omega$, given sufficient data on $\partial \mathrm{T}$ and $\partial \Omega$.
+[TODO: CHECK units] The methodology we develop in this work makes it disadvantageous for the production term $R_\vartheta(e, \alpha, \beta, \vartheta)$ to additionally depend on $\nabla v$ or $\nabla \alpha$. This discourages us from considering adiabatic heating and cooling of the form $\vartheta \nabla \cdot v$, which is also why the reciprocal thermo-elastic effect of thermal expansion and contraction is ignored in the definition of stress {eq:2.4}. It also discourages inclusion of shear heating in the full damage-elastic framework of the form $\gamma\, s : \partial_{s} G(\jmath s)$ on account of dependence of the stress $s = s(e, \alpha, \nabla\alpha, \vartheta)$ on $\nabla\alpha$, though shear heating subject to elastic stress only of the form $\gamma\, s_e : \partial_{s_e} G(\jmath s_e)$ does not pose a problem.
 
-> TODO: include temperature
+For the same structural reason, we have not included a mass balance law governing the evolution of mass density. If needed, the methodology allows the density to be expressed directly using the elastic strain tensor, i.e. $r = r_0 \exp \mathrm{tr} (e_0 - e)$, ignoring anelastic or thermal volume changes.
 
-3: Numerical methods
+Special cases of the rheology {eq:2.3}--{eq:2.10} include the damage-breakage rheology of [Lyakhovski, Ben-Zion, et al., 2011, 2014a, 2014b, etc.], the rate and state rheology of [Pranger et al., 2022], and the temperature and grain-size dependent rheology of [The Geodynamicists]. We will use [one or the other or both] to test our algorithm in [section X]. Ultimately, we seek to find a sufficiently accurate numerical approximation to {eq:2.1}--{eq:2.10} in terms of trajectories of the state fields $u$, $v$, $\bar{e}$, $\alpha$, and $\beta$ in the interior of the domain $\mathrm{T} \otimes \Omega$, given sufficient data on $\partial \mathrm{T}$ and $\partial \Omega$.
+
+
+3: Proposed methodology
 -----------------
 
 Summarizing the previous section, we consider the numerical solution of the system
 
 $$\tag{eq:3.1a}
-	\partial_t v = r^{-1}\nabla \cdot s(e,\alpha) + R_{\mathrm{v}}(\nabla \alpha, \nabla \nabla \alpha),
+	\partial_t (r v) = \nabla \cdot s_e(e, \alpha, \vartheta) +  \nabla \cdot s_\alpha(\nabla \alpha),
 $$
 
 $$\tag{eq:3.1b}
-	\partial_t e = \nabla^\mathrm{s} v - \gamma(\beta) \partial_s G(s(\alpha, \jmath e)),
+	\partial_t e = \nabla^\mathrm{s} v + R_e(\jmath e, \alpha, \nabla \alpha, \beta, \vartheta),
 $$
 
 $$\tag{eq:3.1c}
-	\partial_t \alpha = \nabla \cdot \left[ D_\mathrm{a}(\alpha)\nabla \alpha \right] + R_\mathrm{a}(\jmath e, \alpha),
+	\partial_t \alpha = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha(\jmath e, \alpha, \beta,\vartheta),
 $$
 
 $$\tag{eq:3.1d}
-	\partial_t \beta = \nabla \cdot \left[ D_\mathrm{b}(\beta) \nabla \beta \right] + R_\mathrm{b}(\jmath e, \alpha, \beta),
+	\partial_t \beta = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e, \alpha, \beta, \vartheta),
+$$
+
+$$\tag{eq:3.1e}
+	\partial_t \vartheta = \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right] + R_\vartheta(e, \alpha, \beta, \vartheta)
 $$
 
 which we summarize as the ordinary differential equation (ODE)
@@ -515,17 +498,17 @@ $$\tag{eq:3.23}
 	\eta_i = \frac{\epsilon_{n+1,i}}{\tau_\mathrm{r} \lvert y_{n+1,i} \rvert + \tau_\mathrm{a}}.
 $$
 
-We then compute the $L_\infty$ norm of $\eta$ over the vector blocks $[\vec{v}_{n+1},\mathbf{e}_{n+1}]$ (since these two will be solved together in block reduced form), $[\alpha_{n+1}]$, and $[\beta_{n+1}]$. We denote these maximum dimensionless errors by $\eta_\mathrm{v}$, $\eta_\mathrm{a}$, and $\eta_\mathrm{b}$, respectively.
+We then compute the $L_\infty$ norm of $\eta$ over the vector blocks $[\vec{v}_{n+1},\mathbf{e}_{n+1}]$ (since these two will be solved together in block reduced form), $[\alpha_{n+1}]$, and $[\beta_{n+1}]$. We denote these maximum dimensionless errors by $\eta_v$, $\eta_\alpha$, and $\eta_\beta$, respectively.
 
 If any of these measures exceed a value of one, a new time step is computed by [Bonaventura 2018 and references [14], [19] therein]
 
 $$\tag{eq:3.24}
-	h_t^\ast = \nu h_t \mathrm{max}(\eta_\mathrm{v}, \eta_\mathrm{a}, \eta_\mathrm{b})^{-1/3},
+	h_t^\ast = \nu h_t \mathrm{max}(\eta_v, \eta_\alpha, \eta_\beta)^{-1/3},
 $$
 
 with $\nu \in (0, 1)$ a safety coefficient and the power $1/3$ specific to a method with second-order accuracy.
 
-The time step is then redone with $h_t^\ast$ and this process is repeated until $\mathrm{max}(\eta_\mathrm{v}, \eta_\mathrm{a}, \eta_\mathrm{b}) \leq 1$. When this condition is satisfied, there ought to be some lingering memory of the failure of the explicit step, and the time step selection {eq:3.20} is best amended with the recursion
+The time step is then redone with $h_t^\ast$ and this process is repeated until $\mathrm{max}(\eta_v, \eta_\alpha, \eta_\beta) \leq 1$. When this condition is satisfied, there ought to be some lingering memory of the failure of the explicit step, and the time step selection {eq:3.20} is best amended with the recursion
 
 $$\tag{eq:3.25} %\label{eq:timestep2}
 	h_t^{(n+1)} = \mathrm{min}( \sqrt{3}/\rho(\mathbf{J}_\mathrm{ex}), (1/\nu) h_t^{(n)} ),
@@ -556,7 +539,7 @@ $$
 We also consider an approximation to this system:
 
 $$\tag{eq:3.2a}
-	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath e,\alpha_0) e \right] =  \tilde{F}_{\mathrm{v}}(e),
+	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath e, \alpha_0) e \right] =  \tilde{F}_v(e),
 $$
 
 $$\tag{eq:3.2b}
@@ -564,11 +547,11 @@ $$\tag{eq:3.2b}
 $$
 
 $$\tag{eq:3.2c}
-	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha( \jmath e_0, \alpha) = \tilde{F}_\mathrm{a}(\alpha),
+	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha( \jmath e_0, \alpha) = \tilde{F}_\alpha(\alpha),
 $$
 
 $$\tag{eq:3.2d}
-	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e_0, \alpha_0, \beta) =  \tilde{F}_\mathrm{b}(\beta),
+	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e_0, \alpha_0, \beta) =  \tilde{F}_\beta(\beta),
 $$
 
 which is evaluated given some known $e_0$, $\alpha_0$, and $\beta_0$. We will ensure that
@@ -578,17 +561,17 @@ $$\tag{eq:3.3a}
 $$
 
 $$\tag{eq:3.3b}
-	\frac{\partial F_{\mathrm{a}}}{\partial \nabla \alpha} = \frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \nabla \alpha}
+	\frac{\partial F_\alpha}{\partial \nabla \alpha} = \frac{\partial \tilde{F}_\alpha}{\partial \nabla \alpha}
 $$
 
 $$\tag{eq:3.3c}
-	\frac{\partial F_{\mathrm{b}}}{\partial \nabla \beta} = \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \nabla \beta}
+	\frac{\partial F_\beta}{\partial \nabla \beta} = \frac{\partial \tilde{F}_\beta}{\partial \nabla \beta}
 $$
 
 Using this approximation, the complete system is then again written as
 
 $$\tag{eq:3.4a}
-	\frac{\partial\vec{v}}{\partial t} = \left[F_{\mathrm{v}}(e, \alpha) - \tilde{F}_{\mathrm{v}}(e)\right] + \tilde{F}_{\mathrm{v}}(e), 
+	\frac{\partial\vec{v}}{\partial t} = \left[F_v(e, \alpha) - \tilde{F}_v(e)\right] + \tilde{F}_v(e), 
 $$
 
 $$\tag{eq:3.4b}
@@ -596,11 +579,11 @@ $$\tag{eq:3.4b}
 $$
 
 $$\tag{eq:3.4c}
-	\frac{\partial\alpha}{\partial t} = \left[F_\mathrm{a}( \jmath e, \alpha ) - \tilde{F}_\mathrm{a}(\alpha)\right] + \tilde{F}_\mathrm{a}(\alpha), 
+	\frac{\partial\alpha}{\partial t} = \left[F_\alpha( \jmath e, \alpha ) - \tilde{F}_\alpha(\alpha)\right] + \tilde{F}_\alpha(\alpha), 
 $$
 
 $$\tag{eq:3.4d}
-	\frac{\partial\beta}{\partial t}  = \left[F_\mathrm{b}(\jmath e, \alpha, \beta) - \tilde{F}_\mathrm{b}(\beta)\right] + \tilde{F}_\mathrm{b}(\beta),
+	\frac{\partial\beta}{\partial t}  = \left[F_\beta(\jmath e, \alpha, \beta) - \tilde{F}_\beta(\beta)\right] + \tilde{F}_\beta(\beta),
 $$
 
 We will use an implicit-explicit (IMEX) time integration scheme to solve the terms in square brackets explicit in time, and the remainders implicit in time.
@@ -610,42 +593,42 @@ The explicit part of {eq:3.4a}--{eq:3.4d} is assigned a Jacobian $\mathbf{J}_\ma
 $$\tag{eq:3.5a}
 	\mathbf{J}_\mathrm{ex} = \begin{bmatrix}
 		  0
-		& \frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}
-		& \frac{\partial F_{\mathrm{v}}}{\partial \alpha}
+		& \frac{\partial F_v}{\partial e} - \frac{\partial \tilde{F}_v}{\partial e}
+		& \frac{\partial F_v}{\partial \alpha}
 		& 0 \\[.7em]
-		  0 % \left\{ \frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} - \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}} = 0 \right\}
-		& \frac{\partial F_{\mathrm{e}}}{\partial \mathbf{e}}
-		& \frac{\partial F_{\mathrm{e}}}{\partial \alpha}
-		& \frac{\partial F_{\mathrm{e}}}{\partial \beta} \\[.7em]
+		  0 % \left\{ \frac{\partial F_e}{\partial \vec{v}} - \frac{\partial \tilde{F}_e}{\partial \vec{v}} = 0 \right\}
+		& \frac{\partial F_e}{\partial e}
+		& \frac{\partial F_e}{\partial \alpha}
+		& \frac{\partial F_e}{\partial \beta} \\[.7em]
 		  0
-		& \frac{\partial F_{\mathrm{a}}}{\partial \mathbf{e}}
-		& \frac{\partial F_{\mathrm{a}}}{\partial \alpha} - \frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \alpha}
+		& \frac{\partial F_\alpha}{\partial e}
+		& \frac{\partial F_\alpha}{\partial \alpha} - \frac{\partial \tilde{F}_\alpha}{\partial \alpha}
 		& 0 \\[.7em]
 		  0
-		& \frac{\partial F_{\mathrm{b}}}{\partial \mathbf{e}}
-		& \frac{\partial F_{\mathrm{b}}}{\partial \alpha}
-		& \frac{\partial F_{\mathrm{b}}}{\partial \beta} - \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
+		& \frac{\partial F_\beta}{\partial e}
+		& \frac{\partial F_\beta}{\partial \alpha}
+		& \frac{\partial F_\beta}{\partial \beta} - \frac{\partial \tilde{F}_\beta}{\partial \beta}
 	\end{bmatrix},
 $$
 
 $$\tag{eq:3.5b}
 	\mathbf{J}_\mathrm{im} = \begin{bmatrix}
 		  0
-		& \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}
+		& \frac{\partial \tilde{F}_v}{\partial e}
 		& 0
 		& 0 \\[.7em]
-		  \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}}
+		  \frac{\partial \tilde{F}_e}{\partial \vec{v}}
 		& 0
 		& 0
-		& 0 \\[.7em]
-		  0
-		& 0
-		& \frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \alpha}
 		& 0 \\[.7em]
 		  0
 		& 0
+		& \frac{\partial \tilde{F}_\alpha}{\partial \alpha}
+		& 0 \\[.7em]
+		  0
 		& 0
-		& \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
+		& 0
+		& \frac{\partial \tilde{F}_\beta}{\partial \beta}
 	\end{bmatrix}.
 $$
 
@@ -656,21 +639,21 @@ In order to determine a stable time step [Section X], we would like to determine
 $$\tag{eq:3.6}
 	\mathbf{J}_\mathrm{ex} = \left[\begin{array}{c|ccc}
 			  0
-			& \frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}
-			& \frac{\partial F_{\mathrm{v}}}{\partial \alpha}
+			& \frac{\partial F_v}{\partial e} - \frac{\partial \tilde{F}_v}{\partial e}
+			& \frac{\partial F_v}{\partial \alpha}
 			& 0 \\[.7em]\hline\\[-.5em]
 			  0
-			& \frac{\partial F_{\mathrm{e}}}{\partial \mathbf{e}}
-			& \frac{\partial F_{\mathrm{e}}}{\partial \alpha}
-			& \frac{\partial F_{\mathrm{e}}}{\partial \beta} \\[.7em]
+			& \frac{\partial F_e}{\partial e}
+			& \frac{\partial F_e}{\partial \alpha}
+			& \frac{\partial F_e}{\partial \beta} \\[.7em]
 			  0
-			& \frac{\partial F_{\mathrm{a}}}{\partial \mathbf{e}}
-			& \frac{\partial F_{\mathrm{a}}}{\partial \alpha} - \frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \alpha}
+			& \frac{\partial F_\alpha}{\partial e}
+			& \frac{\partial F_\alpha}{\partial \alpha} - \frac{\partial \tilde{F}_\alpha}{\partial \alpha}
 			& 0 \\[.7em]
 			  0
-			& \frac{\partial F_{\mathrm{b}}}{\partial \mathbf{e}}
-			& \frac{\partial F_{\mathrm{b}}}{\partial \alpha}
-			& \frac{\partial F_{\mathrm{b}}}{\partial \beta} - \frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}
+			& \frac{\partial F_\beta}{\partial e}
+			& \frac{\partial F_\beta}{\partial \alpha}
+			& \frac{\partial F_\beta}{\partial \beta} - \frac{\partial \tilde{F}_\beta}{\partial \beta}
 		\end{array}\right] = \begin{bmatrix} 0 & \vec{\mathbf{B}}^\mathrm{T} \\[.7em] \vec{\mathbf{0}} & \mathbf{D}\;\, \end{bmatrix},
 $$
 
@@ -687,18 +670,18 @@ $$\\
 $$
 
 $$\\
-	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_\mathrm{v})\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} - \vec{\mathbf{0}}(-\lambda I_\mathrm{v})^{-1}\vec{\mathbf{B}}^\mathrm{T} ) = 0 \}
+	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_v)\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} - \vec{\mathbf{0}}(-\lambda I_v)^{-1}\vec{\mathbf{B}}^\mathrm{T} ) = 0 \}
 $$
 
 $$\\
-	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_\mathrm{v})\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} ) = 0 \}
+	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_v)\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} ) = 0 \}
 $$
 
 $$\tag{eq:3.8}
 	= \sigma(0) \cup \sigma(\mathbf{D}) = \{ 0 \} \cup \sigma(\mathbf{D}).
 $$
 
-On account of conditions {eq:3.3b}--{eq:3.3c}, all elements of the matrix $\mathbf{D}$ are diagonal submatrices, and the remaining eigenvalue problem could be solved point-wise and in parallel. The multidiagonal matrices $\frac{\partial F_{\mathrm{v}}}{\partial \mathbf{e}} - \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}$ and $\frac{\partial F_{\mathrm{v}}}{\partial \alpha}$ that are contained in the block $\vec{\mathbf{B}}$ are eliminated from the eigenvalue problem {eq:3.8} due to the Schur determinant theorem {eq:3.7} and the vector of zero blocks $\vec{\mathbf{0}}$.
+On account of conditions {eq:3.3b}--{eq:3.3c}, all elements of the matrix $\mathbf{D}$ are diagonal submatrices, and the remaining eigenvalue problem could be solved point-wise and in parallel. The multidiagonal matrices $\frac{\partial F_v}{\partial e} - \frac{\partial \tilde{F}_v}{\partial e}$ and $\frac{\partial F_v}{\partial \alpha}$ that are contained in the block $\vec{\mathbf{B}}$ are eliminated from the eigenvalue problem {eq:3.8} due to the Schur determinant theorem {eq:3.7} and the vector of zero blocks $\vec{\mathbf{0}}$.
 
 Should we need the spectrum of the implicitly solved system's Jacobian $\mathbf{J}_\mathrm{im}$ in {eq:3.5b}, we can make use of its partly disjoint block structure in combination with the property
 
@@ -718,10 +701,10 @@ $$
 to write
 
 $$\\\tag{eq:3.v}
-    \sigma(\mathbf{J}_\mathrm{im}) = \pm \sqrt{\sigma \left(\frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}} \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}}\right) }
-    \cup \pm \sqrt{\sigma \left(\frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}} \frac{\partial \tilde{F}_{\mathrm{v}}}{\partial \mathbf{e}}\right) }
-    \cup \sigma\left(\frac{\partial \tilde{F}_{\mathrm{a}}}{\partial \alpha}\right)
-    \cup \sigma\left(\frac{\partial \tilde{F}_{\mathrm{b}}}{\partial \beta}\right).
+    \sigma(\mathbf{J}_\mathrm{im}) = \pm \sqrt{\sigma \left(\frac{\partial \tilde{F}_v}{\partial e} \frac{\partial \tilde{F}_e}{\partial v}\right) }
+    \cup \pm \sqrt{\sigma \left(\frac{\partial \tilde{F}_e}{\partial v} \frac{\partial \tilde{F}_v}{\partial e}\right) }
+    \cup \sigma\left(\frac{\partial \tilde{F}_\alpha}{\partial \alpha}\right)
+    \cup \sigma\left(\frac{\partial \tilde{F}_\beta}{\partial \beta}\right).
 $$
 
 The square roots and plusminus signs in {eq:3.u} and {eq:3.v} should be understood to be applied element-wise. Since the operators in {eq:3.v} are all real negative (semi-)definite, the spectrum $\sigma(\mathbf{J}_\mathrm{im})$ is anticipated to occupy an interval on the negative real axis, and an interval on the imaginary axis.

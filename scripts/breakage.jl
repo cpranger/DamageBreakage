@@ -54,12 +54,12 @@ function breakage_1d(p)
             cg_maxit = Int <| round <| 10*sqrt(sum(p.n.^2)),
             cg_rtol = 1e-5,
             growth = 1.1,
-            safety = .0002,
+            safety = .02,
             relax  = .9
         )
         assign!(p.γ,  p.γ_(p.β))
         display_1d(i, p)
-        v_rtol = min(1.05*v_rtol, 1e6)
+        v_rtol = min(1.1*v_rtol, Inf)
         i.t[] > p.duration && break
 	end
 end
@@ -70,14 +70,14 @@ function parameters()
     rtol = 1e-4
     atol = 0.
     
-    n    =  (200,)                  # mesh resolution
+    n    =  (100,)                  # mesh resolution
 	
     a    =  0.02                    # rate-and-state dimensionless parameter
 	b    =  0.03                    # rate-and-state dimensionless parameter
     
 	σ_n  =  1e6                     # normal stress, Pa
 	v_0  =  1e-6                    # reference velocity, m/s
-    v_d  =  1e-9                    # driving   velocity, m/s
+    # v_d  =  1e-9                  # driving   velocity, m/s
     r_0  =  1e3                     # density, kg/m^3
 	μ_0  =  1e10                    # shear modulus, Pa
 	λ_0  =  μ_0                     # Lamé parameter, assuming Poisson's ratio ν = 1/4
@@ -88,22 +88,22 @@ function parameters()
     d_d  =  5e4                     # driving distance, m
 	d_c  =  1e-2                    # slip weakening distance, m
     
-    dx0  =  1e-4                    # first cell size
+    dx0  =  1e-4                  # first cell size
     dx_  =  Field(n, ((1,),))       # basic grid
     dx   =  Field(n, ((0,), (1,)))  # full  grid
     x_   =  Field(n, ((0,),))       # basic grid
     x    =  Field(n, ((0,), (1,)))  # full  grid
 
-    assign!(dx_, fieldgen(i -> dx0 * 1.00^(i+0.5)))
+    assign!(dx_, fieldgen(i -> 1.01^(i+0.5)))
     assign!(dx , interpolate(dx_))
 
-    assign!(x_, (B(B(x_, :x), :x) + B(dx_, :x), (BC(-1, 0),)))
-    assign!(x,  (interpolate(x_), (BC(+1, l1(dx_)),)))
+    assign!( x_, (B(B(x_, :x), :x) + B(dx_, :x), (BC(-1, 0),)))
+    assign!( x,  (interpolate(x_), (BC(+1, l1(dx_)),)))
     
-    w = max(x)                      # domain size
-    # w    =  (n[1]-2) * dx         # domain size
+    assign!(dx, dx/max(x) * d_d)
+    assign!( x,  x/max(x) * d_d)
 
-    λ    =  18 * dx0                # diffusion length scale, m
+    λ    =  18 * min(dx)            # diffusion length scale, m
 	
 	η    =  1/2 * μ_0/σ_n * v_0/c_s # radiation damping viscosity, -
     
@@ -127,15 +127,15 @@ function parameters()
 	β  =  Field(n, state_stags)
     γ  =  Field(n, state_stags)
 
-    # assign!(x,     fieldgen(i -> dx*i))
     assign!(β,     1e-4 + If(abs(c_4*x/λ) < 1, 2*c_4*cos(1/2*π*c_4*x/λ)^2, 0))
     assign!(β,     c_3*η*β + a*log(β))
     assign!(γ,     γ_0 * γ_(β))
     assign!(v.y,  (B(B(v.y, :x), :x) + 2*B(γ, :x) * dx, (BC(-1, 0),)))
+    assign!(v.y,  (1 - x/d_d) * v.y + x/d_d * 0 #=v_d=#)
     assign!(e,     e_0)
     assign!(u.y,   e_0 * x)
 
-    v_0 = max(v.y)
+    # v_0 = max(v.y)
     c_σ = 1e0 * c_s
     
     lap(β) = (
@@ -151,7 +151,7 @@ function parameters()
         (;
             y = (
                 BC(-1, 0),
-                BC(+1, -(B(e.xy, :x) - e_0) - (v.y - v_0)/c_σ)
+                BC(+1, -(B(e.xy, :x) - e_0) - (v.y#= - v_d=#)/c_σ)
             )
         )
     )
@@ -165,9 +165,9 @@ function parameters()
 	f_e_ex(t,          β) = - γ_0 * γ_(β) * (; xy = 1)
 	f_e_im(t,    v,     ) =   symgrad(v) / dx
 	
-    f_β_ex(t,    v, e, β) = cos(1/2*π*x/w)^2 * (- b * c_2 * ψ_0 * ψ_(β, μ_0*J2(e)/σ_n) +
+    f_β_ex(t,    v, e, β) = #=cos(1/2*π*x/d_d)^2 *=# (- b * c_2 * ψ_0 * ψ_(β, μ_0*J2(e)/σ_n) +
                                                 + μ_0/σ_n * J2(symgrad(v) / dx))
-	f_β_im(t,          β) = cos(1/2*π*x/w)^2 * (+ b * c_1 * ψ_0 * γ_(β) +
+	f_β_im(t,          β) = #=cos(1/2*π*x/d_d)^2 *=# (+ b * c_1 * ψ_0 * γ_(β) +
                                                 + b * c_1 * ψ_0 * (1-a/b)^2 * λ^2 * lap(γ_(β)))
     
     # collect all variables local to this function:
