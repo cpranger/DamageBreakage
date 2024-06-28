@@ -47,60 +47,80 @@ in which $r v$ denotes the mass flux, with $r = r(t,x(t))$ the mass density and 
 
 <!-- We will revisit the implications of these choices in the context of the present methodological work in the discussion in Section [Discussion]. -->
 
+An isotropic but otherwise quite general nonlinear elastic constitutive equation with elastic stresses $s_e$, structural stresses $s_\alpha$ [e.g. Lyakhovksy et al., 2014b], and thermal stresses $s_\vartheta$ [e.g. Maugin, Chapter 3, Page 70, and references therein] is given by
+
+$$\tag{eq:2.2}
+	s_e(e, \alpha, \vartheta) = \lambda(\jmath e, \alpha, \vartheta) \,\delta \;\mathrm{tr}\; e + 2 \mu(\jmath e, \alpha, \vartheta) e \\[.7em]
+	s_\alpha(\nabla \alpha) =  - \nu(...)\, (\nabla \alpha) \otimes (\nabla \alpha), \\[.7em]
+	s_\vartheta(\vartheta) =   \xi(\vartheta)\, \vartheta\, \delta, \\[.7em]
+	s(e, \alpha, \nabla \alpha, \vartheta) = s_e(e, \alpha, \vartheta) + s_\alpha(\nabla \alpha) + s_\vartheta(\vartheta)
+$$
+
+Here $\lambda$ and $\mu$ are the so-called Lam\'e parameters of an isotropic elastic solid in response to an elastic strain field $e = e(t, x)$, $\nu$ an additional modulus associated with the structural stresses incurred by a damage state $\alpha = \alpha(t,x)$, and $\xi$ a modulus of thermal pressurization due to deviations in temperature $\vartheta = \vartheta(t, x)$ with respect to the ambient temperature $\vartheta_0$ of the body at rest. The notation $\jmath e$ refers to the three scalar invariants $(J_1, J_2, J_3)$ of the elastic strain tensor $e$, indicating that {eq:2.2} is isotropic. The symbol $\delta$ denotes the three-dimensional identity tensor. We note that the functional forms of $\lambda$ and $\mu$ in {eq:2.2} can not be arbitrarily chosen; they must derive from an energy functional that is convex in $e$.
+
 In line with our assumption of a sufficiently distortion-free elastic medium is the use of the (symmetric) infinitesimal strain tensor $\varepsilon = \varepsilon(t, x)$, which is additively decomposed into an elastic part $e = e(t,x)$ and an anelastic part $\bar{e} = \bar{e}(t,x)$ and relates to the displacement $u = u(t, x)$ as
 
 $$\tag{eq:2.3}
 	\varepsilon = \nabla^\mathrm{s} u = \frac{1}{2} \left[ (\nabla u)^\mathrm{T} + (\nabla u) \right] = e + \bar{e}.
 $$
 
-An isotropic and isothermal, but otherwise quite general nonlinear elastic constitutive equation with elastic stresses $s_e$ and structural stresses $s_\alpha$ [e.g. Lyakhovksy et al., 2014b] is given by
+Taking the time derivative of {eq:2.3}, making use of the differential relation $v = \partial_t u$ between displacement $u$ and velocity $v$, we can write an evolution equation for the elastic strain rate as
 
 $$\tag{eq:2.4}
-	s(e, \alpha, \vartheta) = \lambda(\jmath e, \alpha, \vartheta) \,\delta \;\mathrm{tr}\; e + 2 \mu(\jmath e, \alpha, \vartheta) e \\[.7em]
-	s(\nabla α) =  - \nu(...)\, (\nabla \alpha) \otimes (\nabla \alpha), \\[.7em]
-	s(e, \alpha, \nabla \alpha, \vartheta) = s_e(e, \alpha, \vartheta) + s_α(\nabla α)
+	\partial_t e = \nabla^\mathrm{s} v - \partial_t \bar{e}.
 $$
 
-Here $\lambda$ and $\mu$ are the so-called Lam\'e parameters of an isotropic elastic solid, and $\nu$ an additional modulus associated with the structural stresses incurred by the damage field $\alpha = \alpha(t,x)$. The notation $\jmath e$ refers to the three scalar invariants $(J_1, J_2, J_3)$ of the elastic strain tensor, indicating that {eq:2.4} is isotropic. The symbol $\delta$ denotes the three-dimensional identity tensor. Finally, $\vartheta = \vartheta(t, x)$ is the temperature field, which may play a role in elastic moduli, but does not cause thermal expansion or contraction. This choice will be motivated further below. We note that the functional forms of $\lambda$ and $\mu$ in {eq:2.4} can not be arbitrarily chosen; they must derive from an energy functional that is convex in $e$. The damage parameter $\alpha$ is assumed to be governed by an evolution equation of the reaction-diffusion type
+The damage parameter $\alpha$ is assumed to be governed by an evolution equation of the general reaction-diffusion type;
 
 $$\tag{eq:2.5}
-	\partial_t \alpha = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha(\jmath e, \alpha, \vartheta),
+	\partial_t \alpha = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha(\jmath e, \alpha),
 $$
 
-with nonlinear diffusivity $D_\alpha(\alpha)$ and the reaction/coupling terms collected in $R_\alpha$.
+with nonlinear diffusivity $D_\alpha(\alpha)$ and production terms collected in $R_\alpha$.
 
 The anelastic part $\bar{e}$ of the strain tensor $\varepsilon$ is governed by Koiter's rule for non-associated plasticity [Koiter, 1953]:
 
-$$\tag{eq:2.7}
-	\partial_t \bar{e} = \gamma(\beta, \vartheta) \partial_s G(\jmath s),
+$$\tag{eq:2.6a}
+	\partial_t \bar{e} = \gamma(\beta, \vartheta) \hat{s}(e, \alpha, \nabla \alpha, \vartheta),
 $$
 
-in which the function $G$ takes the role of a so-called _plastic potential_, and the scalar coefficient $\gamma = \gamma(\beta)$ is called the _plastic multiplier_. In traditional plasticity models, $\gamma$ is used as a Lagrange multiplier that optimizes [TODO: finish], but here we assume that it is a direct function of a further damage field $\beta = \beta(t,x)$, which itself smoothly evolves according to the reaction-diffusion equation
+$$\tag{eq:2.6b}
+	\hat{s}(e, \alpha, \nabla \alpha, \vartheta) := \partial_{s} G\jmath s(e, \alpha, \nabla \alpha, \vartheta),
+$$
+
+so that {eq:2.4} becomes
+
+$$\tag{eq:2.7}
+	\partial_t e = \nabla^\mathrm{s} v - \gamma(\beta, \vartheta) \hat{s}(e, \alpha, \nabla \alpha, \vartheta) \\[.7em]
+	=: \nabla^\mathrm{s} v + R_e(e, \alpha, \nabla \alpha, \beta, \vartheta),
+$$
+
+with production terms collected in $R_e$.
+
+The anelastic strain rate in {eq:2.6a}, {eq:2.6b} is split in a dimensionless 'sense of flow' [Schmidt?] tensor $\hat{s}$, and a scalar flow magnitude $\gamma = \gamma(\beta, \vartheta)$, also called the _plastic multiplier_. The tensor $\hat{s}$ derives from a so-called _plastic potential_ function $G$ of the scalar invariants $\jmath s$ of the stress tensor. The notation $\hat{s}$ is not chosen in order to cause confusion with the stress tensor $s$, but rather to indicate that $\hat{s}$ is the 'unit stress tensor' in the sense that if $G \jmath s = G(\jmath(s))$ defines a norm of $s$, then $\partial_s G\jmath s$ defines a normalization of $s$, and that $G\jmath s$ can conveniently be chosen such that $G(\hat{s}) = G(\partial_s G\jmath s) = 1$ such that in turn, $G( \partial_t \bar{e}) = \gamma(\beta, \vartheta)$.
+
+In traditional plasticity models, $\gamma$ is used as a Lagrange multiplier that is solved to satisfy the plastic yield inequality, but here we take a viscous flow model, and assume that $\gamma$ is a direct function of temperature $\vartheta$ and a further state field $\beta = \beta(t,x)$ that we call the `breakage field' [cf. Lyakhovsky and Ben-Zion et al.] that is governed by a further equation of general reaction-diffusion type;
 
 $$\tag{eq:2.8}
-	\partial_t \beta = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e, \alpha, \beta, \vartheta),
+	\partial_t \beta = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e, \alpha, \nabla\alpha, \beta, \vartheta),
 $$
 
-with nonlinear diffusivity $D_\beta = D_\beta(\beta)$ and the reaction (or source) terms collected in $R_\beta$.
+with nonlinear diffusivity $D_\beta = D_\beta(\beta)$ and the production terms collected in $R_\beta$. For sufficiently non-linear production terms $R_\beta$, an effective yield inequality may be an emergent phenomenon. This is why we use the term `anelastic' to cover cover both viscous and plastic rheologies.
 
-Koiter's rule {eq:2.7} can also be directly stated in terms of unknowns $\alpha$, $\beta$, and the invariants of $e$. We make use of this fact, the relation {eq:2.3}, and the differential relation $v = \partial_t u$, to write an evolution equation for the elastic part of the strain rate,
+Finally, we write an evolution equation for the temperature field $\vartheta$ in the form of
 
-$$\tag{eq:2.9}\begin{align}
-		\partial_t e = \nabla^\mathrm{s} v - \partial_t \bar{e} &= \nabla^\mathrm{s} v - \gamma(\beta, \vartheta) \partial_s G(\jmath s(e, \alpha, \nabla \alpha, \vartheta))\\[.7em] &=: \nabla^\mathrm{s} v + R_e(e, \alpha, \nabla \alpha, \beta, \vartheta),
+$$\tag{eq:2.9}
+	\begin{align}
+		\partial_t \vartheta &= \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right] + \vartheta_0 \xi(\vartheta) \nabla \cdot v + \gamma(\beta, \vartheta) G\jmath s(e, \alpha, \nabla \alpha, \vartheta), \\[.7em]
+		&=: \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right] + R_{\vartheta}(\nabla v, e, \alpha, \nabla \alpha, \beta, \vartheta),
 	\end{align}
 $$
 
-Finally, we write an evolution equation for the temperature field $\theta$ in the form of
+in which some constant coefficients are dropped for clarity. The term $\vartheta_0 \xi(\vartheta) \nabla \cdot v$ in {eq:2.9} models adiabatic heating or cooling linearized around the ambient temperature $\vartheta_0$ of the body in its reference configuration, and the term $\gamma(...)\, G \jmath s(...)$ models heating due to mechanical dissipation. For notational convenience this term is written different from its traditional form $s:\partial_t \bar{e} = \gamma \hat{s} : s$ {eq:2.6a}, making use of the fact that $\hat{s} : s = (\partial_s Gjs): s$ {eq:2.6b} represents a linearization of $G\jmath s = G(\jmath(s))$ around the stress-free reference state. In the case where there are two classes of rheologies active, the of one contributing to the development of the breakage field $\beta$ and the dissipation of the other to the temperature field $\vartheta$, the function $\gamma(\beta, \vartheta)$ can be additively decomposed into $\gamma(\beta, \vartheta) = \gamma_\beta(\beta, \vartheta) + \gamma_\vartheta(\beta, \vartheta)$, the latter of which can then be substituted for $\gamma(\beta, \vartheta)$ in {eq:2.9}.
 
-$$\tag{eq:2.10}
-	\partial_t \vartheta = \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right] + R_\vartheta(e, \alpha, \beta, \vartheta).
-$$
+The methodology we develop in this work makes it disadvantageous to include a mass balance law governing the evolution of mass density $r$. If needed, the methodology allows the density to be expressed directly using the elastic strain tensor, i.e. $r = r_0 \exp \mathrm{tr} (e_0 - e)$, ignoring anelastic or thermal contributions to density evolution.
 
-[TODO: CHECK units] The methodology we develop in this work makes it disadvantageous for the production term $R_\vartheta(e, \alpha, \beta, \vartheta)$ to additionally depend on $\nabla v$ or $\nabla \alpha$. This discourages us from considering adiabatic heating and cooling of the form $\vartheta \nabla \cdot v$, which is also why the reciprocal thermo-elastic effect of thermal expansion and contraction is ignored in the definition of stress {eq:2.4}. It also discourages inclusion of shear heating in the full damage-elastic framework of the form $\gamma\, s : \partial_{s} G(\jmath s)$ on account of dependence of the stress $s = s(e, \alpha, \nabla\alpha, \vartheta)$ on $\nabla\alpha$, though shear heating subject to elastic stress only of the form $\gamma\, s_e : \partial_{s_e} G(\jmath s_e)$ does not pose a problem.
-
-For the same structural reason, we have not included a mass balance law governing the evolution of mass density. If needed, the methodology allows the density to be expressed directly using the elastic strain tensor, i.e. $r = r_0 \exp \mathrm{tr} (e_0 - e)$, ignoring anelastic or thermal volume changes.
-
-Special cases of the rheology {eq:2.3}--{eq:2.10} include the damage-breakage rheology of [Lyakhovski, Ben-Zion, et al., 2011, 2014a, 2014b, etc.], the rate and state rheology of [Pranger et al., 2022], and the temperature and grain-size dependent rheology of [The Geodynamicists]. We will use [one or the other or both] to test our algorithm in [section X]. Ultimately, we seek to find a sufficiently accurate numerical approximation to {eq:2.1}--{eq:2.10} in terms of trajectories of the state fields $u$, $v$, $\bar{e}$, $\alpha$, and $\beta$ in the interior of the domain $\mathrm{T} \otimes \Omega$, given sufficient data on $\partial \mathrm{T}$ and $\partial \Omega$.
+Special cases of the rheology {eq:2.2}--{eq:2.9} include the damage-breakage rheology of [Lyakhovski, Ben-Zion, et al., 2011, 2014a, 2014b, etc.], the rate and state rheology of [Pranger et al., 2022], and the temperature and grain-size dependent rheology of [The Geodynamicists]. We will use [one or the other or both] to test our algorithm in [section X]. Ultimately, we seek to find a sufficiently accurate numerical approximation to {eq:2.1}--{eq:2.9} in terms of trajectories of the state fields $v$, $e$, $\alpha$, $\beta$, and $\vartheta$ in the interior of the domain $\mathrm{T} \otimes \Omega$, given sufficient data on $\partial \mathrm{T}$ and $\partial \Omega$.
 
 
 3: Proposed methodology
@@ -109,7 +129,7 @@ Special cases of the rheology {eq:2.3}--{eq:2.10} include the damage-breakage rh
 Summarizing the previous section, we consider the numerical solution of the system
 
 $$\tag{eq:3.1a}
-	\partial_t (r v) = \nabla \cdot s_e(e, \alpha, \vartheta) +  \nabla \cdot s_\alpha(\nabla \alpha),
+	\partial_t (r v) = \nabla \cdot s_e(e, \alpha, \vartheta) +  \nabla \cdot s_\alpha(\nabla \alpha) + \nabla \cdot s_\vartheta(\vartheta),
 $$
 
 $$\tag{eq:3.1b}
@@ -117,188 +137,226 @@ $$\tag{eq:3.1b}
 $$
 
 $$\tag{eq:3.1c}
-	\partial_t \alpha = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha(\jmath e, \alpha, \beta,\vartheta),
+	\partial_t \alpha = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha(\jmath e, \alpha),
 $$
 
 $$\tag{eq:3.1d}
-	\partial_t \beta = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e, \alpha, \beta, \vartheta),
+	\partial_t \beta = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(e, \alpha, \nabla \alpha, \beta, \vartheta),
 $$
 
 $$\tag{eq:3.1e}
-	\partial_t \vartheta = \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right] + R_\vartheta(e, \alpha, \beta, \vartheta)
+	\partial_t \vartheta = \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right] + R_\vartheta(e, \alpha, \nabla \alpha, \beta, \vartheta)
 $$
 
 which we summarize as the ordinary differential equation (ODE)
 
 $$\tag{eq:3.2}
-	\frac{\partial U}{\partial t} = F(U; t),
+	\frac{\partial y}{\partial t} = f(y; t),
 $$
 
-with $U$ a the vector of unknowns $U = [v, e, \alpha, \beta]^T$ and $F$ a (partial differential) operator that acts on $U$ at a time $t$. Explicit time-dependence is included in case time-varying boundary conditions are needed.
+with $y$ a the vector of unknowns $y = [rv, e, \alpha, \beta, \vartheta]^T$ and $f$ a (partial differential) operator that acts on $y$ at a time $t$. Explicit time-dependence is included in case time-varying boundary conditions are needed.
 
 **3.1: Considerations for time discretization**
 
 We use the method of lines to separate time and space discretization of these equations. For the sake of simplicity of implementation we favor second-order accurate methods in both cases, which has the advantage that the combined accuracy of space and time discretization is also close to second-order [citation needed].
 
-When discretizing a system of ODEs like {eq:3.2} in time, we typically have a choice between so-called explicit and implicit methods. Explicit methods are algorithmically simple and have a low, constant computational cost per time step, but the step size is limited to some fraction of the characteristic time scale of the fastest-growing perturbations admitted by the ODE. Typically, perturbations grow much faster than the actual solution of the initial value problem, a phenomenon called stiffness [citation needed]. This problem is further exacerbated by PDE components in the right-hand-side of {eq:3.2}. After spatial discretization [Section 3.6], these admit perturbations whose characteristic time scale grows with the grid distance; linearly for hyperbolic PDE components and even quadratically for parabolic PDE components [citation needed].
+When discretizing a system of ODEs like {eq:3.2} in time, we typically have a choice between so-called explicit and implicit methods. Explicit methods are algorithmically simple and have a low, constant computational cost per time step, but the step size is limited to some fraction of the characteristic time scale of the fastest-growing perturbations admitted by the ODE. Typically, perturbations grow much faster than the actual solution of the initial value problem, a phenomenon called stiffness [citation needed]. This problem is further exacerbated by PDE components in the right-hand-side of {eq:3.2}. After spatial discretization [Section 3.6], these admit perturbations whose characteristic time scale shrinks with the grid spacing; linearly for hyperbolic PDE components and even quadratically for parabolic PDE components [citation needed].
 
-Implicit methods on the other hand, do not suffer from time step restrictions when they are A-stable [Section 3.3], but require the solution of a (large) system of simultaneous algebraic equations, which incurs a considerable, non-constant cost per time step [citation needed]. Given a solution method whose algorithmic complexity scales sub-linearly with time step size, implicit schemes can easily outperform explicit schemes whenever the solution is 'slow'[^1] [citation needed]. However, as will become clear by [Section 3.6], our favored class of iterative, matrix-free solvers places various constraints on the properties of the operator $f$ summarized in {eq:3.xyzz}, such as positive (negitive) definiteness or symmetry. The physical processes modeled in {eq:3.1a}--{eq:3.1d} unfortunately do not result in such properties, except in limit cases.
+Implicit methods on the other hand, do not suffer from time step restrictions when they are L-stable or A-stable [Section 3.3], but require the solution of a (large) system of simultaneous algebraic equations, which incurs a considerable cost per time step that scales supra-linearly with the amount of grid nodes, but ideally sub-linearly with time step size [citation needed]. Given the latter property, implicit schemes can outperform explicit schemes whenever the solution is 'slow'[^1] [citation needed]. However, as will become clear by [Section 3.6], our favored class of iterative, matrix-free solvers places various constraints on the properties of the operator $f$ summarized in {eq:3.xyzz}, such as positive (negitive) definiteness or symmetry. The physical processes modeled in {eq:3.1a}--{eq:3.1d} unfortunately do not result in such properties, except in limit cases.
 
-One of the major aims of this paper is the resolution of this problem. We propose an additive decomposition of the governing equations {eq:3.1a}--{eq:3.1d}, in which some of the PDE terms can be decoupled and solved with an implicit method in a routine way, and the remainder with an explicit method using an additive Runge-Kutta (ARK) scheme. We derive subsequently the properties of this time integration scheme, and show that the resulting time step constraints are independent of the spatial resolution, despite the fact that not all of the PDE components are treated implicitly. Finally, we embed into this scheme an error estimator and propose time step controls to keep the discretization error bounded.
+One of the major aims of this paper is the resolution of this problem for the cases of multi-state rheologies in an elastic medium. We propose an additive decomposition of the governing equations {eq:3.1a}--{eq:3.1d}, in which some of the PDE terms can be decoupled and solved with an implicit method in a routine way, and the remainder with an explicit method using an additive Runge-Kutta (ARK) scheme. We derive subsequently the properties of this time integration scheme, and show that the resulting time step constraints are independent of the spatial resolution, despite the fact that not all of the PDE components are treated implicitly. Finally, we embed into this scheme an error estimator and propose time step controls to keep the discretization error bounded.
 
-[^1]: Here 'slow' is relative: the solution to a friction problem may e.g. be 'slow' both during the 'stick' and the 'slip' phases, and only be 'fast' during the transitions between the two.
+[^1]: Here 'slow' is relative to the evolving characteristic time scale of a given nonlinear ODE problem: the solution to a friction problem may e.g. be 'fast' (evolving on par with the characteristic time scale) during the slow 'stick' phase, and 'slow' (evolving much slower than the characteristic time scale) during fast 'slip' phase.
 
 
 **3.2: An additive Runge-Kutta method**
 
-We first consider the additive decomposition and time integration of the generic system {eq:3.2}, and subsequently propose in [Section 3.4] a suitable decomposition of the governing equations {eq:3.1a}--{eq:3.1d}. In this section we follow the work of [Giraldo et al., 2013], who applied the method to atmospheric flow. We symbolically write the additive decomposition of {eq:3.2} into explicitly and implicitly solved terms as
+We first consider the additive decomposition and time integration of the generic system {eq:3.2}, and subsequently propose in [Section 3.4] a suitable decomposition of the governing equations {eq:3.1a}--{eq:3.1e}. In this section we follow the work of [Giraldo et al., 2013], who applied the method to atmospheric flow. We symbolically write the additive decomposition of {eq:3.2} into explicitly and implicitly solved terms as
 
 $$\tag{eq:3.3}
-	\partial_t U = F(U; t) = F^\mathrm{im}(U; t) + F^\mathrm{ex}(U; t),
+	\partial_t y = f(y; t) = f^\mathrm{im}(y; t) + f^\mathrm{ex}(y; t),
 $$
 
-in which $F^\mathrm{im}(U; t)$ contains the terms to be integrated implicitly, and $F^\mathrm{ex}(U; t)$ the terms to be integrated explicitly.
+in which $f^\mathrm{im}(y; t)$ contains the terms to be integrated implicitly, and $f^\mathrm{ex}(y; t)$ the terms to be integrated explicitly.
 
-We adopt the additive Runge-Kutta scheme
-
-<!-- $$\tag{eq:3.tta}
-	w_i  =    u^n + \tau \sum\limits_{j=1}^{i-1} a_{ij} g(w_j) \\
-	\hspace{11em} + \tau \sum\limits_{j=1}^{i} \tilde{a}_{ij} \tilde{g}(w_j), \qquad i = 1, \ldots, 3
-$$ -->
+We adopt two additive embedded Runge-Kutta schemes, which are combined into the concise form
 
 $$\tag{eq:3.4a}
-	\bar{T} = t^n \bar{\mathrm{1}} + \tau\, \bar{C},
+	T = t^n \mathrm{1} + \tau\, C,
 $$
 
 $$\tag{eq:3.4b}
-	\bar{W} = U^n \bar{\mathrm{1}} + \tau \left[\bar{\mathbf{A}}^\mathrm{im} \bar{F}^\mathrm{im}(\bar{W}; \bar{T}) + \bar{\mathbf{A}}^\mathrm{ex} \bar{F}^\mathrm{ex}(\bar{W}; \bar{T})\right],
+	W = y^n \mathrm{1} + \tau \left[A^\mathrm{im} F^\mathrm{im}(W; T) + A^\mathrm{ex} F^\mathrm{ex}(W; T)\right],
 $$
 
 $$\tag{eq:3.4c}
-	U^{n+1} = U^n + \tau\, \bar{B}^\mathrm{T} \left[\bar{F}^\mathrm{im}(\bar{W}; \bar{T}) + \bar{F}^\mathrm{ex}(\bar{W}; \bar{T}) \right],
+	y^{n+1} = y^n + \tau\, B^\mathrm{T} \left[F^\mathrm{im}(W; T) + F^\mathrm{ex}(W; T) \right],
 $$
 
-in which $n$ denotes the step index, $\tau$ the step size, $t^n = t$, $t^{n+1} = t + \tau$, and $U^n = U(t)$, $U^{n+1} = U(t + \tau)$. The barred symbols denote vectors and square matrices of size $m$, the number of stages in the Runge-Kutta scheme. We use $m = 3$ stages to generate a method that is of second-order accuracy. The intermediate stage values of the solution $U$ are stored in $\bar{W}$, the intermediate stage values of time are stored in $\bar{T}$. The symbol $\bar{1}$ denotes a vector of ones, so that e.g. $t^n \bar{1} = [t^n, t^n, t^n]^\mathrm{T}$. $\bar{\mathbf{A}}^\mathrm{im,ex}$, $\bar{B}$ and $\bar{C}$ denotes coefficient matrices and vectors, subject to the condition that
+$$\tag{eq:3.4d}
+	\epsilon^{n+1} = \tau\, E^\mathrm{T} \left[F^\mathrm{im}(W; T) + F^\mathrm{ex}(W; T) \right],
+$$
+
+in which $n$ denotes the step index, $\tau$ the step size, $t^n = t$, $t^{n+1} = t + \tau$, and $y^n = y(t)$, $y^{n+1} = y(t + \tau)$. The capitalized symbols denote vectors and square matrices of size $m$, the number of stages in the Runge-Kutta scheme. The intermediate stage values of the solution $y$ are stored in $W$, the intermediate stage values of time are stored in $T$. We use $m = 4$ stages to generate two methods that are both of second-order accuracy, but with different error constants [Section 3.3]. We use the method with the best stability properties to advance the solution a step forward in time, and use the difference between the solutions of both methods to estimate the magnitude $\epsilon^{n+1}$ of the leading error term. In the equations {eq:3.4a}--{eq:3.4d}, the symbol $1$ used in a post-multiplication position denotes a vector of ones, so that e.g. $t^n 1 = [t^n, t^n, t^n, t^n]^\mathrm{T}$. $A^\mathrm{im,ex}$, $B$ and $C$ denotes coefficient matrices and vectors, subject to the conditions that
 
 $$\tag{eq:3.5a}
-	\bar{C} = \bar{\mathbf{A}}^\mathrm{im}\bar{1} = \bar{\mathbf{A}}^\mathrm{ex} \bar{1}.
+	C = \mathbf{A}^\mathrm{im}1 = \mathbf{A}^\mathrm{ex} 1.
 $$
 
 $$\tag{eq:3.5b}
-	\bar{B} \cdot \bar{1} = 1.
+	B \cdot 1 = 1.
 $$
 
-Finally, the notation $\bar{F}^\mathrm{im,ex}(\bar{W}; \bar{T})$ must be understood to mean
-
-$$
-	\bar{F}^\mathrm{im,ex}(\bar{W}; \bar{T}) = \left[F^\mathrm{im,ex}(W_1; T_1),\; F^\mathrm{im,ex}(W_2; T_2),\; F^\mathrm{im,ex}(W_3; T_3)\right]^\mathrm{T}.
+$$\tag{eq:3.5c}
+	E \cdot 1 = 0.
 $$
 
-Equation {eq:3.4b} defines a system of equations in $m$ unknowns, which can be solved sequentially if the coefficient matrices $\bar{\mathbf{A}}^\mathrm{im,ex}$ are lower diagonal. In this case the scheme is said to be _diagonally implicit_. The function $F^\mathrm{ex}$ is only treated explicitly when the coefficient matrix $\bar{\mathbf{A}}^\mathrm{ex}$ is _strictly_ lower diagonal.
+Finally, the notation $F^\mathrm{im,ex}(W; T)$ must be understood to mean
 
-We populate $\bar{\mathbf{A}}^\mathrm{im}$ with coefficients from the TR-BDF2 time integration scheme [CITE, Giraldo 2013], which can be written as an explicit first stage $W_1 = U^{n}$ at $T_1 = t^n$, a second stage at $T_2 = t^n + c_2 \tau$ that is generated by the trapezoidal rule $W_2 = U^{n} + (c_2/2) F^\mathrm{im}(W_1; T_1) + (c_2/2) F^\mathrm{im}(W_2; T_2))$, and a final stage at $T_3 = t^n + \tau$ given by the second-order backwards difference formula (BDF2). The TR-BDF2 scheme would be finished at $U^{n+1} = W_3$, which can be extended into the Runge-Kutta framework by letting $\bar{B}$ be equal to the last row of $\bar{\mathbf{A}}^\mathrm{im}$, i.e.
+$$
+	F^\mathrm{im,ex}(W; T) = \left[f^\mathrm{im,ex}(W_1; T_1),\; f^\mathrm{im,ex}(W_2; T_2),\; f^\mathrm{im,ex}(W_3; T_3),\; f^\mathrm{im,ex}(W_4; T_4)\right]^\mathrm{T}.
+$$
+
+Equation {eq:3.4b} defines a system of equations in $m$ unknowns, which can be solved sequentially if the coefficient matrices $A^\mathrm{im,ex}$ are lower diagonal. In this case the scheme is said to be _diagonally implicit_. The function $f^\mathrm{ex}$ is only treated explicitly when the coefficient matrix $A^\mathrm{ex}$ is _strictly_ lower diagonal.
+
+We populate $A^\mathrm{im}$ with coefficients from the TR-BDF2 time integration scheme [CITE, Giraldo 2013], which can be written as an explicit first stage $W_1 = y^{n}$ at $T_1 = t^n$, a second stage at $T_2 = t^n + c_2 \tau$ that is generated by the trapezoidal rule $W_2 = y^{n} + (c_2/2) F^\mathrm{im}(W_1; T_1) + (c_2/2) F^\mathrm{im}(W_2; T_2))$, and a final stage at $T_4 = t^n + \tau$ given by the second-order backwards difference formula (BDF2) over the stages $W1$, $W2$, and $W_4$. The TR-BDF2 scheme would be finished at $y^{n+1} = W_4$, but can be extended into the Runge-Kutta framework by equivalently letting $B$ be equal to the last row of $A^\mathrm{im}$, i.e.
 
 $$\tag{eq:3.6}
-	\bar{B} = \bar{\mathbf{A}}^\mathrm{im} [0, 0, 1]^\mathrm{T}.
+	B = A^\mathrm{im} [0, 0, 0, 1]^\mathrm{T}.
 $$
 
-However, by keeping the values of $\bar{B}$ open for the moment (subject to {eq:3.5b}), we will be able to generate schemes with different properties at the expense of only one explicit finishing stage compared to the TR-BDF2 scheme (see Section 3.3).
+The skipped stage $W_3$ at $T_3 = t^n + \tau$ represents the other embedded method, and is filled with coefficients from the trapezoidal time integration scheme over the whole interval $\tau$.
+The coefficient vector $E$ that yields the error estimate $\epsilon^{n+1}$ is given by
 
-[TODO: Laudable properties of TR-BDF2].
+$$\tag{eq:3.6b}
+	E = e_0 (A^\mathrm{im} [0, 0, 1, 0]^\mathrm{T} - B),
+$$
 
-The resulting in the Butcher tableau [CITE] is given by
+with $e_0$ some constant of proportionality.
+
+The resulting coefficient vectors and matrices are given by
 
 $$\tag{eq:3.7a}
-    \begin{array}{c|ccc}
-			  \bar{C}
-			& \bar{\mathbf{A}}^\mathrm{im} \\[.7em] \hline\\[-.5em]
-			& \bar{B}^\mathrm{T}
-		\end{array} \quad = \quad \begin{array}{c|ccc}
-			  0
-			&  
-			&  
-			&   \\[.7em]
-			  c_2
-			& \frac{1}{2}c_2
-			& \frac{1}{2}c_2
-			&   \\[.7em]
-			  1
-			& \frac{1}{2}(2-c_2)^{-1}
-			& \frac{1}{2}(2-c_2)^{-1}
-			& (1-c_2)(2-c_2)^{-1} \\[.7em]\hline\\[-.5em]
-			& b_1
-			& b_2
-			& 1 - b_1 - b_2
-		\end{array}.
+    C^T = \begin{bmatrix}
+		  0
+		& c_2
+		& 1
+		& 1
+	\end{bmatrix}
 $$
-
-Constrained by {eq:3.5a} and the condition that $\bar{\mathbf{A}}^\mathrm{ex}$ must be strictly lower triangular, the Butcher tableau for the explicit Runge-Kutta scheme reads
 
 $$\tag{eq:3.7b}
-    \begin{array}{c|ccc}
-			  \bar{C}
-			& \bar{\mathbf{A}}^\mathrm{ex} \\[.7em] \hline\\[-.5em]
-			& \bar{B}^\mathrm{T}
-		\end{array} \quad = \quad \begin{array}{c|ccc}
-			  0
-			&  
-			&  
-			&   \\[.7em]
-			  c_2
-			& c_2
-			& 
-			&   \\[.7em]
-			  1
-			& 1-a^{ex}_{32}
-			& a^{ex}_{32}
-			& \\[.7em]\hline\\[-.5em]
-			& b_1
-			& b_2
-			& 1 - b_1 - b_2
-		\end{array}.
+    A^\mathrm{im} = \begin{bmatrix}
+		& 0
+		&  
+		&   \\[.7em]
+		& \frac{1}{2}c_2
+		& \frac{1}{2}c_2
+		&  
+		&   \\[.7em]
+		& \frac{1}{2}
+		& 0
+		& \frac{1}{2} 
+		&  \\[.7em]
+		& \frac{1}{2}(2-c_2)^{-1}
+		& \frac{1}{2}(2-c_2)^{-1}
+		& 0
+		& (1-c_2)(2-c_2)^{-1}
+	\end{bmatrix}
 $$
 
-We thus have four parameters, $b_1$, $b_2$, $c_2$ and $a^{ex}_{32}$, that can be tuned to some advantage.
+$$\tag{eq:3.7c}
+    A^\mathrm{ex} = \begin{bmatrix}
+		  0
+		&    
+		&  
+		&   \\[.7em]
+		  c_2
+		& 0
+		&
+		&   \\[.7em]
+		  1 - a^{ex}_{32}
+		&     a^{ex}_{32}
+		& 0
+		& \\[.7em]
+		  1 - a^{ex}_{42}
+		&     a^{ex}_{42}
+		& 0
+		& 0
+	\end{bmatrix}
+$$
 
-**3.3 Stability and Accuracy**
+$$\tag{eq:3.7d}
+    B^T = \begin{bmatrix}
+		\frac{1}{2}(2-c_2)^{-1}   \\[.7em]
+		\frac{1}{2}(2-c_2)^{-1} \\[.7em]
+		0                       \\[.7em]
+		(1-c_2)(2-c_2)^{-1}
+	\end{bmatrix}
+$$
 
-We analyze the numerical stability and accuracy of the scheme {eq:3.4a--c}, {eq:3.7a}, {eq:3.7b} using Dahlquist's problem [Dahlquist, 1963], which we adapt to our additive IMEX problem as follows:
+$$\tag{eq:3.7e}
+    E^T = e_0 \begin{bmatrix}
+		  \frac{1}{2}(1-c_2)(2-c_2)^{-1} \\[.7em]
+		 -\frac{1}{2}(2-c_2)^{-1}        \\[.7em]
+		  \frac{1}{2}                    \\[.7em]
+		 -(1-c_2)(2-c_2)^{-1}
+	\end{bmatrix}
+$$
+
+The coefficients of $A^\mathrm{ex}$ are constrained by {eq:3.5a}, by the condition of strict lower triangularity, and finally by the principle that the embedded method used in error estimation should be independent of the embedded method used for integration of the solution. We thus have four parameters, $c_2$, $a^{ex}_{32}$, and $a^{ex}_{42}$, that can be tuned to some advantage.
+
+**3.3 Error estimation and time step control**
+
+We analyze the numerical stability and accuracy of the scheme {eq:3.4a--d}, {eq:3.7a}--{eq:3.7e} using Dahlquist's problem [Dahlquist, 1963], which we adapt to our additive IMEX problem as follows:
 
 $$\tag{eq:3.8}
-	\tau\, \partial_t U = \zeta U = \zeta^\mathrm{im} U + \zeta^\mathrm{ex} U.
+	\tau\, \partial_t y = \zeta y = \zeta^\mathrm{im} y + \zeta^\mathrm{ex} y.
 $$
 
-Here, $\zeta^\mathrm{im}/\tau$ and $\zeta^\mathrm{ex}/\tau$ can be interpreted as eigenvalues of the linearization of $F^\mathrm{im}(U; t)$ and $F^\mathrm{ex}(U; t)$ with respect to $U$. We substitute {eq:3.7} into {eq:3.4a--c} to obtain
+Here, $\zeta^\mathrm{im}/\tau$ and $\zeta^\mathrm{ex}/\tau$ can be interpreted as eigenvalues of the linearization of $F^\mathrm{im}(y; t)$ and $F^\mathrm{ex}(y; t)$ with respect to $y$. We substitute {eq:3.8} into {eq:3.4a--c} to obtain
 
 $$\tag{eq:3.9a}
-	\bar{W} = U^n \bar{\mathrm{1}} + \left[\zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} + \zeta^\mathrm{ex}\bar{\mathbf{A}}^\mathrm{ex} \right] \bar{W},
+	W = y^n \mathrm{1} + \left[\zeta^\mathrm{im} A^\mathrm{im} + \zeta^\mathrm{ex} A^\mathrm{ex} \right] W,
 $$
 
 $$\tag{eq:3.9b}
-	U^{n+1} = U^n + \zeta\, \bar{B}^\mathrm{T} \bar{W},
+	y^{n+1} = y^n + \zeta\, B^\mathrm{T} W,
 $$
 
-Next, we invert {eq:3.9a} for $\bar{W}$ and substitute the result into {eq:3.9b};
+$$\tag{eq:3.9c}
+	\epsilon^{n+1} = \zeta\, E^\mathrm{T} W,
+$$
+
+Next, we invert {eq:3.9a} for $W$ and substitute the result into {eq:3.9b}--{eq:3.9c};
 
 $$\tag{eq:3.10a}
-	U^{n+1} = P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n.
+	y^{n+1} = P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) y^n,
+$$
+
+$$\tag{eq:3.10b}
+	\epsilon^{n+1} = Q(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) y^n,
 $$
 
 with
 
-$$\tag{eq:3.10b}
-	P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = 1 + \zeta\, \bar{B}^\mathrm{T} \left[ \bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right]^{-1} \bar{\mathrm{1}}
+$$\tag{eq:3.10c}
+	P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = 1 + \zeta\, B^\mathrm{T} \cdot \left[ I - \zeta^\mathrm{im} A^\mathrm{im} - \zeta^\mathrm{ex} A^\mathrm{ex} \right]^{-1} \cdot 1
 $$
 
-L-stability of the implicit end-member scheme ($\zeta^\mathrm{ex} = 0$) is demonstrated by the fact that $\lim\limits_{|\zeta^\mathrm{im}| \to \infty}P(\zeta^\mathrm{im}, 0) = 0$ [e.g. Hosea & Shampine, 1996]. This L-stable property means that the method arrives at $U^{n+1} = 0$ in one step in the limit of infinite time step. For $\zeta^\mathrm{im} \in \mathbb{R}^-$ this equates to the analytical solution 
+$$\tag{eq:3.10d}
+	Q(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) = \zeta\, E^\mathrm{T} \left[I - \zeta^\mathrm{im} A^\mathrm{im} - \zeta^\mathrm{ex} A^\mathrm{ex} \right]^{-1} \cdot 1
+$$
+
+L-stability of the implicit TR-BDF2 end-member scheme ($\zeta^\mathrm{ex} = 0$) is demonstrated by the fact that $\lim\limits_{|\zeta^\mathrm{im}| \to \infty}P(\zeta^\mathrm{im}, 0) = 0$ [e.g. Hosea & Shampine, 1996]. This L-stable property means that the method arrives at $U^{n+1} = 0$ in one step in the limit of infinite time step. For $\zeta^\mathrm{im} \in \mathbb{R}^-$ this equates to the analytical solution 
 
 $$\tag{eq:3.11}
-	\tilde{U}^{n+1} = U^{n} \exp{\zeta}
+	\tilde{y}^{n+1} = y^{n} \exp{\zeta}
 $$
 
 to test problem {eq:3.8}.
 
-<!-- By using $\mathrm{det}\left(\mathbf{M}\right) \mathbf{M}^{-1} = \mathrm{adj}\left(\mathbf{M}\right)$ for any invertible matrix $\mathbf{M}$, {eq:3.10} is concisely stated as
+<!-- By using $\det\left(\mathbf{M}\right) \mathbf{M}^{-1} = \mathrm{adj}\left(\mathbf{M}\right)$ for any invertible matrix $\mathbf{M}$, {eq:3.10} is concisely stated as
 
 $$\tag{eq:3.11a}
 	P^\mathrm{im}(\zeta^\mathrm{im}) U^{n+1} = P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n,
@@ -307,7 +365,7 @@ $$
 in which the (bivariate) polynomials $P^\mathrm{im}(\zeta^\mathrm{im})$ and $P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ can be expressed as
 
 $$\tag{eq:3.11b}
-	P^\mathrm{im}(\zeta^\mathrm{im}) = \mathrm{det}\; \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right] = \prod \left[\bar{1} - \zeta^\mathrm{im} \mathrm{diag}( \bar{\mathbf{A}}^\mathrm{im})\right],
+	P^\mathrm{im}(\zeta^\mathrm{im}) = \det\; \left[\bar{\mathbf{I}} - \zeta^\mathrm{im} \bar{\mathbf{A}}^\mathrm{im} - \zeta^\mathrm{ex} \bar{\mathbf{A}}^\mathrm{ex} \right] = \prod \left[\bar{1} - \zeta^\mathrm{im} \mathrm{diag}( \bar{\mathbf{A}}^\mathrm{im})\right],
 $$
 
 $$\tag{eq:3.11c}
@@ -320,97 +378,183 @@ $P^\mathrm{ex}(\zeta^\mathrm{im}, \zeta^\mathrm{ex})$ is a bivariate polynomial 
 This can be expanded using a Taylor series around the origin, giving
 
 $$\tag{eq:3.12a}
-	\tilde{U}^{n+1} = Q(\zeta) U^{n},
+	\tilde{y}^{n+1} = S(\zeta) y^{n},
 $$
 
 with
 
 $$\tag{eq:3.12b}
-	Q(\zeta) = \left( 1 + \zeta + \tfrac{1}{2} \zeta^2 + \tfrac{1}{6} \zeta^3 + \mathcal{O}(\zeta^4) \right).
+	S(\zeta) = \left( 1 + \zeta + \tfrac{1}{2} \zeta^2 + \tfrac{1}{6} \zeta^3 + \mathcal{O}(\zeta^4) \right).
 $$
 
-We can now combine {eq:3.12a,b} and {eq:3.11c} and write for the integration error $\tilde{\varepsilon}^{n+1} = U^{n+1} - \tilde{U}^{n+1}$:
-
+We can now combine {eq:3.12a,b} and {eq:3.11c} and write for the analytical integration error $\tilde{\epsilon} = y^{n+1} - \tilde{y}^{n+1}$:
 
 $$\tag{eq:3.13}
-	\tilde{\varepsilon}^{n+1} = \left[P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - Q(\zeta)\right] U^{n} =: R(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) U^n,
+	\tilde{\epsilon}^{n+1} = \left[P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) - S(\zeta)\right] y^{n} =: R(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) y^n,
 $$
 
-The Taylor series expansion of $R$ around the origin [Appedix?] contains error terms of order $\mathcal{O}(\zeta^2)$, $\mathcal{O}(\zeta^3)$, and so on. The error corresponding to terms is eliminated by virtue of the TR-BDF2 condition {eq:3.6}, confirming the second-order accuracy of the scheme. Departing from condition {eq:3.6}, the third-order terms $\mathcal{O}(\zeta_\mathrm{im}^3)$, $\mathcal{O}(\zeta_\mathrm{im}^2 \zeta_\mathrm{ex})$, $\mathcal{O}(\zeta_\mathrm{im} \zeta_\mathrm{ex}^2)$, and $\mathcal{O}(\zeta_\mathrm{ex}^3)$ are eliminated by choosing
+which can be compared to the numerical error estimate $\epsilon^{n+1}$ given in {eq:3.10b} and {eq:3.10d}
 
-$$\tag{eq:3.14}
-	a_{32}^\mathrm{ex} = (c_2 - 1)(3 c_2^2 - 2 c_2)^{-1}, \qquad  b_2 = \tfrac{1}{6}(c_2-c_2^2)^{-1}
-$$
+The Taylor series expansions of $R$ and of $Q$ around the origin [Appedix?] both contain error terms of orders $\mathcal{O}(\zeta_\mathrm{im}^3)$, $\mathcal{O}(\zeta_\mathrm{im}^2 \zeta_\mathrm{ex})$, $\mathcal{O}(\zeta_\mathrm{im} \zeta_\mathrm{ex}^2)$,  $\mathcal{O}(\zeta_\mathrm{ex}^3)$, and higher, establishing the second-order accuracy of the extended TR-BDF2 scheme for problems that resemble Dahlquist's problem. The mixed third-order error terms can be factorized into one of order $\mathcal{O}(\zeta^3) = \mathcal{O}([\zeta^\mathrm{im} + \zeta^\mathrm{ex}]^3)$ in both $R$ and $Q$ by choosing
 
-An ARK scheme with these coefficients loses the the important property of being L-stable or A-stable, as the limit $\lim\limits_{|\zeta^\mathrm{im}| \to \infty}P(\zeta^\mathrm{im}, 0)$ is no longer bounded. Therefore the result {eq:3.14} suggests the creation of an _embedded_ method that achieves higher accuracy with the same stage values $\bar{W}$, but which is used only for error estimation and step size control [Section 3.4]
-
-The remaining coefficient, $c_2$, is set to a value of $1-3^{-\tfrac{1}{2}} \approx 0.423$ based on the following properties of the stability region $S = \{\zeta^\mathrm{im}, \zeta^\mathrm{ex} \in \mathbb{C} : \lvert P(\zeta^\mathrm{im}, \zeta^\mathrm{ex}) \rvert \leq 1 \}$:
-- As $\zeta^\mathrm{im} \to -\infty$, $S$ forms a disk around the origin $\zeta^\mathrm{ex} = 0$ with a radius that is maximized by this choice of value for $c_2$ [TODO: FIGURES!],
-- At $\zeta^\mathrm{im} = 0$, $S$ has a decent extent along both the negative real axis and the imaginary axis if $c_2 < \frac{2}{3}$, ideally $c_2 < \tfrac{1}{2}$ [TODO: Figures!]
-
-Summarizing, we have the schemes
-
-$$
-	\bar{\mathbf{A}}^\mathrm{im} = \left(\begin{array}{ccc}
-		0 & 0 & 0 \\[.3em]
-		\frac{1}{6} \left(3-\sqrt{3}\right) & \frac{1}{6} \left(3-\sqrt{3}\right) & 0 \\[.3em]
-		\frac{1}{4} \left(3-\sqrt{3}\right) & \frac{1}{4} \left(3-\sqrt{3}\right) & \frac{1}{2} \left(\sqrt{3}-1\right)
-	\end{array}\right) \approx \left(\begin{array}{lll}
-		0. & 0. & 0. \\[.3em]
-		0.211325 & 0.211325 & 0. \\[.3em]
-		0.316987 & 0.316987 & 0.366025
-	\end{array}\right),
+$$\tag{eq:3.14a}
+	a_{32}^\mathrm{ex} = \frac{1}{2}\frac{1}{c_2},
 $$
 
-$$
-	\bar{\mathbf{A}}^\mathrm{ex} = \left(\begin{array}{ccc}
-		0 & 0 & 0 \\[.3em]
-		1-\frac{1}{3}\sqrt{3} & 0 & 0 \\[.3em]
-		\phantom{0}-\frac{1}{2}\sqrt{3} & 1+\frac{1}{2}\sqrt{3} & 0
-	\end{array}\right) \approx \left(\begin{array}{lll}
-		\phantom{-}0. & 0. & 0. \\[.3em]
-		\phantom{-}0.42265 & 0. & 0. \\[.3em]
-		-0.866025 & 1.86603 & 0.
-	\end{array}\right),
+$$\tag{eq:3.14b}
+	a_{42}^\mathrm{ex} = \frac{c_2^2 - 2c_2 + 2}{4 c_2(1-c_2)}.
 $$
 
-$$
-	\bar{B}_\mathrm{2}^\mathrm{T} = \left(\begin{array}{r}
-		\frac{1}{4} \left(3-\sqrt{3}\right) \\[.3em]
-		\frac{1}{4} \left(3-\sqrt{3}\right) \\[.3em]
-		\frac{1}{2} \left(\sqrt{3}-1\right)
-	\end{array}\right) \approx \left(\begin{array}{l}
-		0.316987 \\[.3em]
-		0.316987 \\[.3em]
-		0.366025
-	\end{array}\right),
+A value for $c_2$ is obtained by optimizing the leading error constant of the modified TR-BDF2 scheme with respect to the embedded quasi-trapezoidal method. This results in
+
+$$\tag{eq:3.14c}
+	c_2 = 2 - \sqrt{2}.
 $$
 
-$$
-	\bar{B}_\mathrm{3}^\mathrm{T} = \left(\begin{array}{r}
-		\frac{1}{12} \left(3-\sqrt{3}\right) \\[.3em]
-		\frac{1}{4} \left(\sqrt{3}+1\right) \\[.3em]
-		\frac{1}{6} \left(3-\sqrt{3}\right)
-	\end{array}\right) \approx \left(\begin{array}{l}
-		0.105662 \\[.3em]
-		0.683013 \\[.3em]
-		0.211325
-	\end{array}\right),
+The resulting functions $R(\zeta)$ and $Q(\zeta)$, used in {eq:3.13} and {eq:3.10b} respectively to express the analytical and numerically estimated error of the proposed ARK scheme applied to Dahlquist's problem, can now be expanded into
+
+$$\tag{eq:3.15a}
+	R(\zeta) = \left(\frac{1}{2}\sqrt{2} - \frac{2}{3}\right)\zeta^3 + \mathcal{O}(\zeta^4),
 $$
 
-$$
-	\bar{C} = \left(\begin{array}{l}
-		0 \\[.3em]
-		1-\frac{1}{3}\sqrt{3} \\[.3em]
-		1
-	\end{array}\right) \approx \left(\begin{array}{l}
-		0. \\[.3em]
-		0.42265 \\[.3em]
-		1.
-	\end{array}\right),
+$$\tag{eq:3.15b}
+	Q(\zeta) = -e_0\left(\frac{1}{2} \sqrt{2}-\frac{3}{4}\right)\zeta^3 + \mathcal{O}(\zeta^4).
 $$
 
-where the notation $\bar{B}_\mathrm{2}$ and $\bar{B}_\mathrm{3}$ is used to distinguish the second-order and third-order accurate schemes.
+Equating the leading terms in both suggests letting the coefficient
+
+$$\tag{eq:3.14d}
+	e_0 = -\frac{2}{3} \sqrt{2}.
+$$
+
+We thus obtain from {eq:3.10b} and {eq:3.13}
+
+$$\tag{eq:3.15}
+	\epsilon^{n+1} - \tilde{\epsilon}^{n+1} = \left[Q(\zeta) - R(\zeta)\right] y^n = \mathcal{O}(\zeta^4) y^n.
+$$
+
+This proves the third-order consistency of the numerically estimated error to the actual error corresponding to Dahlquist's problem, and thus demonstrates the embedded method's ability to measure the leading third-order error term accurately. We note that we could have used an alternative ARK coefficient vector $B$ to generate an embedded higher-order scheme using just the three TR-BDF2 stages, which would yield a comparable method with equivalent error estimation at lower computational cost [CITATIONS]. However, the stability of such an embedded method would be conditional on $\zeta$, and the higher-order terms of $Q(\zeta) - R(\zeta)$ would be unbounded, even when $\zeta^\mathrm{ex} = 0$, $\zeta = \zeta^\mathrm{im}$. In such a case, an application of an 'implicit filter' would be needed to improve the error estimate at larger time steps [CITE Shampine]. Such a filter can be effective, but requires some ad-hoc assumptions. Here, by trading the implicit filter for an additional RK stage, we were able to introduce the additional coefficients $c_2$ and $a_{32}^\mathrm{ex}$ into the quasi-trapezoidal scheme and tune them to achieve the same level of accuracy and of boundedness of error estimation. However, in the limit of infinite $\zeta^\mathrm{im}$, boundedness of the error estimate is still not commensurate with the L-stability of the implicit part of the ARK scheme, which would require that $\lim\limits_{\zeta^\mathrm{im} \to -\infty} Q(\zeta^\mathrm{im}, 0) = 0$. Instead of resolving this with another implicit ARK stage or an implicit filter, we try to mitigate the problem by careful balancing of error tolerances for each equation in the problem set {eq:3.2}.
+
+[TODO: plot stability region of resulting scheme!]
+
+The resulting ARK coefficient vectors and matrices are given by
+
+$$\tag{eq:3.16a}
+    C^T = \begin{bmatrix}
+		  0
+		& 2 - \sqrt2
+		& 1
+		& 1
+	\end{bmatrix} \approx \begin{bmatrix}
+		  0.00
+		& 0.60
+		& 1.00
+		& 1.00
+	\end{bmatrix}
+$$
+
+$$\tag{eq:3.16b}
+    A^\mathrm{im} = \begin{bmatrix}
+		& 0
+		&  
+		&   \\[.7em]
+		& 1 - \frac{1}{2}\sqrt2
+		& 1 - \frac{1}{2}\sqrt2
+		&  
+		&   \\[.7em]
+		& \frac{1}{2}
+		& 0
+		& \frac{1}{2} 
+		&  \\[.7em]
+		& \frac{1}{4}\sqrt{2}
+		& \frac{1}{4}\sqrt{2}
+		& 0
+		& 1-\frac{1}{2}\sqrt{2}
+	\end{bmatrix} \approx \begin{bmatrix}
+		& 0.00
+		&  
+		&   \\[.7em]
+		& 0.30
+		& 0.30
+		&  
+		&   \\[.7em]
+		& 0.50
+		& 0.00
+		& 0.50
+		&  \\[.7em]
+		& 0.35
+		& 0.35
+		& 0.00
+		& 0.30
+	\end{bmatrix}
+$$
+
+$$\tag{eq:3.16c}
+    A^\mathrm{ex} = \begin{bmatrix}
+		  0
+		&    
+		&  
+		&   \\[.7em]
+		  2-\sqrt{2}
+		& 0
+		&
+		&   \\[.7em]
+		  \frac{1}{2} - \frac{1}{4}\sqrt{2}
+		& \frac{1}{2} + \frac{1}{4}\sqrt{2}
+		& 0
+		& \\[.7em]
+		  \frac{1}{2} - \frac{1}{2}\sqrt{2}
+		& \frac{1}{2} + \frac{1}{2}\sqrt{2}
+		& 0
+		& 0
+	\end{bmatrix} \approx \begin{bmatrix}
+		  \phantom{+}0.00
+		&    
+		&  
+		&   \\[.7em]
+		  \phantom{+}0.60
+		& 0.00
+		&
+		&   \\[.7em]
+		  \phantom{+}0.15
+		& 0.85
+		& 0.00
+		& \\[.7em]
+		  -0.20
+		& 1.20
+		& 0.00
+		& 0.00
+	\end{bmatrix}
+$$
+
+$$\tag{eq:3.16d}
+    B^T = \begin{bmatrix}
+		\frac{1}{4}\sqrt{2}  \\[.7em]
+		\frac{1}{4}\sqrt{2} \\[.7em]
+		0                       \\[.7em]
+		1 - \frac{1}{2}\sqrt{2}
+	\end{bmatrix} \approx \begin{bmatrix}
+		0.35  \\[.7em]
+		0.35  \\[.7em]
+		0     \\[.7em]
+		0.30
+	\end{bmatrix}
+$$
+
+$$\tag{eq:3.16e}
+    E^T = \begin{bmatrix}
+		 -\frac{1}{3} + \frac{1}{3}\sqrt{2} \\[.7em]
+		 -\frac{1}{3}                       \\[.7em]
+		  \frac{1}{3}\sqrt{2}               \\[.7em]
+		  \frac{2}{3}-\frac{2}{3}\sqrt{2}
+	\end{bmatrix} \approx \begin{bmatrix}
+		  0.14 \\[.7em]
+		 -0.33                       \\[.7em]
+		  0.47               \\[.7em]
+		 -0.28
+	\end{bmatrix}
+$$
+
 
 
 <!--
@@ -427,7 +571,7 @@ The solution with minus sign, $2 - \sqrt{2} \approx 0.586$ not only lies in the 
 - We implement matrix-free algorithms and so the assembly cost is no issue for us.
 -->
 
-**3.4: Error estimation and time step control**
+<!-- **3.4: Error estimation and time step control**
 
 [IGNORE BELOW, TO BE REORGANIZED!]
 The more general form {eq:3.13} allows us however to choose different values of $b^\mathrm{T}$ that also eliminate the third-order truncation error $\mathcal{O}(h_t^3)$, at the expense of L and A stability. Inserting again the test equation $\partial y/\partial t = \lambda y$ and following the procedure that led to {eq:3.11}, we now obtain
@@ -475,23 +619,23 @@ $$\tag{eq:3.19c}
 $$
 $$\tag{eq:3.19d}
 	= \mathcal{O}(h_t^4) \iff a_{32} = \tfrac{1}{2} + \tfrac{1}{3}\sqrt{2}.
-$$
+$$ -->
 
 ----
 
-![fig:stab](https://media.githubusercontent.com/media/cpranger/DamageBreakage/main/paper/figures/stability.png)
+<!-- ![fig:stab](https://media.githubusercontent.com/media/cpranger/DamageBreakage/main/paper/figures/stability.png)
 
-> Stability regions $\lvert P(h_t \lambda) \rvert \leq 1$ in the complex plane $h_t \lambda \in \mathbb{C}$ derived from the scalar test equation $\partial y / \partial t = \lambda y$, of (top left) the second-order L-stable TR-BDF2 scheme, (top right) its third-order diagonally implicit Runge-Kutta extension, (bottom left) an embedded second-order explicit Runge-Kutta scheme, and (bottom right) an embedded third-order explicit Runge-Kutta scheme. In the latter, a circular region $D$ is plotted with origin $0$ and radius $\sqrt{3}$, the intersection of which with the left half plane is a proper subset of the stability region $\lvert P(h_t \lambda) \rvert \leq 1$ of the explicit 3rd-order Runge-Kutta scheme by which the explicit part of the equations is integrated.
+> [TODO: REDO] Stability regions $\lvert P(h_t \lambda) \rvert \leq 1$ in the complex plane $h_t \lambda \in \mathbb{C}$ derived from the scalar test equation $\partial y / \partial t = \lambda y$, of (top left) the second-order L-stable TR-BDF2 scheme, (top right) its third-order diagonally implicit Runge-Kutta extension, (bottom left) an embedded second-order explicit Runge-Kutta scheme, and (bottom right) an embedded third-order explicit Runge-Kutta scheme. In the latter, a circular region $D$ is plotted with origin $0$ and radius $\sqrt{3}$, the intersection of which with the left half plane is a proper subset of the stability region $\lvert P(h_t \lambda) \rvert \leq 1$ of the explicit 3rd-order Runge-Kutta scheme by which the explicit part of the equations is integrated. -->
 
-The stability regions of the four schemes derived here (second-order L-stable TR-BDF2, its third-order diagonally implicit Runge-Kutta extension, its associated third-order explicit Runge-Kutta counterpart, and its embedded second-order explicit RK method) are plotted in Figure {fig:stab}. In the bottom-right panel of the same figure, the region of stability of the explicit RK scheme is approximated with a circular region with radius $\sqrt{3}$ centered around the origin. The intersection of this region with the left half complex plane is a proper subset of the complete stability region, and allows us to determine an appropriate time step using only the the spectral radius of the explicit Jacobian $\mathbf{J}_\mathrm{ex}$ (see Section 3.1):
+<!-- The stability regions of the four schemes derived here (second-order L-stable TR-BDF2, its third-order diagonally implicit Runge-Kutta extension, its associated third-order explicit Runge-Kutta counterpart, and its embedded second-order explicit RK method) are plotted in Figure {fig:stab}. In the bottom-right panel of the same figure, the region of stability of the explicit RK scheme is approximated with a circular region with radius $\sqrt{3}$ centered around the origin. The intersection of this region with the left half complex plane is a proper subset of the complete stability region, and allows us to determine an appropriate time step using only the the spectral radius of the explicit Jacobian $\mathbf{J}_\mathrm{ex}$ (see Section 3.1): -->
 
-$$\tag{eq:3.20}
+<!-- $$\tag{eq:3.20}
 	h_t = \sqrt{3}/\rho(\mathbf{J}_\mathrm{ex}).
 $$
 
-Since the circular region intersects the imaginary axis at critical stability and passes close by the three complex zeroes of the stability polynomial, this choice gives both excellent conservation properties of the purely hyperbolic components, and excellent damping properties of the stiff dissipative components. We will refine the issue of time step selection in Section 3.4.
+Since the circular region intersects the imaginary axis at critical stability and passes close by the three complex zeroes of the stability polynomial, this choice gives both excellent conservation properties of the purely hyperbolic components, and excellent damping properties of the stiff dissipative components. We will refine the issue of time step selection in Section 3.4. -->
 
-
+[TODO: restructure remainder of subsection below this line]
 Inspired by the multi-rate extension of TR-BDF2 of [Bonaventura et al., 2018], we design the following much simplified mechanism for controlling the error on the implicitly solved components of {eq:3.4}. We estimate the implicit error using {eq:3.21c}. Then, given the absolute and relative tolerances $\tau_\mathrm{a}$ and $\tau_\mathrm{r}$, we compute the dimensionless error measure
 
 $$\tag{eq:3.23}
@@ -534,61 +678,216 @@ $$
  -->
 
 
-**3.5: Decomposition of the governing equations**
+**3.4: ImEx decomposition of the governing equations**
 
-We also consider an approximation to this system:
+We additively decompose the function $f(y)$ of system {eq:3.2} into an implicitly solved component $f^\mathrm{im}(y)$ and an explicitly solved component $f^\mathrm{ex}(y)$ in the following way;
 
-$$\tag{eq:3.2a}
-	\frac{\partial\vec{v}}{\partial t} = r^{-1}\nabla \cdot \left[ \mathbf{S}(\jmath e, \alpha_0) e \right] =  \tilde{F}_v(e),
+$$\tag{eq:3.xxa}
+	f^\mathrm{im}_{rv} = f_{rv}, \qquad
+	f^\mathrm{ex}_{rv} = 0,
 $$
 
-$$\tag{eq:3.2b}
-	\frac{\partial e}{\partial t} = \nabla^\mathrm{s} \vec{v} = \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}),
+$$\tag{eq:3.xxb}
+	f^\mathrm{im}_{e} = f_{e}, \qquad
+	f^\mathrm{ex}_{e} = 0,
 $$
 
-$$\tag{eq:3.2c}
-	\frac{\partial\alpha}{\partial t} = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right] + R_\alpha( \jmath e_0, \alpha) = \tilde{F}_\alpha(\alpha),
+$$\tag{eq:3.xxc}
+	f^\mathrm{im}_{\alpha}(\alpha) = \nabla \cdot \left[ D_\alpha(\alpha)\nabla \alpha \right], \qquad
+	f^\mathrm{ex}_{\alpha}(e, \alpha) = R_\alpha(\jmath e, \alpha)
 $$
 
-$$\tag{eq:3.2d}
-	\frac{\partial\beta}{\partial t} = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right] + R_\beta(\jmath e_0, \alpha_0, \beta) =  \tilde{F}_\beta(\beta),
+$$\tag{eq:3.xxd}
+	f^\mathrm{im}_{\beta}(\beta) = \nabla \cdot \left[ D_\beta(\beta) \nabla \beta \right], \qquad
+	f^\mathrm{ex}_{\beta}(e, \alpha, \beta, \vartheta) = R_\beta(e, \alpha, \nabla \alpha, \beta, \vartheta),
 $$
 
-which is evaluated given some known $e_0$, $\alpha_0$, and $\beta_0$. We will ensure that
-
-$$\tag{eq:3.3a}
-	\frac{\partial F_{\mathrm{e}}}{\partial \vec{v}} = \frac{\partial \tilde{F}_{\mathrm{e}}}{\partial \vec{v}}
+$$\tag{eq:3.xxe}
+	f^\mathrm{im}_{\vartheta}(\vartheta) = \nabla \cdot \left[ D_\vartheta(\vartheta) \nabla \vartheta \right], \qquad
+	f^\mathrm{ex}_{\vartheta}(e, \alpha, \beta, \vartheta) = R_\vartheta(e, \alpha, \nabla \alpha, \beta, \vartheta).
 $$
 
-$$\tag{eq:3.3b}
-	\frac{\partial F_\alpha}{\partial \nabla \alpha} = \frac{\partial \tilde{F}_\alpha}{\partial \nabla \alpha}
+The right-hand-side functions $f^\mathrm{im}$ and $f^\mathrm{ex}$ are to be space-discretized [Section ref TODO] and linearized about some solution stage or iterate [Section ref TODO], at which point they can be regarded as sparse (virtual) block matrices. The contents and block structure of these matrices are important, as they together determine the stable time step through the explicit stability criterion [TODO REF], and the solvability of the implicit ARK stage equations {eq:3.4b}. We have structured {eq:3.xxa}--{eq:3.xxe} in such a way that $f^\mathrm{im}$ is mostly block upper triangular, and $f^\mathrm{ex}$ is mostly block lower triangular. This facilitates solvability of the ARK stage equations {eq:3.4b} by Schur complement reduction or simple substitution, and prevents severe, mesh-dependent time step restrictions by the following theorem Y [TODO REF]:
+
+> __Lemma X__: the Schur determinant lemma \
+> Given a block matrix $A$ of the form
+> $$ A = \begin{bmatrix} A_{11} & A_{12} \\[.7em] A_{21} & A_{22} \end{bmatrix}, $$
+> the determinant $\det$ of A is,
+> - if $A_{11}$ is invertible
+> $$\det A = \det(A_{11}) \det(A / A_{11}),$$ \
+> - if $A_{22}$ is invertible
+> $$\det A = \det(A_{22}) \det(A / A_{22}),$$
+> in which $A / A_{11}$ and $A / A_{22}$ denote respectively the _Schur complements_ of $A_{11}$ and $A_{22}$ in $A$, and are given by
+> $$ A / A_{11} = A_{22} - A_{21} A_{11}^{-1} A_{12}$$
+> $$ A / A_{22} = A_{11} - A_{12} A_{22}^{-1} A_{21}$$
+> \
+> \
+> __Proof__:
+> $A$ can be decomposed as follows:
+> - if $A_{11}$ is invertible
+> $$A = \begin{pmatrix} I_{11} & \\[.7em] A_{21} A_{11}^{-1} & I_{22} \end{pmatrix} \begin{pmatrix} A_{11} & \\[.7em] & I_{22} \end{pmatrix} \begin{pmatrix} I_{11} & \\[.7em] & A_{22} - A_{21} A_{11}^{-1} A_{12} \end{pmatrix} \begin{pmatrix} I_{11} & A_{11}^{-1} A_{12}  \\[.7em] & I_{22} \end{pmatrix},$$ \
+> - if $A_{22}$ is invertible
+> $$A = \begin{pmatrix} I_{11} & A_{12} A_{22}^{-1} \\[.7em] & I_{22} \end{pmatrix}\begin{pmatrix} A_{11} - A_{12} A_{22}^{-1} A_{21} & \\[.7em] & I_{22} \end{pmatrix} \begin{pmatrix} I_{11} & \\[.7em] & A_{22} \end{pmatrix} \begin{pmatrix} I_{11} & \\[.7em] A_{22}^{-1} A_{21} & I_{22} \end{pmatrix},$$ \
+> with $I_{11}$ and $I_{22}$ appropriately sized identity matrices. These decompositions can be verified by performing the block matrix multiplication.
+>
+> It can be seen by applying Laplace's cofactor iteration that the determinants of the unitriangular matrices are equal to one, and that the determinants of the block diagonal matrices are equal to the determinants of the non-identity blocks. Application of the product rule for determinants, $\det(CD) = \det(C)\det(D)$, then proves the lemma. $\blacksquare$
+
+> __Corollary X__: corollary to the Schur determinant lemma \
+> Given a block matrix $A$ of the form
+> $$ A = \begin{bmatrix} A_{11} & A_{12} \\[.7em] A_{21} & A_{22} \end{bmatrix}, $$
+> in which all blocks commute, the determinant $\det$ of A is given by
+> $$\det A = \det(A_{11} A_{22} - A_{12} A_{21}),$$ \
+> __Proof__:
+> The statement can be proven by the Schur determinant lemma (Lemma X), the multiplicative property of matrix determinants, and the commutativity of all blocks. The latter also cancels the two invertibility conditions of the Schur determinant lemma on the diagonal blocks. The statement could probably be somewhat generalized but that is not required here. $\blacksquare$
+
+
+> __Theorem Y__: Spectrum of a 2 by 2 block triangular matrix \
+> Given a block matrix $A$ of the form
+> $$ A = \begin{bmatrix} A_{11} &  \\[.7em] A_{21} & A_{22} \end{bmatrix}, $$
+> the spectrum $\sigma(A)$ of A is given by
+> $$\tag{eq:Y.1} \sigma(A) := \{ \lambda \in \mathbb{C} : \det(A - \lambda I) = 0 \} = \sigma(A_{11}) \cup \sigma(A_{22}). $$ \
+> 
+> 
+> __Proof__: we use the Schur determinant lemma (Lemma X) to express the spectrum of $A$ as
+> $$ \sigma(A) = \{ \lambda \in \mathbb{C} : \det\begin{pmatrix} A_{11} - \lambda I_{11} & 0 \\[.7em] A_{21} & A_{22} - \lambda I_{22} \end{pmatrix} = 0 \}. $$ \
+> $$ = \{ \lambda \in \mathbb{C} : \det(A_{11} - \lambda I_{11}) \det (A_{22} - \lambda I_{22}) = 0 \}. $$ \
+> $$ = \{ \lambda \in \mathbb{C} : \det(A_{11} - \lambda I_{11}) = 0 \} \cup \{ \lambda \in \mathbb{C} : \det(A_{22} - \lambda I_{22}) = 0 \}. $$ \
+> $$\tag{eq:Y.3} = \sigma(A_{11}) \cup \sigma(A_{22}). $$ \
+> The Schur determinant lemma applies only if _either or both_ of $B_{11} = A_{11} - \lambda I_{11}$ and $B_{22} = A_{22} - \lambda I_{22}$ are invertible. However, _neither_ are invertible only if $\lambda$ is an eigenvalue of both $A_{11}$ and $A_{22}$, in which case the derivation above is invalid. We can nevertheless use this fact to prove the theorem. Suppose that $\lambda$ is an eigenvalue of $A$, but neither of $A_{11}$ nor of $A_{22}$, so that the set difference
+> $$\tag{eq:Y.4} \sigma(A) \setminus \left(\sigma(A_{11}) \cup \sigma(A_{22})\right) \neq \varnothing $$ \
+> is not empty. In this case the Schur determinant lemma applies but {eq:Y.3} is contradicted. We can therefore conclude the contrary of {eq:Y.4}, i.e.
+> $$\tag{eq:Y.5} \sigma(A) = \sigma(A_{11}) \cup \sigma(A_{22}). $$ \
+> This proves the theorem. $\blacksquare$
+>
+> _N.B._, the proof above also holds for block upper triangular matrices of the form
+>$$ A = \begin{bmatrix} A_{11} & A_{12} \\[.7em] & A_{22} \end{bmatrix}. $$
+
+<!-- [^2]: loosely based on [this page](http://chrisyeh96.github.io/2021/05/19/schur-complement.html). -->
+
+and
+
+> __Theorem Z__: Spectrum of a 2 by 2 block matrix consisting of diagonal blocks \
+> Given a block matrix $A$ of the form
+> $$ A = \begin{bmatrix} A_{11} & A_{12} \\[.7em] A_{21} & A_{22} \end{bmatrix}, $$
+> in which all blocks are diagonal square matrices of equal size
+> the spectrum $\sigma(A)$ of A is given by
+> $$ \sigma(A) = \frac{1}{2} \bigcup\limits_{i} \left[A_{11} + A_{22} \pm \sqrt{A_{11}^2 + A_{22}^2 - 2 A_{11} A_{22} + 4 A_{12} A_{21}}\right]_{ii}. $$
+> \
+> __Proof__: we use the corollary to the Schur determinant lemma (Corollary X) to express the spectrum of $A$ as
+> $$ \sigma(A) = \{ \lambda \in \mathbb{C} : \det\begin{pmatrix} A_{11} - \lambda I & A_{12} \\[.7em] A_{21} & A_{22} - \lambda I \end{pmatrix} = 0 \}. $$ \
+> $$ = \{ \lambda \in \mathbb{C} : \det((A_{11} - \lambda I) (A_{22} - \lambda I) - A_{12} A_{21}) = 0 \}$$
+> $$ = \{ \lambda \in \mathbb{C} : \det(\lambda^2 I - \lambda (A_{11} + A_{22}) + A_{11} A_{22} - A_{12} A_{21}) = 0 \}.$$
+> The matrix $\lambda^2 I - \lambda (A_{11} + A_{22}) + A_{11} A_{22} - A_{12} A_{21}$ is a diagonal matrix, and so the quadratic equation in $\lambda$ can be solved pointwise as
+> $$ \sigma(A) = \bigcup\limits_{i} \{ \lambda \in \mathbb{C} : [\lambda^2 - \lambda (A_{11} + A_{22}) + A_{11} A_{22} - A_{12} A_{21}]_{ii} = 0. \}$$ \
+> using the quadratic formula to solve for $\lambda$, the theorem is obtained. $\blacksquare$
+
+
+
+We note that Theorem Y [TODO] can be applied recursively; a rectangular grouping of blocks constitutes a block in itself, and can always be restructured after some matrix algebra has been applied. We propose a coarse block grouping of unknowns as follows
+
+$$\tag{eq:3.XXX}
+	y = \Big(\big((rv, e), (\alpha)\big), (\beta, \vartheta)\Big),
 $$
 
-$$\tag{eq:3.3c}
-	\frac{\partial F_\beta}{\partial \nabla \beta} = \frac{\partial \tilde{F}_\beta}{\partial \nabla \beta}
+which are solved in succession from back to front. We take an advance on the linearization and space-discretization of $f^\mathrm{im}$ and $f^\mathrm{ex}$ in order to analyze the block structure of the explicit Jacobian
+$$
+	\frac{\partial f^\mathrm{ex}}{\partial y} \sim \left[\begin{array}{cc|c|cc}
+		  \phantom{0}
+		& \phantom{0}
+		& 
+		& 
+		&  \\[.7em]
+		  \phantom{0}
+		& \phantom{0}
+		& 
+		& 
+		&  \\[.7em]\hline\\[-.5em]
+		  0
+		& \frac{\partial R_\alpha}{\partial \jmath e}\frac{\partial \jmath e}{\partial e}
+		& \frac{\partial R_\alpha}{\partial \alpha}
+		& 
+		&  \\[.7em]\hline\\[-.5em]
+		  0
+		& \frac{\partial R_\beta}{\partial e}
+		& \frac{\partial R_\beta}{\partial \alpha} + \frac{\partial R_\beta}{\partial (\nabla \alpha)} \nabla + \frac{\partial R_\beta}{\partial (\nabla \alpha)^\mathrm{T}} \nabla^\mathrm{T}
+		& \frac{\partial R_\beta}{\partial \beta}
+		& \frac{\partial R_\beta}{\partial \vartheta} \\[.7em]
+		  0
+		& \frac{\partial R_\vartheta}{\partial e}
+		& \frac{\partial R_\vartheta}{\partial \alpha} + \frac{\partial R_\vartheta}{\partial (\nabla \alpha)} \nabla + \frac{\partial R_\vartheta}{\partial (\nabla \alpha)^\mathrm{T}} \nabla^\mathrm{T}
+		& \frac{\partial R_\vartheta}{\partial \beta}
+		& \frac{\partial R_\vartheta}{\partial \vartheta} \\[.7em]
+
+	\end{array}\right]
 $$
 
-Using this approximation, the complete system is then again written as
-
-$$\tag{eq:3.4a}
-	\frac{\partial\vec{v}}{\partial t} = \left[F_v(e, \alpha) - \tilde{F}_v(e)\right] + \tilde{F}_v(e), 
+$$
+	\frac{\partial f^\mathrm{im}}{\partial y} - c \frac{\partial y}{\partial y} \sim \left[\begin{array}{cc|c|c|c}
+		  - c \frac{\partial rv}{\partial rv}
+		& (\nabla \cdot) \frac{\partial s_e}{\partial e}
+		& (\nabla \cdot) \left[
+		    \frac{\partial s_e + \partial s_\alpha}{\partial \alpha}
+		  + \frac{\partial s_\alpha}{\partial (\nabla \alpha)} \nabla
+		  + \frac{\partial s_\alpha}{\partial (\nabla \alpha)^\mathrm{T}} \nabla^\mathrm{T}\right]
+		& 0
+		& (\nabla \cdot) \frac{\partial s_\vartheta}{\partial \vartheta} \\[.7em]
+		  (\nabla^\mathrm{s}) r^{-1}
+		& \frac{\partial R_e}{\partial \jmath e} \frac{\partial \jmath e}{\partial e} - c \frac{\partial e}{\partial e}
+		& \frac{\partial R_e}{\partial \alpha} + \frac{\partial R_e}{\partial (\nabla \alpha)} \nabla + \frac{\partial R_e}{\partial (\nabla \alpha)^\mathrm{T}} \nabla^\mathrm{T}
+		& \frac{\partial R_e}{\partial \beta}
+		& \frac{\partial R_e}{\partial \vartheta} \\[.7em]\hline\\[-.5em]
+		  
+		& 
+		& (\nabla \cdot) D_\alpha \nabla - c \frac{\partial \alpha}{\partial \alpha}
+		& 0
+		& 0 \\[.7em]\hline\\[-.5em]
+		  
+		& 
+		& 
+		& (\nabla \cdot) D_\beta \nabla - c \frac{\partial \beta}{\partial \beta}
+		& 0 \\[.7em]\hline\\[-.5em]
+		  
+		& 
+		& 
+		& 
+		& (\nabla \cdot) D_\vartheta \nabla - c \frac{\partial \vartheta}{\partial \vartheta} \\[.7em]
+	\end{array}\right]
 $$
 
-$$\tag{eq:3.4b}
-	\frac{\partial e}{\partial t} = \left[F_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}, \alpha, \beta, \jmath e) - \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v})\right] + \tilde{F}_{\mathrm{e}}(\nabla^\mathrm{s} \vec{v}), 
+
+
+$$\tag{eq:3.1b}
+	\partial_t e = \nabla^\mathrm{s} v + R_e(\jmath e, \alpha, \nabla \alpha, \beta, \vartheta),
 $$
 
-$$\tag{eq:3.4c}
-	\frac{\partial\alpha}{\partial t} = \left[F_\alpha( \jmath e, \alpha ) - \tilde{F}_\alpha(\alpha)\right] + \tilde{F}_\alpha(\alpha), 
+, and interpret multiplication as function application (the argument is denoted with a placeholder symbol $\diamond$)
+
+
+<!-- > the determinant $\det(A)$ of A can be expressed using either of the Schur complements $A \setminus A_{11}$ or $A \setminus A_{22}$, as
+> $$ \det(A) = \det(A_{11})\det(A_{22} - A_{21} A_{11}^{-1} A_{12}) = \det(A_{22})\det(A_{11} - A_{12} A_{22}^{-1} A_{21}), $$
+> so that when either $A_{21}$ or $A_{12}$ are zero, the spectrum $\sigma(A)$
+
+$$\\
+    \sigma(\mathbf{J}_\mathrm{ex}) = \{ \lambda \in \mathbb{C} : \det( \mathbf{J}_\mathrm{ex} - \lambda \mathbf{I} ) = 0 \}
 $$
 
-$$\tag{eq:3.4d}
-	\frac{\partial\beta}{\partial t}  = \left[F_\beta(\jmath e, \alpha, \beta) - \tilde{F}_\beta(\beta)\right] + \tilde{F}_\beta(\beta),
+$$\\
+	= \{ \lambda \in \mathbb{C} : \det(-\lambda I_v)\det( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} - \vec{\mathbf{0}}(-\lambda I_v)^{-1}\vec{\mathbf{B}}^\mathrm{T} ) = 0 \}
 $$
 
-We will use an implicit-explicit (IMEX) time integration scheme to solve the terms in square brackets explicit in time, and the remainders implicit in time.
+$$\\
+	= \{ \lambda \in \mathbb{C} : \det(-\lambda I_v)\det( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} ) = 0 \}
+$$
 
-The explicit part of {eq:3.4a}--{eq:3.4d} is assigned a Jacobian $\mathbf{J}_\mathrm{ex}$, and the implicit part a Jacobian $\mathbf{J}_\mathrm{im}$, both of which are given by
+$$\tag{eq:3.8}
+	= \sigma(0) \cup \sigma(\mathbf{D}) = \{ 0 \} \cup \sigma(\mathbf{D}).
+$$
+
+
+sadf -->
+
+
+<!-- The explicit part of {eq:3.4a}--{eq:3.4d} is assigned a Jacobian $\mathbf{J}_\mathrm{ex}$, and the implicit part a Jacobian $\mathbf{J}_\mathrm{im}$, both of which are given by
 
 $$\tag{eq:3.5a}
 	\mathbf{J}_\mathrm{ex} = \begin{bmatrix}
@@ -630,11 +929,11 @@ $$\tag{eq:3.5b}
 		& 0
 		& \frac{\partial \tilde{F}_\beta}{\partial \beta}
 	\end{bmatrix}.
-$$
+$$ -->
 
 <!-- The term in the first column of $\mathbf{J}_\mathrm{ex}$ cancels due to {eq:3.3a}. -->
 
-In order to determine a stable time step [Section X], we would like to determine the spectral radius $\rho(\mathbf{J}_\mathrm{ex})$ of $\mathbf{J}_\mathrm{ex}$, which is the largest element by absolute value of its (complex) spectrum $\sigma(\mathbf{J}_\mathrm{ex})$. We can create the block structure
+<!-- In order to determine a stable time step [Section X], we would like to determine the spectral radius $\rho(\mathbf{J}_\mathrm{ex})$ of $\mathbf{J}_\mathrm{ex}$, which is the largest element by absolute value of its (complex) spectrum $\sigma(\mathbf{J}_\mathrm{ex})$. We can create the block structure
 
 $$\tag{eq:3.6}
 	\mathbf{J}_\mathrm{ex} = \left[\begin{array}{c|ccc}
@@ -660,21 +959,21 @@ $$
 and use the Schur determinant theorem,
 
 $$\tag{eq:3.7}
-	\mathrm{det}\begin{pmatrix} A & B \\ C & D \end{pmatrix} = \mathrm{det}(A) \mathrm{det}(D - C A^{-1} B) = \mathrm{det}(D)\mathrm{det}(A - B D^{-1} C),
+	\det\begin{pmatrix} A & B \\ C & D \end{pmatrix} = \det(A) \det(D - C A^{-1} B) = \det(D)\det(A - B D^{-1} C),
 $$
 
 so that
 
 $$\\
-    \sigma(\mathbf{J}_\mathrm{ex}) = \{ \lambda \in \mathbb{C} : \mathrm{det}( \mathbf{J}_\mathrm{ex} - \lambda \mathbf{I} ) = 0 \}
+    \sigma(\mathbf{J}_\mathrm{ex}) = \{ \lambda \in \mathbb{C} : \det( \mathbf{J}_\mathrm{ex} - \lambda \mathbf{I} ) = 0 \}
 $$
 
 $$\\
-	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_v)\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} - \vec{\mathbf{0}}(-\lambda I_v)^{-1}\vec{\mathbf{B}}^\mathrm{T} ) = 0 \}
+	= \{ \lambda \in \mathbb{C} : \det(-\lambda I_v)\det( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} - \vec{\mathbf{0}}(-\lambda I_v)^{-1}\vec{\mathbf{B}}^\mathrm{T} ) = 0 \}
 $$
 
 $$\\
-	= \{ \lambda \in \mathbb{C} : \mathrm{det}(-\lambda I_v)\mathrm{det}( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} ) = 0 \}
+	= \{ \lambda \in \mathbb{C} : \det(-\lambda I_v)\det( \mathbf{D} - \lambda \mathbf{I}_\mathbf{D} ) = 0 \}
 $$
 
 $$\tag{eq:3.8}
@@ -707,4 +1006,4 @@ $$\\\tag{eq:3.v}
     \cup \sigma\left(\frac{\partial \tilde{F}_\beta}{\partial \beta}\right).
 $$
 
-The square roots and plusminus signs in {eq:3.u} and {eq:3.v} should be understood to be applied element-wise. Since the operators in {eq:3.v} are all real negative (semi-)definite, the spectrum $\sigma(\mathbf{J}_\mathrm{im})$ is anticipated to occupy an interval on the negative real axis, and an interval on the imaginary axis.
+The square roots and plusminus signs in {eq:3.u} and {eq:3.v} should be understood to be applied element-wise. Since the operators in {eq:3.v} are all real negative (semi-)definite, the spectrum $\sigma(\mathbf{J}_\mathrm{im})$ is anticipated to occupy an interval on the negative real axis, and an interval on the imaginary axis. -->
